@@ -13,3 +13,4 @@ Documentation is provided to create LEAF for new practice changes is available o
 
 For SOC and Soil Erosion, new LEAF generation is organized in 3 steps: data gathering and processing, data harmonization (same for both), and LEAF calculation. 
 
+SOC documentation can be found [here](SOC_Documentation.md) and Soil Erosion [here](Soil_Erosion_Documentation.md).
