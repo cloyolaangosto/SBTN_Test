@@ -56,7 +56,7 @@ The following procedure was use to assign yields into each UHTH:
 This has been implemented in the script cropcalcs under the function create_crop_yield_raster_withIrrigationPracticeScaling
 
 #### 8)  Monthly input of plant residues (t C/ha)
-Calculated for each crop depending on their yield for a given location. Commodity yields are transformed into dry matter content using table XXX. A carbon content of 50% was used as average.
+Calculated for each crop depending on their yield for a given location. Commodity yields are transformed into dry matter content using table 1. A carbon content of 50% was used as average. PET's crop coefficient $(K_c)$ curves is then used to distribute annual plant residues into each month by multiplying by $K_{c,t}/\sum_{t=1}^{12} K_{c,t}$
 
 Morais, Teixeria & Domingos (2019) calculated plant residues using IPCC's methods described in 1997 and 2006 guidelines. More recent guidelines from 2017 provides updated guidelines on this [link](https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch11_Soils_N2O_CO2.pdf) and is found starting on Equation 11.6
 
@@ -65,17 +65,16 @@ Basically, residues are calcualted as residues above ground (AG) plus residues b
 
 #### Above ground residues
 This is calculated as:
-AG(T) = Crop(T) * R_AG
+$AG(T) = Crop(T) * R_{AG}$
 
-Where R_AG is ratio of above-ground residue dry matter to harvested yield for crop T (Crop (T) ), kg d.m. ha-1 (kg d.m. ha-1 )-1 , (Table 11.1a) 
-Crop(T) is Yield(T) * DRY(T) and DRY is the crop dry matter content.
+Where $R_{AG}$ is ratio of above-ground residue dry matter to harvested yield for crop T (Crop (T)), kg d.m. ha-1 (kg d.m. ha-1 )-1 , (Table 11.1a). Crop(T) is defined as  Yield(T) * DRY(T) and DRY(T) is the crop dry matter content.
 
 It can be, more specifically, calculated as:
-AG(T) = Crop(T) • Slope(T) + Intercept(T) 
+$AG(T) = Crop(T) • Slope(T) + Intercept(T)$
 
 #### Below ground residues (BG)
 They're calculated as:
-BG(T) = (Crop(T) + AG(T)) * RS(T)
+$BG(T) = (Crop(T) + AG(T)) * RS(T)$
 
 Where RS(T) is ratio of below-ground root biomass to above-ground shoot biomass for crop T, kg d.m.ha-1 (kg d.m. ha-1 ) -1 
 
@@ -96,6 +95,8 @@ Where RS(T) is ratio of below-ground root biomass to above-ground shoot biomass 
 #### 10)  Monthly open pan evaporation (mm/month)
 Crop and location dependent open pan evaporation. According to XXX, Rainfall and open-pan evaporation are used to calculate topsoil 
 moisture deficit (TSMD), as it is easier to do this than obtain monthly measurements of the actual topsoil water deficit. To calculate this for each crop and location, several steps are needed.
+
+All the methods used can be found under the PET script.
 
 ##### Potential Evapotranspiration - Location based
 PET is calculated using the Thornthwaite equation ([Thornthwaite (1948)](https://doi.org/10.2307/210739)) for each month. This equation calculates PET based on duration of sunlight in hours (L), varying with months and latitude, number of days in a month (N), average monttly air temperature (T, in °C), and heat index (I). Detailed explanations can be found [here](https://wikifire.wsl.ch/tiki-indexf125.html?page=Potential+evapotranspiration)
@@ -129,14 +130,22 @@ $\delta$ can be estimated using Cooper's equation (below) nad then transformed i
 
 $\delta = 23.44^\circ \cdot \sin\!\left(\frac{360^\circ}{365}(n - 81)\right)$
 
-The average monthly of hours in a day can then be calculated using:
+Where $n$ is the day of the year (1-365). The middle day of each month is taken,
+
+Finally, the average monthly of hours in a day can then be calculated using:
 
 $L = (2\omega_0 \cdot (180/\pi)) /15$
 
-As omega is the angle between local noon and either sunrise or sunset, thus multiplying by 2 gives the total angular span of the Sun above the horizon (morning + afternoon). $180/\pi$ transforms radians into degrees, and 15° represents 1 hour.
+$\omega_0$ is the angle between local noon and either sunrise or sunset, thus multiplying by 2 gives the total angular span of the Sun above the horizon (morning + afternoon). $180/\pi$ transforms radians into degrees, and 15° represents 1 hour.
 
+##### Potential Crop Evapotranspiration
+To adapt the location based PET to each crop, it needs to be multiplied by the crop coefficient $(K_c)$ during each month. A $(K_c)$ monthly curve is thus created to calculate monthly crop evapotranspiration. Complete documentation can be found in [Source: Allen et al. (1998)](https://www.fao.org/4/X0490E/x0490e00.htm).
+
+![Source: Allen et al. (1998)](image.png)Source: Allen et al. (1998)
+
+$K_c$ values $K_{c, ini}$, $K_{c, mid}$, $K_{c, lat}$ as well as the duration of each period are defined for each crop per thermal zone in Table 5 of Morais, Teixeria & Domingos (2019) supplementary materials.
 
 ## Step 2 - Data Harmonization
-Once all data has been downloaded and inputs calculated, everything needs to be brought into the same base map format for GIS calculations. For the LEAFs available in this repository, UHTH zones from Morais, Teixeria & Domingos (2019) have been used.
+Once all data has been downloaded and inputs calculated, everything needs to be brought into the same base map format for GIS calculations. For the LEAFs available in this repository, UHTH zones from Morais, Teixeria & Domingos (2019) have been used as the base layer.
 
 ## Step 3 - 
