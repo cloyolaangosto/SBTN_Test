@@ -1,10 +1,12 @@
 # SOC
-SOC LEAF are generated following the methods described in [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604) and [Teixeira, Morais & Domingos (2021)](https://doi.org/10.1038/s41597-021-01018-2), these in turn use the Rothmadel C (RothC) model to simulate SOC changes through time. RothC simulates "the turnover of organic carbon in non-waterlogged top-soils that allows for the effects of soil type, temperature, moisture content and plant cover on the turnover process" (reference). Complete documentation can be found on LINK.
+SOC LEAF are generated following the methods described in [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604) and [Teixeira, Morais & Domingos (2021)](https://doi.org/10.1038/s41597-021-01018-2), these in turn use the Rothmadel C (RothC) model to simulate SOC changes through time. RothC simulates "the turnover of organic carbon in non-waterlogged top-soils that allows for the effects of soil type, temperature, moisture content and plant cover on the turnover process" ([Coleman, Prout & Milne (2024)](https://www.rothamsted.ac.uk/sites/default/files/Documents/RothC_description.pdf)).
 
 The model has been adaptaed into GIS format, using as a base the one found on XXX.
 
+The purpose of this documentation is not to explain the models used to generate LEAF, which are already availalbe at the aforementioned references, but to explain what data is needed and how to prepare it to generate new LEAFs. 
+
 ## Step 1 - Data Gathering and Processing
-The model needs several inputs, despite being the most simple, that ara availalbe globally. All data is location specific.
+RothC needs several inputs, despite being the most simple, that ara availalbe globally. All data is location specific.
 
 ### Soil and Weather Data
 Weather related data has been obtained from NASA projects, while soil related data has been sourced from SoilGrids. A data download support script is availalbe in XXX.
@@ -27,9 +29,9 @@ Average sand content (15-30 cm) has beeb used. [link](https://files.isric.org/so
 ### Crop Related Data
 
 #### 6) DPM/RPM ratio
-According to XXX...
-For most agricultural crops and improved grassland, we use a DPM/RPM ratio of 1.44 i.e., 59% of the plant material is DPM and 41% is RPM. For unimproved grassland and scrub (including Savanna) a ratio of 0.67 is used. For a deciduous or tropical woodland, a DPM/RPM ratio of 0.25 is used, so 
-20% is DPM and 80% is RPM.
+According to Coleman, Prout & Milne (2024), "for most agricultural crops and improved grassland, we use a DPM/RPM ratio of 1.44 i.e., 59% of the plant material is DPM and 41% is RPM. For unimproved grassland and scrub (including Savanna) a ratio of 0.67 is used. For a deciduous or tropical woodland, a DPM/RPM ratio of 0.25 is used, so 20% is DPM and 80% is RPM."
+
+For all crops, the ratio has been kept at 1.44.
 
 #### 7) Depth soil layer sampled (cm)
 15 cm as default, due to the 0-30 cm SoilGrids data.
@@ -146,6 +148,51 @@ To adapt the location based PET to each crop, it needs to be multiplied by the c
 $K_c$ values $K_{c, ini}$, $K_{c, mid}$, $K_{c, lat}$ as well as the duration of each period are defined for each crop per thermal zone in Table 5 of Morais, Teixeria & Domingos (2019) supplementary materials.
 
 ## Step 2 - Data Harmonization
-Once all data has been downloaded and inputs calculated, everything needs to be brought into the same base map format for GIS calculations. For the LEAFs available in this repository, UHTH zones from Morais, Teixeria & Domingos (2019) have been used as the base layer.
+Once all data has been downloaded and inputs calculated, everything needs to be brought into the same base map format, including projection and resolution, for GIS calculations. For the LEAFs available in this repository, UHTH zones from Morais, Teixeria & Domingos (2019) have been used as the base layer.
 
-## Step 3 - 
+Calculations and harmonization of all the data described above has been streamlined under the function prepare_crop_data under cropcalcs. The function needs as inputs: crop name, irrigation practice (rf for rainfed or irr for irrigated), GeoTIFF land use layer, and SPAM's all, rainfed, and irrigated layers.
+
+All data that could be made publicly available can be found here. PUT LINK PUBLIC DATA
+
+## Step 3 - LEAFs Calculations
+Once all the data has been prepared and harmonized, LEAFs calculation can begin. For this, RothC model takes the baseline SOC of the land analyzed and performs a monthly SOC balance and projects into the future for a given number of years. The final $n$ year of the calculation results, given in ton C/ha, are the SOC LEAF. This can be compared to ecoregional threshold to determine if current, or changed, land use and corresponding land management practices will lead to safe operating conditions.
+
+LEAFs available in this repository take as a baseline SoilGrid's SOC and project it XX years into the future. This can be found in the XXX folder.
+
+### RothC
+RothC is available in 2 formats: RothC 'Core', which is a simple implementation of the model taking 1 datapoint. This could be useful to understand the SOC dynamics of 1 production unit or farm. RothC_Raster, which is the GIS implementation of the model, takes as inputs GeoTIFF files and returns annual pictures for a given number of years. This can be useful to analyze several production units across different geographies.
+
+A modified version of RothC model is also available to estimate the benefits of conservation tillage, which has been adapted from [Hyun & Yoo (2024)](https://doi.org/10.1016/j.scitotenv.2023.168010).
+
+As a result, the model currently accepts the following land management practices: 
+1) Rainfed and Irrigated, 
+2) Convetional and Conservation tillage, 
+3) Residues left on field and removed from Field, and 
+4) Manure application.
+
+#### RothC GIS Version
+This version, implemented under the function run_RothC, takes as inputs the $n$ number of years to project, crop name, tillage practice, soil data, and monthly weather and crop related tif layers as inputs. It returns a tiff with $n$-layers.
+
+The layers needed as input are: 
+1) Clay, 
+2) SOC baseline, 
+3) Temperature (12-band), 
+4) Rainfall (12-band), 
+5) Evaporation (12-band), 
+6) Plant cover (12-band), 
+7) Irrigation (optional, 12-band), 
+8) Plant residues (optional, 12-band), 
+9) Freshyard manure (optional, 12-band),
+10) Sand (optional, only for assessing conservation tillage)
+
+Users can define conversvation tillage as True to assess it. The function further takes depth (default 15 cm), DPM/RPM ratio (default 1.44), and SOC no data value (-32768.0 default).
+
+The user is asked to input a description of the output and a string ID of practices. For example, if estimating SOC changes from Maize production, rainfed, residues left of field, under conventional tillage (description), the string ID oculd be rf_reson_ct.
+
+An implementation example describing all steps can be found here
+
+##### Scenario Analysis
+BLA BLA BLA
+
+## LEAF Calculations Implementation Example
+An implementation example describing all steps can be found here. Maize bla bla bla
