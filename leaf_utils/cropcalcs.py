@@ -1257,12 +1257,10 @@ def calculate_irrigation_fromTif(rain_fp, evap_fp, out_path: str):
 ############################################
 #### CROP DATA PREPARATION STREAMLINING ####
 ############################################
-
-
 def prepare_crop_data(
     crop_name: str,
     crop_practice_string: str,
-    soc_data_path: str,
+    lu_data_path: str,
     spam_crop_raster: str,
     output_data_folder: str,
     irr_yield_scaling: str,
@@ -1280,7 +1278,7 @@ def prepare_crop_data(
     lu_bin_output = f"{output_practice_based}_lu.tif"
     if all_new_files or not os.path.exists(lu_bin_output):
         print("Creating lu raster...")
-        lu_array = binarize_raster_pipeline(soc_data_path, lu_bin_output)
+        lu_array = binarize_raster_pipeline(lu_data_path, lu_bin_output)
     else:
         print("Land use binary raster already exist. Skipping...")
         lu_array = rxr.open_rasterio(lu_bin_output, masked=False).squeeze()
@@ -1316,7 +1314,7 @@ def prepare_crop_data(
     fao_yield_shp = create_crop_yield_shapefile(fao_crop_name)
 
     # Create irrigation adjusted yields
-    yield_output_path = f"{output_practice_based}_yield_monthly.tif"
+    yield_output_path = f"{output_practice_based}_yield.tif"
     if all_new_files or not os.path.exists(yield_output_path):
         print("Creating yield raster...")
         create_crop_yield_raster_withIrrigationPracticeScaling_vPipeline(

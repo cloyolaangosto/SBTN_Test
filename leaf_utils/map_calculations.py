@@ -15,6 +15,7 @@ from rasterio.transform import xy
 import rioxarray
 import tempfile
 from typing import Optional
+from joblib import Parallel, delayed
 
 # Data Analysis
 import numpy as np
@@ -566,7 +567,6 @@ def filter_invalid_latitudes(gdf):
 
 
 #################
-from joblib import Parallel, delayed
 def process_region(region, raster_input_filepath, cf_name, cf_unit, flow_name, area_type, raster_crs, logger):
     """
     Process a single region: clip the raster to its geometry and compute area-weighted statistics.
