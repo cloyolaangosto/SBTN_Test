@@ -3,7 +3,7 @@
 data/
 outputs/
 archives/
-LEAFs/example
+LEAFs/example/
 
 # Keep empty data/ visible in the repo
 !data/.gitkeep
