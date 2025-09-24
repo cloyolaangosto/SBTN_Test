@@ -1,3 +1,13 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# Files to ignore
+# -- data
+data/example/
+data/**/        # if you will generate unzipped datasets under data/
+!data/.gitkeep  # (optional) keep empty dir in Git
+
+# -- LEAFs
+LEAFs/example/
+!LEAFs/.gitkeep  # (optional) keep empty dir in Git

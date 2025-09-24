@@ -1,7 +1,9 @@
 # ---- IGNORE ------
 # Folders
-data/*
-LEAFs/example/*
+data/
+!data/.gitkeep   # keep the empty folder visible
+LEAFs/
+!LEAFs/.gitkeep  # keep the empty folder visible
 
 # Geospatial rasters
 *.tif
@@ -21,6 +23,10 @@ LEAFs/example/*
 # Logs
 *.log
 
+# files
+cloudfare.txt
+
 # ---- Exceptions ------
-!data/crops/
-!data/world_maps/
+# !data/crops/
+# !data/world_maps/
+/archives
