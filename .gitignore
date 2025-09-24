@@ -1,0 +1,17 @@
+# Geospatial rasters
+*.tif
+*.tiff
+*.vrt
+*.nc
+*.hdf
+*.h5
+*.img
+*.bil
+
+# Archives
+*.zip
+*.7z
+*.rar
+
+# Logs
+*.log
