@@ -1,9 +1,11 @@
 # ---- IGNORE ------
-# Folders
+# Folders with large/unzipped data
 data/
-!data/.gitkeep   # keep the empty folder visible
-LEAFs/
-!LEAFs/.gitkeep  # keep the empty folder visible
+outputs/
+archives/
+
+# Keep empty data/ visible in the repo
+!data/.gitkeep
 
 # Geospatial rasters
 *.tif
@@ -15,7 +17,7 @@ LEAFs/
 *.img
 *.bil
 
-# Archives
+# Archives (don’t track these in Git)
 *.zip
 *.7z
 *.rar
@@ -23,10 +25,16 @@ LEAFs/
 # Logs
 *.log
 
-# files
-cloudfare.txt
+# Misc OS/editor cruft
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+*.tmp
 
-# ---- Exceptions ------
-# !data/crops/
-# !data/world_maps/
-/archives
+# Local env/secrets
+.env
+.venv/
+*.pem
+
+# Local notes (optional)
+cloudfare.txt
