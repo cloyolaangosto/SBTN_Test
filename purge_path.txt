@@ -1,0 +1,15 @@
+data/
+outputs/
+archives/
+*.tif
+*.tiff
+*.vrt
+*.nc
+*.hdf
+*.h5
+*.img
+*.bil
+*.zip
+*.7z
+*.rar
+*.log
