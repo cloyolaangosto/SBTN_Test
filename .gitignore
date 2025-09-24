@@ -1,3 +1,8 @@
+# ---- IGNORE ------
+# Folders
+data/*
+LEAFs/example/*
+
 # Geospatial rasters
 *.tif
 *.tiff
@@ -15,3 +20,7 @@
 
 # Logs
 *.log
+
+# ---- Exceptions ------
+!data/crops/
+!data/world_maps/
