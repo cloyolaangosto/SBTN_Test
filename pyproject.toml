@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sbtn-leaf"                  # how others will `pip install`
+version = "0.0.0.dev1"
+description = "Environmental modeling utilities for to generate SBTN Land v2 LEAFs"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Cristóbal Loyola", email = "cristobal.loyola@wwfus.org" }
+]
+keywords = ["environment", "modeling", "gis", "forestry"]
+
+# dependencies needed at runtime
+dependencies = [
+  "numpy",
+  "pandas",
+  "polars",
+  "geopandas",
+  "matplotlib",
+  "rasterio",
+  "rioxarray",
+  "scipy",
+  "tqdm",
+  "xarray",
+  "plotly",
+  "joblib",
+  "fastexcel",
+  "pyarrow"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "black",
+  "ruff",
+  "jupyter",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

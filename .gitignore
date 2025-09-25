@@ -7,6 +7,7 @@ LEAFs/example/
 
 # Keep empty data/ visible in the repo
 !data/.gitkeep
+!archives/.gitkeep
 
 # Geospatial rasters
 *.tif
@@ -31,6 +32,7 @@ LEAFs/example/
 Thumbs.db
 .ipynb_checkpoints/
 *.tmp
+*.egg-info/
 
 # Local env/secrets
 .env
@@ -39,3 +41,32 @@ Thumbs.db
 
 # Local notes (optional)
 cloudfare.txt
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.so
+
+# ---- Virtual environments ----
+.venv/
+env/
+venv/
+ENV/
+
+# ---- Build artifacts ----
+*.egg-info/
+*.eggs/
+build/
+dist/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+*.ipynb_tmp
+
+# ---- IDE/editor cruft ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
