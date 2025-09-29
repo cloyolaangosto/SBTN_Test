@@ -1,0 +1,3 @@
+region,practice,metric,value,unit,notes
+global,cover_crop,soc_delta,0.42,ton C/ha,"Illustrative annual SOC change from cover crops"
+global,cover_crop,area_affected,125000,ha,"Area included in the example scenario"

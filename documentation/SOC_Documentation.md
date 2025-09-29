@@ -157,7 +157,7 @@ All data that could be made publicly available can be found here. PUT LINK PUBLI
 ## Step 3 - LEAFs Calculations
 Once all the data has been prepared and harmonized, LEAFs calculation can begin. For this, RothC model takes the baseline SOC of the land analyzed and performs a monthly SOC balance and projects into the future for a given number of years. The final $n$ year of the calculation results, given in ton C/ha, are the SOC LEAF. This can be compared to ecoregional threshold to determine if current, or changed, land use and corresponding land management practices will lead to safe operating conditions.
 
-LEAFs available in this repository take as a baseline SoilGrid's SOC and project it XX years into the future. This can be found in the XXX folder.
+LEAFs available in this repository take as a baseline SoilGrid's SOC and project it XX years into the future. This can be found in the XXX folder. When exporting your own results, write them to [`LEAFs/`](../LEAFs/) and follow the organizational guidance in [`LEAFs/README.md`](../LEAFs/README.md) so collaborators can review metadata without checking in large rasters.
 
 ### RothC
 RothC is available in 2 formats: RothC 'Core', which is a simple implementation of the model taking 1 datapoint. This could be useful to understand the SOC dynamics of 1 production unit or farm. RothC_Raster, which is the GIS implementation of the model, takes as inputs GeoTIFF files and returns annual pictures for a given number of years. This can be useful to analyze several production units across different geographies.
