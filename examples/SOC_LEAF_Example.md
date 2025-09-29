@@ -163,6 +163,9 @@ pc = "data/example/Maize_pc_monthly.tif"
 leaf_output_folder = "LEAFs/example"
 ```
 
+See [LEAFs/README.md](../LEAFs/README.md) for tips on organizing run outputs and deciding which files to commit (for example
+lightweight CSV summaries similar to [`LEAFs/sample_soc_summary.csv`](../LEAFs/sample_soc_summary.csv)).
+
 Now running the RothC model. Depending on the amount of years and land modelled, this could take from a few minutes to 1+ hours.
 
 Running for 2030 scenario 

@@ -16,7 +16,7 @@ outputs.
 - [`src/`](src/): Reusable Python modules that implement the harmonization, calculation, and export utilities used across the
   examples.
 - [`LEAFs/`](LEAFs/): Output directory where generated LEAF tables, maps, and reports are stored after running the processing
-  workflows.
+  workflows. See [LEAFs/README.md](LEAFs/README.md) for guidance on organizing and versioning run artifacts.
 
 ## Data and Documentation Resources
 ### Lightweight datasets
@@ -37,7 +37,9 @@ documentation. Each example references the lightweight datasets in [`data/`](dat
 ### LEAF outputs
 Run artifacts—including intermediate harmonized datasets, final factor tables, and any exported visualizations—are written to
 [`LEAFs/`](LEAFs/). Organize outputs by experiment name or date to keep multiple iterations side by side. When collaborating,
-commit only summary outputs or derived insights to version control and store large rasters or proprietary datasets elsewhere.
+consult [LEAFs/README.md](LEAFs/README.md) for recommendations on which outputs to version (for example lightweight CSV
+summaries such as [`sample_soc_summary.csv`](LEAFs/sample_soc_summary.csv)) and how to keep large rasters or proprietary
+datasets out of Git.
 
 ## Quick Start
 1. Install the project dependencies:

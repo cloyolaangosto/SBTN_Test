@@ -1,0 +1,11 @@
+# Ignore generated outputs by default
+*
+
+# Allow documentation and lightweight text artifacts to be versioned when needed
+!.gitignore
+!README.md
+!*.csv
+!*.json
+!*.txt
+!*/
+!*/README.md
