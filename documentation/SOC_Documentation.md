@@ -143,7 +143,7 @@ $\omega_0$ is the angle between local noon and either sunrise or sunset, thus mu
 ##### Potential Crop Evapotranspiration
 To adapt the location based PET to each crop, it needs to be multiplied by the crop coefficient $(K_c)$ during each month. A $(K_c)$ monthly curve is thus created to calculate monthly crop evapotranspiration. Complete documentation can be found in [Source: Allen et al. (1998)](https://www.fao.org/4/X0490E/x0490e00.htm).
 
-![Source: Allen et al. (1998)](image.png)Source: Allen et al. (1998)
+![Source: Allen et al. (1998)](support_files/K_Curve_example.png)  Source: Allen et al. (1998)
 
 $K_c$ values $K_{c, ini}$, $K_{c, mid}$, $K_{c, lat}$ as well as the duration of each period are defined for each crop per thermal zone in Table 5 of Morais, Teixeria & Domingos (2019) supplementary materials.
 
