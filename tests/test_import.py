@@ -11,7 +11,7 @@ def test_import_package():
 
 def test_import_functions():
     """Check that key functions are exposed at top-level."""
-    import sbtn_leafs as sl
+    import sbtn_leaf as sl
 
     # adjust these if you rename your public API
     assert hasattr(sl, "run_model")

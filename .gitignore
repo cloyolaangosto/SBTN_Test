@@ -41,6 +41,7 @@ Thumbs.db
 
 # Local notes (optional)
 cloudfare.txt
+purge_path.txt
 
 # ---- Python ----
 __pycache__/
