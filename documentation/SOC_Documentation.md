@@ -189,4 +189,4 @@ The user is asked to input a description of the output and a string ID of practi
 BLA BLA BLA
 
 ## LEAF Calculations Implementation Example
-An implementation example describing all steps can be found in [SOC Example](../examples/SOC_LEAF_Example.ipynb) for global production of Maize under different land management practices. 
+An implementation example describing all steps can be found in [SOC Example](../examples/SOC_LEAF_Example.ipynb) for global production of Maize under different land management practices.
