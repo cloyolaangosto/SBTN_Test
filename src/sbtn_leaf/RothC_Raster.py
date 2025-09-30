@@ -723,6 +723,8 @@ def run_rothC_sceneraios_from_csv(csv_filepath):
 def calcuate_annual_perc_changes(raster_path):
     # Open the raster
     da = rxr.open_rasterio(raster_path, masked=True)
+    if isinstance(da, list):
+        da = da[0]
 
     # Baseline at year 0
     baseline = da.isel(band = 0)

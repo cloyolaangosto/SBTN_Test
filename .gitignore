@@ -9,6 +9,9 @@ LEAFs/example/
 !data/.gitkeep
 !archives/.gitkeep
 
+# Lightweight data
+!data/crops
+
 # Geospatial rasters
 *.tif
 *.tiff
@@ -63,6 +66,7 @@ dist/
 # ---- Jupyter ----
 .ipynb_checkpoints/
 *.ipynb_tmp
+MD_Cheat_Sheet.ipynb
 
 # ---- IDE/editor cruft ----
 .DS_Store
