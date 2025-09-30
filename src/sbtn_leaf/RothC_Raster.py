@@ -535,11 +535,11 @@ def save_annual_results(results_array, reference_raster, n_years, var_name, save
 # Function to prepare all data
 def load_environmental_data(lu_rp: str):
     # Loads data
-    tmp = rxr.open_rasterio("data/soil_weather/uhth_monthly_avg_temp_celsius.tif", masked=True)  # in °C
-    rain = rxr.open_rasterio("data/soil_weather/uhth_monthly_avg_precip.tif", masked=True)
-    clay = rxr.open_rasterio("data/soil_weather/uhth_clay_15-30cm_mean_perc.tif", masked=False).squeeze()
-    soc0 = rxr.open_rasterio("data/soil_weather/uhth_soc_0-30cm_mean.tif", masked=False).squeeze()
-    sand = rxr.open_rasterio("data/soil_weather/uhth_sand_15-30cm_mean_perc.tif", masked=False).squeeze()
+    tmp = rxr.open_rasterio("../data/soil_weather/uhth_monthly_avg_temp_celsius.tif", masked=True)  # in °C
+    rain = rxr.open_rasterio("../data/soil_weather/uhth_monthly_avg_precip.tif", masked=True)
+    clay = rxr.open_rasterio("../data/soil_weather/uhth_clay_15-30cm_mean_perc.tif", masked=False).squeeze()
+    soc0 = rxr.open_rasterio("../data/soil_weather/uhth_soc_0-30cm_mean.tif", masked=False).squeeze()
+    sand = rxr.open_rasterio("../data/soil_weather/uhth_sand_15-30cm_mean_perc.tif", masked=False).squeeze()
     lu_raster = rxr.open_rasterio(lu_rp, masked=False).squeeze()
 
     # Creates IOM
@@ -620,9 +620,9 @@ def run_RothC(crop_name: str, practices_string_id: str, n_years: int, save_folde
     lu_raster, evap, pc, irr, pr, fym = load_crop_data(lu_fp, evap_fp,  pc_fp, irr_fp, pr_fp, fym_fp)
     
     # Convert to values
-    clay_a, soc0_a, iom_a, sand_a = clay.values, soc0.values, iom.values, sand.values
-    tmp_a, rain_a, evap_a = tmp.values, rain.values, evap.values
-    pc_a, c_a, fym_a, irr_a        = pc.values, pr.values, fym.values, irr.values
+    clay_a, soc0_a, iom_a, sand_a = np.asarray(clay.values), np.asarray(soc0.values), np.asarray(iom.values), np.asarray(sand.values)
+    tmp_a, rain_a, evap_a = np.asarray(tmp.values), np.asarray(rain.values), np.asarray(evap.values)
+    pc_a, c_a, fym_a, irr_a = np.asarray(pc.values), np.asarray(pr.values), np.asarray(fym.values), np.asarray(irr.values)
 
     # Run model
     print("Running RothC...")

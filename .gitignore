@@ -72,7 +72,6 @@ Thumbs.db
 
 # ---- KEEP EXCEPTIONS ------
 
-
 # Keep empty data/ visible in the repo
 !data/.gitkeep
 !archives/.gitkeep
