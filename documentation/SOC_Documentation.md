@@ -103,13 +103,9 @@ All the methods used can be found under the PET script.
 ##### Potential Evapotranspiration - Location based
 PET is calculated using the Thornthwaite equation ([Thornthwaite (1948)](https://doi.org/10.2307/210739)) for each month. This equation calculates PET based on duration of sunlight in hours (L), varying with months and latitude, number of days in a month (N), average monttly air temperature (T, in °C), and heat index (I). Detailed explanations can be found [here](https://wikifire.wsl.ch/tiki-indexf125.html?page=Potential+evapotranspiration)
 
-PET is calculated as:
+PET, when temperature is above 0°C, is calculated as:
 
-$\text{PET} =
-\begin{cases}
-0, & T < 0 \\
-1.6 \cdot \dfrac{L}{12} \cdot \dfrac{N}{30} \cdot \left(\dfrac{10T}{I}\right)^{a}, & T \geq 0
-\end{cases}$
+$PET = 1.6 \cdot \dfrac{L}{12} \cdot \dfrac{N}{30} \cdot \left(\dfrac{10T}{I}\right)^{a}$
 
 Where a is calcualted as:
 
@@ -189,10 +185,8 @@ Users can define conversvation tillage as True to assess it. The function furthe
 
 The user is asked to input a description of the output and a string ID of practices. For example, if estimating SOC changes from Maize production, rainfed, residues left of field, under conventional tillage (description), the string ID oculd be rf_reson_ct.
 
-An implementation example describing all steps can be found here
-
 ##### Scenario Analysis
 BLA BLA BLA
 
 ## LEAF Calculations Implementation Example
-An implementation example describing all steps can be found here. Maize bla bla bla
+An implementation example describing all steps can be found in [SOC Example](../examples/SOC_LEAF_Example.ipynb) for global production of Maize under different land management practices. 
