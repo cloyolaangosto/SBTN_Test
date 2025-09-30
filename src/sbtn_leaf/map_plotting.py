@@ -18,8 +18,8 @@ from rasterio.coords import BoundingBox
 from typing import Optional, Union
 
 # World shapefile (loaded outside the function)
-world_global_lr = gpd.read_file("data/world_maps/low_res/ne_110m_admin_0_countries.shp")
-world_global_hr = gpd.read_file("data/world_maps/high_res/ne_10m_admin_0_countries.shp")
+world_global_lr = gpd.read_file("../data/world_maps/low_res/ne_110m_admin_0_countries.shp")
+world_global_hr = gpd.read_file("../data/world_maps/high_res/ne_10m_admin_0_countries.shp")
 
 
 # FUNCTIONS

@@ -15,7 +15,7 @@ import polars as pl
 from tqdm import trange
 from tqdm import tqdm
 
-from leaf_utils.RothC_Core import RMF_Tmp, RMF_Moist, RMF_PC, RMF_TRM
+from sbtn_leaf.RothC_Core import RMF_Tmp, RMF_Moist, RMF_PC, RMF_TRM
 
 # -----------------------------------------------------------------------------
 # FUNCTIONS

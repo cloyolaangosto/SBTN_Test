@@ -44,8 +44,8 @@ from tqdm import tqdm  # For progress bar
 #### Data ####
 ##############
 
-K_Crops = pl.read_csv("data/crops/K_Crop_Data.csv")
-abs_date_table = pl.read_csv("data/crops/AbsoluteDayTable.csv")
+K_Crops = pl.read_csv("../data/crops/K_Crop_Data.csv")
+abs_date_table = pl.read_csv("../data/crops/AbsoluteDayTable.csv")
 
 days_in_month_table = pl.DataFrame({
     "Month": list(range(1, 13)),
