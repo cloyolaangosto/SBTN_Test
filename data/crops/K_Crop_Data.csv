@@ -1,0 +1,169 @@
+﻿Climate_Zone,Crop,K_ini,K_mid,K_Late,Initial_days,Dev_Days,Mid_Days,Late_days,Planting_Greenup_Date,Soil_Cover_Period,SCP_Starts,SCP_End
+Tropics,Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Tropics,Banana,1,1.2,1.1,120,60,180,5,1-Feb,All year,1,12
+Tropics,Barley,0.3,1.15,0.25,15,25,50,30,15-May,May-Sep,5,9
+Tropics,Cabbage,0.7,1.05,0.95,40,60,50,15,1-Jul,Jul-Dec,7,12
+Tropics,Carrot,0.7,1.05,0.95,20,30,50,20,1-Dec,Mar-Dec,3,12
+Tropics,Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Tropics,Coconut,0.95,1,1,120,60,180,5,15-Feb,All year,1,12
+Tropics,Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Tropics,Cotton,0.35,1.2,0.6,30,50,60,55,1-Jun,Jun-Dec,6,12
+Tropics,Grapes,0.4,0.85,0.4,20,40,120,60,15-Apr,Apr-Dec,4,12
+Tropics,Groundnut,0.4,1.15,0.6,35,45,35,25,1-Nov,Mar-Nov,3,11
+Tropics,Maize,0.3,1.2,0.5,20,35,40,30,15-Jun,Jun-Oct,6,10
+Tropics,Oil palm,0.9,0.95,0.95,120,60,180,5,15-Feb,All year,1,12
+Tropics,Olive,0.65,0.7,0.7,30,90,60,185,15-Apr,All year,1,12
+Tropics,Onion,1,1,0.3,20,45,20,10,15-Oct,Jan-Oct,1,10
+Tropics,Orange,0.7,0.65,0.7,60,90,120,95,15-Jan,All year,1,12
+Tropics,Potato,0.5,1.15,0.75,30,35,50,25,1-Dec,Apr-Dec,4,12
+Tropics,Rapeseed,0.35,1.15,0.35,30,60,30,30,1-Dec,Apr-Dec,4,12
+Tropics,Rice,1.05,1.2,0.6,30,30,80,40,15-May,May-Nov,5,11
+Tropics,Sorghum,0.3,1,0.55,20,35,40,30,1-Jun,Jun-Oct,6,10
+Tropics,Soybean,0.4,1.15,0.5,15,15,40,15,1-Dec,Feb-Dec,2,12
+Tropics,Sugar beet,0.35,1.2,0.7,35,60,70,40,15-Nov,Jun-Nov,6,11
+Tropics,Sugarcane,0.4,1.25,0.75,30,50,180,60,15-Mar,Jan-Mar,1,3
+Tropics,Sunflower,0.35,1.15,0.35,25,35,45,25,15-Nov,Mar-Nov,3,11
+Tropics,Sweet potato,0.5,1.15,0.65,15,30,50,30,1-Oct,Feb-Oct,2,10
+Tropics,Tobacco,0.5,1.15,0.8,20,30,30,30,15-Feb,Feb-Jun,2,6
+Tropics,Tomato,0.6,1.15,0.8,30,40,40,25,15-Jan,Jan-May,1,5
+Tropics,Wheat,0.3,1.15,0.3,15,25,50,30,15-May,May-Sep,5,9
+Subtropics summer rainfall,Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Subtropics summer rainfall,Banana,1,1.2,1.1,120,60,180,5,1-Feb,All year,1,12
+Subtropics summer rainfall,Barley,0.3,1.15,0.25,15,25,50,30,15-May,May-Sep,5,9
+Subtropics summer rainfall,Cabbage,0.7,1.05,0.95,40,60,50,15,1-Nov,Apr-Nov,4,11
+Subtropics summer rainfall,Carrot,0.7,1.05,0.95,20,30,50,20,1-Dec,Mar-Dec,3,12
+Subtropics summer rainfall,Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Subtropics summer rainfall,Coconut,0.95,1,1,120,60,180,5,15-Feb,All year,1,12
+Subtropics summer rainfall,Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Subtropics summer rainfall,Cotton,0.35,1.2,0.6,30,50,60,55,1-Jun,Jun-Dec,6,12
+Subtropics summer rainfall,Grapes,0.4,0.85,0.4,20,40,120,60,15-Apr,Apr-Dec,4,12
+Subtropics summer rainfall,Groundnut,0.4,1.15,0.6,35,45,35,25,1-Jul,Jul-Nov,7,11
+Subtropics summer rainfall,Maize,0.3,1.2,0.5,20,35,40,30,15-Jun,Jun-Oct,6,10
+Subtropics summer rainfall,Oil palm,0.9,0.95,0.95,120,60,180,5,15-Feb,All year,1,12
+Subtropics summer rainfall,Olive,0.65,0.7,0.7,30,90,60,185,15-Apr,All year,1,12
+Subtropics summer rainfall,Onion,1,1,0.3,20,45,20,10,15-Oct,Jan-Oct,1,10
+Subtropics summer rainfall,Orange,0.7,0.65,0.7,60,90,120,95,15-Jan,All year,1,12
+Subtropics summer rainfall,Potato,0.5,1.15,0.75,25,30,45,30,1-Jul,Jul-Nov,7,11
+Subtropics summer rainfall,Rapeseed,0.35,1.15,0.35,30,60,30,30,1-Oct,Feb-Oct,2,10
+Subtropics summer rainfall,Rice,1.05,1.2,0.6,30,30,60,30,15-Jun,Jun-Nov,6,11
+Subtropics summer rainfall,Sorghum,0.3,1,0.55,20,35,40,30,1-Jun,Jun-Oct,6,10
+Subtropics summer rainfall,Soybean,0.4,1.15,0.5,20,30,60,25,1-Jun,Jun-Oct,6,10
+Subtropics summer rainfall,Sugar beet,0.35,1.2,0.7,45,75,80,30,15-Nov,Jul-Nov,7,11
+Subtropics summer rainfall,Sugarcane,0.4,1.25,0.75,30,50,180,60,15-Mar,Jan-Mar,1,3
+Subtropics summer rainfall,Sunflower,0.35,1.15,0.35,25,35,45,25,15-Nov,Mar-Nov,3,11
+Subtropics summer rainfall,Sweet potato,0.5,1.15,0.65,15,30,50,30,1-Oct,Feb-Oct,2,10
+Subtropics summer rainfall,Tobacco,0.5,1.15,0.8,20,30,30,30,15-May,May-Sep,5,9
+Subtropics summer rainfall,Tomato,0.6,1.15,0.8,30,40,40,25,15-Jan,Jan-May,1,5
+Subtropics summer rainfall,Wheat,0.7,1.15,0.3,15,25,50,30,15-May,May-Sep,5,9
+Subtropics winter rainfall,Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Subtropics winter rainfall,Banana,1,1.2,1.1,120,60,180,5,1-Feb,All year,1,12
+Subtropics winter rainfall,Barley,0.3,1.15,0.25,20,60,70,30,15-Nov,May-Nov,5,11
+Subtropics winter rainfall,Cabbage,0.7,1.05,0.95,40,60,50,15,1-Jul,Jul-Dec,7,12
+Subtropics winter rainfall,Carrot,0.7,1.05,0.95,30,40,60,20,15-Mar,Mar-Aug,3,8
+Subtropics winter rainfall,Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Subtropics winter rainfall,Coconut,0.95,1,1,120,60,180,5,15-Feb,All year,1,12
+Subtropics winter rainfall,Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Subtropics winter rainfall,Cotton,0.35,1.2,0.6,30,50,60,55,1-Jul,Jan-Jul,1,7
+Subtropics winter rainfall,Grapes,0.4,0.85,0.4,20,40,120,60,15-Apr,Apr-Dec,4,12
+Subtropics winter rainfall,Groundnut,0.4,1.15,0.6,35,45,35,25,1-Jun,Jun-Oct,6,10
+Subtropics winter rainfall,Maize,0.3,1.2,0.5,30,40,50,30,15-Apr,Apr-Sep,4,9
+Subtropics winter rainfall,Oil palm,0.9,0.95,0.95,120,60,180,5,15-Feb,All year,1,12
+Subtropics winter rainfall,Olive,0.65,0.7,0.7,30,90,60,185,15-Apr,All year,1,12
+Subtropics winter rainfall,Onion,1,1,0.3,20,45,20,10,15-Oct,Jan-Oct,1,10
+Subtropics winter rainfall,Orange,0.7,0.65,0.7,60,90,120,95,15-Jan,All year,1,12
+Subtropics winter rainfall,Potato,0.5,1.15,0.75,25,30,45,30,15-Mar,Mar-Jul,3,7
+Subtropics winter rainfall,Rapeseed,0.35,1.15,0.35,30,60,30,30,1-Jun,Jun-Oct,6,10
+Subtropics winter rainfall,Rice,1.05,1.2,0.6,30,30,80,40,1-Jun,Jun-Nov,6,11
+Subtropics winter rainfall,Sorghum,0.3,1,0.55,20,35,40,30,1-Jul,Jul-Nov,7,11
+Subtropics winter rainfall,Soybean,0.4,1.15,0.5,20,30,60,25,15-Apr,Apr-Aug,4,8
+Subtropics winter rainfall,Sugar beet,0.35,1.2,0.7,50,40,50,40,15-Apr,Apr-Oct,4,10
+Subtropics winter rainfall,Sugarcane,0.4,1.25,0.75,30,50,180,60,15-Mar,Jan-Mar,1,3
+Subtropics winter rainfall,Sunflower,0.35,1.15,0.35,25,35,45,25,15-Nov,Mar-Nov,3,11
+Subtropics winter rainfall,Sweet potato,0.5,1.15,0.65,20,30,60,40,1-Apr,Apr-Aug,4,8
+Subtropics winter rainfall,Tobacco,0.5,1.15,0.8,20,30,30,30,15-Feb,Feb-Jun,2,6
+Subtropics winter rainfall,Tomato,0.6,1.15,0.8,30,40,40,25,15-Jan,Jan-May,1,5
+Subtropics winter rainfall,Wheat,0.7,1.15,0.3,20,60,70,30,15-Nov,May-Nov,5,11
+Oceanic temperate,Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Oceanic temperate,Banana,0.5,0.85,0.6,30,45,35,10,1-May,May-Aug,5,8
+Oceanic temperate,Barley,0.3,1.15,0.25,40,60,60,40,15-Nov,Jun-Nov,6,11
+Oceanic temperate,Cabbage,0.7,1.05,0.95,40,60,50,15,1-May,May-Oct,5,10
+Oceanic temperate,Carrot,0.4,0.85,0.75,20,40,120,60,1-Jun,Jan-Jun,1,6
+Oceanic temperate,Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Oceanic temperate,Coconut,0.35,1.2,0.6,30,50,60,55,15-May,May-Nov,5,11
+Oceanic temperate,Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Oceanic temperate,Cotton,0.7,1,0.7,20,35,110,45,15-Sep,Apr-Sep,4,9
+Oceanic temperate,Grapes,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Oceanic temperate,Groundnut,0.4,1.05,0.75,25,35,40,30,15-Aug,Aug-Dec,8,12
+Oceanic temperate,Maize,0.3,1,0.3,20,30,55,35,15-May,May-Oct,5,10
+Oceanic temperate,Oil palm,0.35,1.1,0.25,25,35,50,40,15-Apr,Apr-Sep,4,9
+Oceanic temperate,Olive,0.7,1.05,0.95,40,60,50,15,1-May,May-Oct,5,10
+Oceanic temperate,Onion,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Oceanic temperate,Orange,0.5,0.3,0.3,60,120,175,10,15-Jan,All year,1,12
+Oceanic temperate,Potato,0.5,1.1,0.95,25,30,25,10,1-Mar,Mar-May,3,5
+Oceanic temperate,Rapeseed,0.35,1.15,0.35,30,60,60,30,1-May,May-Oct,5,10
+Oceanic temperate,Rice,0.3,1.15,0.25,160,75,75,25,15-Oct,Sep-Oct,9,10
+Oceanic temperate,Sorghum,0.3,1.15,0.3,30,30,40,30,15-Oct,Feb-Oct,2,10
+Oceanic temperate,Soybean,0.7,0.9,0.85,10,15,20,10,1-May,May-Jun,5,6
+Oceanic temperate,Sugar beet,0.5,1.15,1.1,20,30,30,20,15-Apr,Apr-Jul,4,7
+Oceanic temperate,Sugarcane,0.4,1.1,0.3,20,30,60,40,1-May,May-Sep,5,9
+Oceanic temperate,Sunflower,0.7,1,0.95,35,50,45,10,15-Feb,Feb-Jul,2,7
+Oceanic temperate,Sweet potato,0.4,1.25,0.75,30,60,180,95,15-Mar,All year,1,12
+Oceanic temperate,Tobacco,0.5,1.15,0.8,20,30,30,30,15-May,May-Sep,5,9
+Oceanic temperate,Tomato,0.7,1.05,0.95,35,45,40,15,1-May,May-Sep,5,9
+Oceanic temperate,Wheat,0.7,1.15,0.3,160,75,75,25,15-Oct,Sep-Oct,9,10
+Sub-continental temperate and continental temperate,Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Sub-continental temperate and continental temperate,Banana,0.5,0.85,0.6,30,45,35,10,1-May,May-Aug,5,8
+Sub-continental temperate and continental temperate,Barley,0.3,1.15,0.25,40,30,40,20,15-Oct,Feb-Oct,2,10
+Sub-continental temperate and continental temperate,Cabbage,0.7,1.05,0.95,40,60,50,15,15-May,May-Oct,5,10
+Sub-continental temperate and continental temperate,Carrot,0.4,0.85,0.75,20,40,120,60,1-Jun,Jan-Jun,1,6
+Sub-continental temperate and continental temperate,Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Sub-continental temperate and continental temperate,Coconut,0.35,1.2,0.6,30,50,60,55,15-May,May-Nov,5,11
+Sub-continental temperate and continental temperate,Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Sub-continental temperate and continental temperate,Cotton,0.7,1,0.7,20,35,110,45,15-Jan,Jan-Aug,1,8
+Sub-continental temperate and continental temperate,Grapes,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+Sub-continental temperate and continental temperate,Groundnut,0.4,1.05,0.75,25,35,40,30,15-Aug,Aug-Dec,8,12
+Sub-continental temperate and continental temperate,Maize,0.3,1,0.3,20,30,55,35,15-May,May-Oct,5,10
+Sub-continental temperate and continental temperate,Oil palm,0.35,1.1,0.25,25,35,50,40,15-Apr,Apr-Sep,4,9
+Sub-continental temperate and continental temperate,Olive,0.7,1.05,0.95,40,60,50,15,15-May,May-Oct,5,10
+Sub-continental temperate and continental temperate,Onion,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+Sub-continental temperate and continental temperate,Orange,0.5,0.3,0.3,60,120,175,10,15-Jan,All year,1,12
+Sub-continental temperate and continental temperate,Potato,0.5,1.1,0.95,25,30,25,10,1-Mar,Mar-May,3,5
+Sub-continental temperate and continental temperate,Rapeseed,0.35,1.15,0.35,30,60,60,30,15-Sep,Mar-Sep,3,9
+Sub-continental temperate and continental temperate,Rice,0.3,1.15,0.25,20,60,70,30,1-Dec,May-Dec,5,12
+Sub-continental temperate and continental temperate,Sorghum,0.3,1.15,0.3,30,30,40,30,1-Dec,Apr-Dec,4,12
+Sub-continental temperate and continental temperate,Soybean,0.7,0.9,0.85,10,15,20,10,1-May,May-Jun,5,6
+Sub-continental temperate and continental temperate,Sugar beet,0.5,1.15,1.1,20,30,30,20,15-Apr,Apr-Jul,4,7
+Sub-continental temperate and continental temperate,Sugarcane,0.4,1.1,0.3,20,30,60,40,1-May,May-Sep,5,9
+Sub-continental temperate and continental temperate,Sunflower,0.7,1,0.95,35,50,45,10,15-Feb,Feb-Jul,2,7
+Sub-continental temperate and continental temperate,Sweet potato,0.4,1.25,0.75,30,60,180,95,15-Mar,All year,1,12
+Sub-continental temperate and continental temperate,Tobacco,0.5,1.15,0.8,20,30,30,30,15-May,May-Sep,5,9
+Sub-continental temperate and continental temperate,Tomato,0.7,1.05,0.95,35,45,40,15,15-May,May-Sep,5,9
+Sub-continental temperate and continental temperate,Wheat,0.7,1.15,0.3,20,60,70,30,1-Dec,May-Dec,5,12
+"Sub-continental boreal, continental boreal and polar/arctic",Apple,0.6,0.95,0.75,60,90,120,95,15-Jan,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Banana,0.5,0.85,0.6,30,45,35,10,1-May,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Barley,0.3,1.15,0.25,160,75,75,25,15-Oct,May-Sep,5,9
+"Sub-continental boreal, continental boreal and polar/arctic",Cabbage,0.7,1.05,0.95,40,60,50,15,1-May,Jul-Dec,7,12
+"Sub-continental boreal, continental boreal and polar/arctic",Carrot,0.4,0.85,0.75,20,40,120,60,1-Jun,Mar-Dec,3,12
+"Sub-continental boreal, continental boreal and polar/arctic",Cocoa,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Coconut,0.35,1.2,0.6,45,90,45,45,15-Mar,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Coffee,0.9,0.95,0.95,120,60,180,5,15-May,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Cotton,0.7,1,0.7,20,35,110,45,15-Jan,Jun-Dec,6,12
+"Sub-continental boreal, continental boreal and polar/arctic",Grapes,0.9,0.95,0.95,120,60,180,5,15-May,Apr-Dec,4,12
+"Sub-continental boreal, continental boreal and polar/arctic",Groundnut,0.4,1.05,0.75,25,35,40,30,15-Aug,Mar-Nov,3,11
+"Sub-continental boreal, continental boreal and polar/arctic",Maize,0.3,1,0.3,20,30,55,35,15-May,Jun-Oct,6,10
+"Sub-continental boreal, continental boreal and polar/arctic",Oil palm,0.35,1.1,0.25,25,35,50,40,15-Apr,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Olive,0.7,1.05,0.95,40,60,50,15,1-May,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Onion,0.6,0.95,0.75,60,90,120,95,15-Jan,Jan-Oct,1,10
+"Sub-continental boreal, continental boreal and polar/arctic",Orange,0.5,0.3,0.3,60,120,175,10,15-Jan,All year,1,12
+"Sub-continental boreal, continental boreal and polar/arctic",Potato,0.5,1.1,0.95,25,30,25,10,1-Mar,Apr-Dec,4,12
+"Sub-continental boreal, continental boreal and polar/arctic",Rapeseed,0.35,1.15,0.35,30,60,60,30,15-May,Apr-Dec,4,12
+"Sub-continental boreal, continental boreal and polar/arctic",Rice,0.3,1.15,0.25,160,75,75,25,15-Nov,May-Nov,5,11
+"Sub-continental boreal, continental boreal and polar/arctic",Sorghum,0.3,1.15,0.3,30,30,40,30,15-Nov,Jun-Oct,6,10
+"Sub-continental boreal, continental boreal and polar/arctic",Soybean,0.7,0.9,0.85,10,15,20,10,1-May,Feb-Dec,2,12
+"Sub-continental boreal, continental boreal and polar/arctic",Sugar beet,0.5,1.15,1.1,20,30,30,20,15-Apr,Jun-Nov,6,11
+"Sub-continental boreal, continental boreal and polar/arctic",Sugarcane,0.4,1.1,0.3,20,30,60,40,1-May,Jan-Mar,1,3
+"Sub-continental boreal, continental boreal and polar/arctic",Sunflower,0.7,1,0.95,35,50,45,10,15-Feb,Mar-Nov,3,11
+"Sub-continental boreal, continental boreal and polar/arctic",Sweet potato,0.4,1.25,0.75,30,60,180,95,15-Mar,Feb-Oct,2,10
+"Sub-continental boreal, continental boreal and polar/arctic",Tobacco,0.5,1.15,0.8,20,30,30,30,15-May,Feb-Jun,2,6
+"Sub-continental boreal, continental boreal and polar/arctic",Tomato,0.7,1.05,0.95,35,45,40,15,1-May,Jan-May,1,5
+"Sub-continental boreal, continental boreal and polar/arctic",Wheat,0.4,1.15,0.3,160,75,75,25,15-Nov,May-Sep,5,9
