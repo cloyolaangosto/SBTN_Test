@@ -1349,6 +1349,19 @@ def prepare_crop_data(
     print(f"All data created for {crop_name}, {crop_practice_string}!!!")
 
 
+def prepare_crop_scenarios(csv_filepath: str):
+    # Load scenarios
+    csv = pl.read_csv(csv_filepath)
+    scenarios = csv.to_dicts()
+
+    # Run scenarions
+    for scenario in scenarios:
+        print(f"Preparing data for {scenario['crop_name']}, {scenario['crop_practice_string']}")
+        prepare_crop_data(**scenario)
+        print(f"Next!\n\n")
+
+
+
 #### PIPELINE SUPPORTING FUNCTIONS
 def binarize_raster_pipeline(
     src_path: str,

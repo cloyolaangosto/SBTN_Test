@@ -714,7 +714,7 @@ def run_rothC_sceneraios_from_csv(csv_filepath):
         # tqdm.write(f"Processing scenario: {scenario['practices_string_id']}")
         print(f"Running {scenario["crop_name"]} - {scenario["practices_string_id"]}")
         run_RothC(**scenario)
-        print(f"\n")
+        print(f"\n\n")
 
 ##########################################
 #### OTHER USEFUL FUNCTIONS FOR ROTHC ####
