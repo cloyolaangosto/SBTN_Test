@@ -20,8 +20,8 @@ from rasterio.features import rasterize
 from rasterio.warp import reproject, Resampling
 import rioxarray as rxr
 
-from leaf_utils.PET import monthly_KC_curve, calculate_crop_based_PET_raster_vPipeline
-from leaf_utils.map_calculations import resample_to_match_noSaving
+from sbtn_leaf.PET import monthly_KC_curve, calculate_crop_based_PET_raster_vPipeline
+from sbtn_leaf.map_calculations import resample_to_match_noSaving
 
 
 from rasterio.enums import Resampling
@@ -33,18 +33,18 @@ from typing import Optional, Tuple, Dict
 
 
 ##### DATA ####
-er_17 = gpd.read_file("data/Ecoregions2017/Ecoregions2017.shp")
-crops_name_table = pl.read_csv('data/crops/crop_naming_index.csv')
-fao_stats = pl.read_csv('data/crops/Production_Crops_Livestock_E_All_Data.csv')
-fao_crop_yields_1423 = pl.read_csv('data/crops/fao_crop_yields_1423.csv', separator=';')
-country_shp = gpd.read_file('data/CountryLayers/Country_Level0/g2015_2014_0.shp')
-crop_ag_res_table = pl.read_excel("data/crops/crop_residue_data.xlsx", sheet_name="crop_ABG_Res")
-crop_res_table = pl.read_excel("data/crops/crop_residue_data.xlsx", sheet_name="crop_res_ratios")
-rain_monthly_fp = "data/soil_weather/uhth_monthly_avg_precip.tif"
-uhth_climates_fp = "data/soil_weather/uhth_thermal_climates.tif"
+er_17 = gpd.read_file("../data/Ecoregions2017/Ecoregions2017.shp")
+crops_name_table = pl.read_csv('../data/crops/crop_naming_index.csv')
+fao_stats = pl.read_csv('../data/crops/Production_Crops_Livestock_E_All_Data.csv')
+fao_crop_yields_1423 = pl.read_csv('../data/crops/fao_crop_yields_1423.csv', separator=';')
+country_shp = gpd.read_file('../data/CountryLayers/Country_Level0/g2015_2014_0.shp')
+crop_ag_res_table = pl.read_excel("../data/crops/crop_residue_data.xlsx", sheet_name="crop_ABG_Res")
+crop_res_table = pl.read_excel("../data/crops/crop_residue_data.xlsx", sheet_name="crop_res_ratios")
+rain_monthly_fp = "../data/soil_weather/uhth_monthly_avg_precip.tif"
+uhth_climates_fp = "../data/soil_weather/uhth_thermal_climates.tif"
 
-K_Crops = pl.read_csv("data/crops/K_Crop_Data.csv")
-abs_date_table = pl.read_csv("data/crops/AbsoluteDayTable.csv")
+K_Crops = pl.read_csv("../data/crops/K_Crop_Data.csv")
+abs_date_table = pl.read_csv("../data/crops/AbsoluteDayTable.csv")
 
 days_in_month_table = pl.DataFrame({
     "Month": list(range(1, 13)),
@@ -1347,6 +1347,19 @@ def prepare_crop_data(
         print("Plant Residues raster already exists — skipping computation.")
 
     print(f"All data created for {crop_name}, {crop_practice_string}!!!")
+
+
+def prepare_crop_scenarios(csv_filepath: str):
+    # Load scenarios
+    csv = pl.read_csv(csv_filepath)
+    scenarios = csv.to_dicts()
+
+    # Run scenarions
+    for scenario in scenarios:
+        print(f"Preparing data for {scenario['crop_name']}, {scenario['crop_practice_string']}")
+        prepare_crop_data(**scenario)
+        print(f"Next!\n\n")
+
 
 
 #### PIPELINE SUPPORTING FUNCTIONS

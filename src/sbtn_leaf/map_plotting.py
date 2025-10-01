@@ -18,8 +18,8 @@ from rasterio.coords import BoundingBox
 from typing import Optional, Union
 
 # World shapefile (loaded outside the function)
-world_global_lr = gpd.read_file("data/world_maps/low_res/ne_110m_admin_0_countries.shp")
-world_global_hr = gpd.read_file("data/world_maps/high_res/ne_10m_admin_0_countries.shp")
+world_global_lr = gpd.read_file("../data/world_maps/low_res/ne_110m_admin_0_countries.shp")
+world_global_hr = gpd.read_file("../data/world_maps/high_res/ne_10m_admin_0_countries.shp")
 
 
 # FUNCTIONS
@@ -1199,6 +1199,47 @@ def plot_multiband_raster_timesires(raster_path: str, title: str, xlabel: str = 
     if show_iq:
         plt.fill_between(ts_mean["time"].values, q1.values, q3.values, color='blue', alpha=0.3, label='IQR')
 
+    plt.show()
+
+def plot_average_band_values(raster_paths, labels, title: str = "Average Value per Year for Maize Scenarios", xlabel: str = "Year (Band)", ylabel: str = 'Mean Value', show_iq=False, x_size=14, y_size=8):
+    """
+    Plot the average value per band (year) for multiple rasters, with optional interquartile shading.
+
+    Parameters
+    ----------
+    raster_paths : list of str
+        List of raster file paths.
+    labels : list of str
+        List of labels for each raster.
+    title : str
+        Plot title.
+    xlabel : str
+        X-axis label.
+    ylabel : str
+        Y-axis label.
+    show_iq : bool
+        If True, plot interquartile range shading for each raster.
+    x_size, y_size : float
+        Figure size.
+    """
+    plt.figure(figsize=(x_size, y_size))
+
+    for path, label in zip(raster_paths, labels):
+        with rasterio.open(path) as src:
+            arr = src.read()  # shape: (bands, height, width)
+            band_means = np.nanmean(arr, axis=(1, 2))
+            plt.plot(np.arange(1, arr.shape[0] + 1), band_means, label=label)
+            if show_iq:
+                q1 = np.nanpercentile(arr, 25, axis=(1, 2))
+                q3 = np.nanpercentile(arr, 75, axis=(1, 2))
+                plt.fill_between(np.arange(1, arr.shape[0] + 1), q1, q3, alpha=0.2)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.grid(axis="y", visible=True, color="#f0f0f0")
+    plt.tight_layout()
     plt.show()
 
 def plot_soc_distribution(soc_da, year):

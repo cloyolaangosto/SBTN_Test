@@ -22,17 +22,17 @@ import numpy as np
 import pandas as pd
 
 # My modules
-import leaf_utils.map_plotting as mp
+import sbtn_leaf.map_plotting as mp
 
 ############
 ### DATA ###
 ############
 # FAO shapefiles paths
-country_shp = gpd.read_file("data/CountryLayers/Country_Level0/g2015_2014_0.shp")
-subcountry_shp= gpd.read_file("data/CountryLayers/SubCountry_Level1/g2015_2014_1.shp")
+country_shp = gpd.read_file("../data/CountryLayers/Country_Level0/g2015_2014_0.shp")
+subcountry_shp= gpd.read_file("../data/CountryLayers/SubCountry_Level1/g2015_2014_1.shp")
 
 # Ecoregions - One map with all ecoregions
-er_2017_fp = "data/Ecoregions2017/Ecoregions2017.shp"
+er_2017_fp = "../data/Ecoregions2017/Ecoregions2017.shp"
 er_2017_shp = gpd.read_file(er_2017_fp)
 
 

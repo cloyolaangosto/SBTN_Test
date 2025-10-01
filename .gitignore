@@ -1,13 +1,9 @@
 # ---- IGNORE ------
 # Folders with large/unzipped data
-data/
+data/*
 outputs/
 archives/
 LEAFs/example/
-
-# Keep empty data/ visible in the repo
-!data/.gitkeep
-!archives/.gitkeep
 
 # Geospatial rasters
 *.tif
@@ -63,6 +59,7 @@ dist/
 # ---- Jupyter ----
 .ipynb_checkpoints/
 *.ipynb_tmp
+MD_Cheat_Sheet.ipynb
 
 # ---- IDE/editor cruft ----
 .DS_Store
@@ -71,3 +68,17 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
+
+
+# ---- KEEP EXCEPTIONS ------
+
+# Keep empty data/ visible in the repo
+!data/.gitkeep
+!archives/.gitkeep
+!examples/soc_ex_data/.gitkeep
+!examples/soc_ex_output/.gitkeep
+
+# Lightweight data and example data
+!data/crops/
+!data/templates/
+!data/crops/spam2020V2r0_global_yield/*.tif
