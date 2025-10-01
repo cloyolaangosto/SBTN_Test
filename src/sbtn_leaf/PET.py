@@ -200,7 +200,7 @@ def calculate_PET_location_based(monthly_temps, year: int, lat: float):
         N = monthrange(year, i+1)[1]  # 2024 is leap year-safe
 
         # Day length
-        L = daylight_duration(lat, i)
+        L = daylight_duration(lat, i + 1)
 
         # Thornthwaite formula
         PET_i = 16 * (L / 12) * (N / 30) * ((10 * T / I) ** a)
