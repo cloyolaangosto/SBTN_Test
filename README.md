@@ -45,6 +45,12 @@ To work through the notebooks:
 2. Open one of the example notebooks in [`examples/`](examples/) and follow the embedded instructions. Each example demonstrates how to load data, preprocess it, and generate LEAF using utilities from [`src/`](src/), and export results.
 3. After the run completes, inspect the generated outputs in [`LEAFs/`](LEAFs/) to validate results or share them with your team.
 
+## Versioning
+The package version is managed from the single source declared in [`pyproject.toml`](pyproject.toml). The `sbtn_leaf`
+package exposes this value at runtime by reading the installed distribution metadata and, during local development,
+falling back to the `pyproject.toml` entry. Update the version in `pyproject.toml` when preparing a release to ensure
+that both the package metadata and the `sbtn_leaf.__version__` attribute report the same number.
+
 ## Contributing
 We welcome improvements to the data pipelines, documentation, examples, and new LEAFs. To contribute:
 1. Fork the repository and create a feature branch.
