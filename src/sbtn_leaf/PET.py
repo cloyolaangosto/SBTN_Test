@@ -234,7 +234,7 @@ def create_KC_Curve(
     # Stage dataframe for 365 days
     Kc_df = pl.DataFrame({
         "day_num": range(1, 366),
-        "Stage_id": [0.0] * 365,
+        "Stage_id": [0] * 365,
         "Kc": [0.0] * 365
     })
 
@@ -252,14 +252,27 @@ def create_KC_Curve(
     planting_day_num_start = abs_table.filter(
         pl.col('Date') == crop_data['Planting_Greenup_Date']).select('Day_Num').item()
     planting_day_num_end = planting_day_num_start
+    initial_stage_duration = int(crop_data['Initial_days'][0])
+    dev_stage_duration = int(crop_data['Dev_Days'][0])
+    mid_stage_duration = int(crop_data['Mid_Days'][0])
+    late_stage_duration = int(crop_data['Late_days'][0])
+
+    def _stage_end(start_day: int, duration: int) -> int:
+        return start_day + duration - 1 if duration > 0 else start_day - 1
+
     Initial_day_start = planting_day_num_end + 1
-    Initial_day_end = Initial_day_start + crop_data['Initial_days'][0]
+    Initial_day_end = _stage_end(Initial_day_start, initial_stage_duration)
     Development_day_start = Initial_day_end + 1
-    Development_day_end = Development_day_start + crop_data['Dev_Days'][0]
+    Development_day_end = _stage_end(Development_day_start, dev_stage_duration)
     Mid_day_start = Development_day_end + 1
-    Mid_day_end = Mid_day_start + crop_data['Mid_Days'][0]
+    Mid_day_end = _stage_end(Mid_day_start, mid_stage_duration)
     Late_day_start = Mid_day_end + 1
-    Late_day_end = Late_day_start + crop_data['Late_days'][0]
+    Late_day_end = _stage_end(Late_day_start, late_stage_duration)
+
+    if Late_day_end > 365:
+        raise ValueError(
+            "Crop phenology configuration extends beyond the 365-day calendar."
+        )
 
     # Correct absolute day numbers if they're above 365
     Initial_cday_start = correct_abs_date(Initial_day_start)
@@ -283,67 +296,97 @@ def create_KC_Curve(
     # Filling Kc values
     # print("Assigning Kc values to stages")
 
-    # Initial stage
-    # print("Processing initial stage")
-    Kc_df = Kc_df.with_columns(
-        pl.when((pl.col("day_num") >= planting_day_num_start) & (pl.col("day_num") <= Initial_day_end))
-        .then(crop_data['K_ini'][0])
-        .otherwise(0)
-        .alias("Kc"),
+    stage_records = [
+        {
+            "day_num": planting_day_num_start,
+            "Kc": crop_data['K_ini'][0],
+            "Stage_id": 1,
+        }
+    ]
 
-        pl.when(pl.col("day_num") == planting_day_num_start).then(1).when((pl.col("day_num") > planting_day_num_start) & (pl.col("day_num") <= Initial_day_end)).then(2).otherwise(pl.col("Stage_id")).alias("Stage_id")
-    )    
-    
-    # development stage
-    # print("Processing development stage")
-    dev_stage_duration = Development_day_end - Development_day_start + 1
-    Kc_dev_slope = (crop_data['K_mid'][0] - crop_data['K_ini'][0]) / dev_stage_duration
-
-    day = Development_day_start
-
-    while day in range(Development_day_start, Development_day_end + 1):
-        day_corrected = correct_abs_date(day)
-               
-        Kc_value = crop_data['K_ini'][0] + Kc_dev_slope * (day - Development_day_start)
-        
-        Kc_df = Kc_df.with_columns(
-            pl.when(pl.col("day_num") == day_corrected)
-            .then(Kc_value)
-            .otherwise(pl.col("Kc")).alias("Kc"),
-            pl.when(pl.col("day_num") == day_corrected).then(3).otherwise(pl.col("Stage_id")).alias("Stage_id")
-        )     
-
-        day += 1
-
-    # mid stage (Kc stays the same)
-    # print("Processing mid stage")
-    Kc_df = Kc_df.with_columns(
-        pl.when((pl.col("day_num") >= Mid_cday_start) & (pl.col("day_num") <= Mid_cday_end))
-        .then(crop_data['K_mid'][0])
-        .otherwise(pl.col("Kc"))
-        .alias("Kc"),
-
-        pl.when((pl.col("day_num") >= Mid_cday_start) & (pl.col("day_num") <= Mid_cday_end)).then(4).otherwise(pl.col("Stage_id")).alias("Stage_id")
+    initial_days = [
+        correct_abs_date(Initial_day_start + offset)
+        for offset in range(initial_stage_duration)
+    ]
+    stage_records.extend(
+        {
+            "day_num": day,
+            "Kc": crop_data['K_ini'][0],
+            "Stage_id": 2,
+        }
+        for day in initial_days
     )
 
-    # late stage
-    # print("Processing late stage")
-    late_stage_duration = Late_day_end - Late_day_start + 1
-    Kc_late_slope = (crop_data['K_Late'][0] - crop_data['K_mid'][0]) / late_stage_duration
-    day = Late_day_start
-    while day in range(Late_day_start, Late_day_end + 1):
-        day_corrected = correct_abs_date(day)
-               
-        Kc_value = crop_data['K_mid'][0] + Kc_late_slope * (day - Late_day_start)
-        
-        Kc_df = Kc_df.with_columns(
-            pl.when(pl.col("day_num") == day_corrected)
-            .then(Kc_value)
-            .otherwise(pl.col("Kc")).alias("Kc"),
-            pl.when(pl.col("day_num") == day_corrected).then(5).otherwise(pl.col("Stage_id")).alias("Stage_id")
-        )     
+    dev_days = [
+        correct_abs_date(Development_day_start + offset)
+        for offset in range(dev_stage_duration)
+    ]
+    if dev_stage_duration > 0:
+        if dev_stage_duration == 1:
+            dev_values = [crop_data['K_mid'][0]]
+        else:
+            Kc_dev_slope = (crop_data['K_mid'][0] - crop_data['K_ini'][0]) / (dev_stage_duration - 1)
+            dev_values = [
+                crop_data['K_ini'][0] + Kc_dev_slope * offset
+                for offset in range(dev_stage_duration)
+            ]
+        stage_records.extend(
+            {
+                "day_num": day,
+                "Kc": value,
+                "Stage_id": 3,
+            }
+            for day, value in zip(dev_days, dev_values)
+        )
 
-        day += 1
+    mid_days = [
+        correct_abs_date(Mid_day_start + offset)
+        for offset in range(mid_stage_duration)
+    ]
+    stage_records.extend(
+        {
+            "day_num": day,
+            "Kc": crop_data['K_mid'][0],
+            "Stage_id": 4,
+        }
+        for day in mid_days
+    )
+
+    late_days = [
+        correct_abs_date(Late_day_start + offset)
+        for offset in range(late_stage_duration)
+    ]
+    if late_stage_duration > 0:
+        if late_stage_duration == 1:
+            late_values = [crop_data['K_Late'][0]]
+        else:
+            Kc_late_slope = (crop_data['K_Late'][0] - crop_data['K_mid'][0]) / (late_stage_duration - 1)
+            late_values = [
+                crop_data['K_mid'][0] + Kc_late_slope * offset
+                for offset in range(late_stage_duration)
+            ]
+        stage_records.extend(
+            {
+                "day_num": day,
+                "Kc": value,
+                "Stage_id": 5,
+            }
+            for day, value in zip(late_days, late_values)
+        )
+
+    stage_assignments = pl.DataFrame(stage_records)
+    if not stage_assignments.is_empty():
+        Kc_df = Kc_df.join(stage_assignments, on="day_num", how="left", suffix="_stage")
+        Kc_df = Kc_df.with_columns(
+            pl.when(pl.col("Kc_stage").is_not_null())
+            .then(pl.col("Kc_stage"))
+            .otherwise(pl.col("Kc"))
+            .alias("Kc"),
+            pl.when(pl.col("Stage_id_stage").is_not_null())
+            .then(pl.col("Stage_id_stage"))
+            .otherwise(pl.col("Stage_id"))
+            .alias("Stage_id"),
+        ).drop(["Kc_stage", "Stage_id_stage"])
 
     # Kc_df =Kc_df.join(KC_Dates.select('Stage', 'Stage_id'), on="Stage_id", how="left")
     # print("Kc curve created successfully for crop:", crop, "in climate:", climate)
