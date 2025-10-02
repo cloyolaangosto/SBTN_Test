@@ -6,13 +6,10 @@ from pathlib import Path
 import pandas as pd
 import polars as pl
 import numpy as np
-import calendar
-import rasterio.fill
 import xarray as xr
 import os
 
-from collections import defaultdict  # Imports a special dict subclass that auto‐initializes missing keys.
-from typing import Optional
+from typing import Mapping, Optional, Tuple, Dict
 
 import geopandas as gpd
 import rasterio
@@ -21,6 +18,10 @@ from rasterio.warp import reproject, Resampling
 import rioxarray as rxr
 
 from sbtn_leaf.PET import monthly_KC_curve, calculate_crop_based_PET_raster_vPipeline
+from sbtn_leaf.data_loader import (
+    get_crop_coefficients_table,
+    get_thermal_climate_tables,
+)
 from sbtn_leaf.map_calculations import resample_to_match_noSaving
 
 
@@ -29,7 +30,6 @@ from rasterio.enums import Resampling
 
 from rasterio.fill import fillnodata
 from scipy import ndimage
-from typing import Optional, Tuple, Dict
 
 
 ##### DATA ####
@@ -43,64 +43,29 @@ crop_res_table = pl.read_excel("../data/crops/crop_residue_data.xlsx", sheet_nam
 rain_monthly_fp = "../data/soil_weather/uhth_monthly_avg_precip.tif"
 uhth_climates_fp = "../data/soil_weather/uhth_thermal_climates.tif"
 
-K_Crops = pl.read_csv("../data/crops/K_Crop_Data.csv")
-abs_date_table = pl.read_csv("../data/crops/AbsoluteDayTable.csv")
-
-days_in_month_table = pl.DataFrame({
-    "Month": list(range(1, 13)),
-    "Days_in_Month": [calendar.monthrange(2023, month)[1] for month in range(1, 13)]
-})
-
-
-thermal_climates_table = pl.DataFrame({
-    "id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    "TC_Name": [
-        "Tropics, lowland",
-        "Tropics, highland",
-        "Subtropics, summer rainfall",
-        "Subtropics, winter rainfall",
-        "Subtropics, low rainfall",
-        "Temperate, oceanic",
-        "Temperate, sub-continental",
-        "Temperate, continental",
-        "Boreal, oceanic",
-        "Boreal, sub-continental",
-        "Boreal, continental",
-        "Arctic"
-    ],
-    "TC_Group": [
-        "Tropics",
-        "Tropics",
-        "Subtropics summer rainfall",
-        "Subtropics winter rainfall",
-        "Subtropics winter rainfall",
-        "Oceanic temperate",
-        "Sub-continental temperate and continental temperate",
-        "Sub-continental temperate and continental temperate",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic"
-    ]
-})
-
-
-# Dictionaries
-# Create a lookup dictionary for thermal climates
-# This will map thermal climate IDs to their TC_Group names.
-climate_zone_lookup = dict(
-    zip(thermal_climates_table["id"].to_list(),
-        thermal_climates_table["TC_Group"].to_list())
-)
-
-# Dictionary to group climate zones by their TC_Group
-# This will help in quickly accessing all zone IDs belonging to a specific group.
-zone_ids_by_group = defaultdict(list)
-for zone_id, group in climate_zone_lookup.items():
-    zone_ids_by_group[group].append(zone_id)  # Append zone ID to the list for its group
-
 
 #### FUNCTIONS ####
+
+
+def _resolve_crop_table(crop_table: Optional[pl.DataFrame] = None) -> pl.DataFrame:
+    """Return the provided crop coefficient table or the shared cached copy."""
+
+    if crop_table is not None:
+        return crop_table
+    return get_crop_coefficients_table()
+
+
+def _resolve_climate_lookup(
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
+) -> Mapping[int, str]:
+    """Return the provided climate lookup or the shared cached mapping."""
+
+    if climate_zone_lookup is not None:
+        return climate_zone_lookup
+    _, lookup, _ = get_thermal_climate_tables()
+    return lookup
+
+
 def index_files(folder_path: str, output_csv: str):
     """
     Walks through `folder_path`, indexes all files, and writes a CSV with:
@@ -805,17 +770,24 @@ def create_residue_raster_rasterops(
         print(f"[{branch}] → wrote 1-band raster: Res only")
 
 
-def create_plant_cover_monthly_curve(crop: str, climate: str):
+def create_plant_cover_monthly_curve(
+    crop: str,
+    climate: str,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+):
     # Check the crops exists
-    if crop not in K_Crops['Crop'].unique():
+    crop_table = _resolve_crop_table(crop_table)
+
+    if crop not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop}' not found in K_Crops table.")
-    
-    if climate not in K_Crops["Climate_Zone"]:
+
+    if climate not in crop_table["Climate_Zone"]:
         raise ValueError(f"Climate zone '{climate}' not found in K_Crops table.")
-    
+
     # Retrieve plant cover data for the specified crop
-    pc_starts = K_Crops.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate)).select('SCP_Starts').item()
-    pc_ends = K_Crops.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate)).select('SCP_End').item()
+    pc_starts = crop_table.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate)).select('SCP_Starts').item()
+    pc_ends = crop_table.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate)).select('SCP_End').item()
 
     # Create a DataFrame for the plant cover curve
     plant_cover_curve = pl.DataFrame(
@@ -880,7 +852,10 @@ def create_plant_cover_monthly_raster(
     crop: str,
     save_path: str,
     climate_raster_path: str = uhth_climates_fp,
-    output_nodata: int = 255
+    output_nodata: int = 255,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
 ):
     """
     Build a monthly (12×y×x) plant-cover mask from a climate-ID GeoTIFF.
@@ -906,14 +881,17 @@ def create_plant_cover_monthly_raster(
                    fill_value=output_nodata,
                    dtype=np.uint8)
 
+    crop_table = _resolve_crop_table(crop_table)
+    climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
+
     # 4. Loop over each unique climate ID
     unique_ids = np.unique(ids[~np.isnan(ids)]).astype(int)
     for cid in unique_ids:
-        group = climate_zone_lookup.get(cid)
+        group = climate_lookup.get(cid)
         if group is None:
             continue  # or raise
         # Get the 12-month vector (0/1) from your existing function
-        pc_df = create_plant_cover_monthly_curve(crop, group)
+        pc_df = create_plant_cover_monthly_curve(crop, group, crop_table=crop_table)
         pc_vec = np.array(pc_df.select("Plant_Cover").to_series())  # shape (12,)
 
         # Assign that vector to all pixels where ids==cid
@@ -1004,7 +982,10 @@ def compute_monthly_residue_raster(
     climate_raster_path: str,
     plant_residue: xr.DataArray,
     save_path: str,
-    output_nodata: float = np.nan
+    output_nodata: float = np.nan,
+    *,
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
+    crop_table: Optional[pl.DataFrame] = None,
 ):
     """
     Allocate annual plant_residue into monthly residues per pixel,
@@ -1051,14 +1032,21 @@ def compute_monthly_residue_raster(
                   dtype="float32")
 
     # 3. Loop over climate IDs
+    climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
+    crop_table = _resolve_crop_table(crop_table)
+
     unique_ids = np.unique(ids[~np.isnan(ids)]).astype(int)
     for cid in unique_ids:
-        group = climate_zone_lookup.get(cid)
+        group = climate_lookup.get(cid)
         if group is None:
             continue
 
         # 3a. K‐curve fraction
-        kc_df = monthly_KC_curve(crop, group).select(["Month", "Kc"])
+        kc_df = monthly_KC_curve(
+            crop,
+            group,
+            crop_table=crop_table,
+        ).select(["Month", "Kc"])
         k_vals = np.array(kc_df["Kc"].to_list(), dtype=float)
         k_frac = k_vals / k_vals.sum()
 
@@ -1097,7 +1085,10 @@ def compute_monthly_residue_raster_fromAnnualRaster(
     plant_residue: str,
     save_path: str,
     climate_raster_path: str = uhth_climates_fp,
-    output_nodata: float = np.nan
+    output_nodata: float = np.nan,
+    *,
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
+    crop_table: Optional[pl.DataFrame] = None,
 ):
     """
     Allocate annual plant_residue into monthly residues per pixel, based on crop-specific Kc curves per climate group.
@@ -1143,14 +1134,21 @@ def compute_monthly_residue_raster_fromAnnualRaster(
                   dtype="float32")
 
     # 3. Loop over climate IDs
+    climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
+    crop_table = _resolve_crop_table(crop_table)
+
     unique_ids = np.unique(ids[~np.isnan(ids)]).astype(int)
     for cid in unique_ids:
-        group = climate_zone_lookup.get(cid)
+        group = climate_lookup.get(cid)
         if group is None:
             continue
 
         # 3a. K‐curve fraction
-        kc_df = monthly_KC_curve(crop, group).select(["Month", "Kc"])
+        kc_df = monthly_KC_curve(
+            crop,
+            group,
+            crop_table=crop_table,
+        ).select(["Month", "Kc"])
         k_vals = np.array(kc_df["Kc"].to_list(), dtype=float)
         k_frac = k_vals / k_vals.sum()
 
@@ -1629,7 +1627,10 @@ def create_monthly_residue_vPipeline(
     output_path: str,
     output_nodata = np.nan,
     climate_raster_path: str = uhth_climates_fp,
-    C_Content: float = 0.50
+    C_Content: float = 0.50,
+    *,
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
+    crop_table: Optional[pl.DataFrame] = None,
 ):
     """
     Read a single‐band yield raster, choose one residue‐calculation path globally:
@@ -1731,14 +1732,21 @@ def create_monthly_residue_vPipeline(
     ids = clim.values  # now strictly 2D (y,x)
 
     # 3. Loop over climate IDs
+    climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
+    crop_table = _resolve_crop_table(crop_table)
+
     unique_ids = np.unique(ids[~np.isnan(ids)]).astype(int)
     for cid in unique_ids:
-        group = climate_zone_lookup.get(cid)
+        group = climate_lookup.get(cid)
         if group is None:
             continue
 
         # 3a. K‐curve fraction
-        kc_df = monthly_KC_curve(crop, group).select(["Month", "Kc"])
+        kc_df = monthly_KC_curve(
+            crop,
+            group,
+            crop_table=crop_table,
+        ).select(["Month", "Kc"])
         k_vals = np.array(kc_df["Kc"].to_list(), dtype=float)
         k_frac = k_vals / k_vals.sum()
 

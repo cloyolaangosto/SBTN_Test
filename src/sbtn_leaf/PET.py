@@ -30,78 +30,70 @@ The following part of the code tries to automatize this calculations for annual 
 
 #### Modules ####
 import math  # For mathematical operations
-import calendar  # For month and day calculations
 from calendar import monthrange  # For getting the number of days in a month
+from typing import Iterable, Mapping, Optional
+
 import polars as pl  # For data manipulation and analysis
 import numpy as np  # For numerical operations and array handling
 import rasterio  # For raster data handling
 from rasterio.warp import reproject, Resampling  # For raster reprojection and resampling
-from collections import defaultdict  # Imports a special dict subclass that auto‐initializes missing keys.
 from tqdm import tqdm  # For progress bar
 
-
-##############
-#### Data ####
-##############
-
-K_Crops = pl.read_csv("../data/crops/K_Crop_Data.csv")
-abs_date_table = pl.read_csv("../data/crops/AbsoluteDayTable.csv")
-
-days_in_month_table = pl.DataFrame({
-    "Month": list(range(1, 13)),
-    "Days_in_Month": [calendar.monthrange(2023, month)[1] for month in range(1, 13)]
-})
-
-thermal_climates_table = pl.DataFrame({
-    "id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-    "TC_Name": [
-        "Tropics, lowland",
-        "Tropics, highland",
-        "Subtropics, summer rainfall",
-        "Subtropics, winter rainfall",
-        "Subtropics, low rainfall",
-        "Temperate, oceanic",
-        "Temperate, sub-continental",
-        "Temperate, continental",
-        "Boreal, oceanic",
-        "Boreal, sub-continental",
-        "Boreal, continental",
-        "Arctic"
-    ],
-    "TC_Group": [
-        "Tropics",
-        "Tropics",
-        "Subtropics summer rainfall",
-        "Subtropics winter rainfall",
-        "Subtropics winter rainfall",
-        "Oceanic temperate",
-        "Sub-continental temperate and continental temperate",
-        "Sub-continental temperate and continental temperate",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic",
-        "Sub-continental boreal, continental boreal and polar/arctic"
-    ]
-})
-
-# Create a lookup dictionary for thermal climates
-# This will map thermal climate IDs to their TC_Group names.
-climate_zone_lookup = dict(
-    zip(thermal_climates_table["id"].to_list(),
-        thermal_climates_table["TC_Group"].to_list())
+from sbtn_leaf.data_loader import (
+    get_absolute_day_table,
+    get_crop_coefficients_table,
+    get_days_in_month_table,
+    get_thermal_climate_tables,
 )
 
-# Dictionary to group climate zones by their TC_Group
-# This will help in quickly accessing all zone IDs belonging to a specific group.
-zone_ids_by_group = defaultdict(list)
-for zone_id, group in climate_zone_lookup.items():
-    zone_ids_by_group[group].append(zone_id)  # Append zone ID to the list for its group
 
 ###################
 #### Functions ####
 ###################
 
-def get_month_from_absolute_day(abs_day: int):
+
+def _resolve_crop_table(crop_table: Optional[pl.DataFrame] = None) -> pl.DataFrame:
+    """Return the provided crop table or fetch the shared cached version."""
+
+    if crop_table is not None:
+        return crop_table
+    return get_crop_coefficients_table()
+
+
+def _resolve_abs_date_table(abs_date_table: Optional[pl.DataFrame] = None) -> pl.DataFrame:
+    """Return the provided absolute day table or fetch the shared cached version."""
+
+    if abs_date_table is not None:
+        return abs_date_table
+    return get_absolute_day_table()
+
+
+def _resolve_days_in_month_table(days_table: Optional[pl.DataFrame] = None) -> pl.DataFrame:
+    """Return the provided days-in-month table or fetch the shared cached version."""
+
+    if days_table is not None:
+        return days_table
+    return get_days_in_month_table()
+
+
+def _resolve_zone_mappings(
+    zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
+    climate_zone_lookup: Optional[Mapping[int, str]] = None,
+    climate_table: Optional[pl.DataFrame] = None,
+):
+    """Return thermal climate helpers, pulling cached defaults when omitted."""
+
+    if all(value is not None for value in (zone_ids_by_group, climate_zone_lookup, climate_table)):
+        return climate_table, climate_zone_lookup, zone_ids_by_group
+
+    table, lookup, zones = get_thermal_climate_tables()
+    return (
+        climate_table or table,
+        climate_zone_lookup or lookup,
+        zone_ids_by_group or zones,
+    )
+
+def get_month_from_absolute_day(abs_day: int, abs_date_table: Optional[pl.DataFrame] = None):
     """
     Get the month from an absolute day number.
 
@@ -114,8 +106,10 @@ def get_month_from_absolute_day(abs_day: int):
     if abs_day < 1 or abs_day > 365:
         raise ValueError("Absolute day must be between 1 and 365.")
 
+    abs_table = _resolve_abs_date_table(abs_date_table)
+
     # Find the month by iterating through the days in each month
-    month = abs_date_table.filter(pl.col('Day_Num') == abs_day).select('Month').item()
+    month = abs_table.filter(pl.col('Day_Num') == abs_day).select('Month').item()
 
     return month
 
@@ -216,15 +210,24 @@ def correct_abs_date(num_day:int):
     
     return num_day
 
-def create_KC_Curve(crop: str, climate: str):
+def create_KC_Curve(
+    crop: str,
+    climate: str,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+):
+    crop_table = _resolve_crop_table(crop_table)
+    abs_table = _resolve_abs_date_table(abs_date_table)
+
     # First, check that both crops and climate are in the K_Crops table
-    if crop not in K_Crops['Crop'].unique() or climate not in K_Crops['Climate_Zone'].unique():
+    if crop not in crop_table['Crop'].unique() or climate not in crop_table['Climate_Zone'].unique():
         raise ValueError("Specified crop or climate not found in Kc data.")
     # else:
     #    print(f"Creating Kc curve for crop: {crop} in climate: {climate}")
     
     # Retrieve data for the specified crop and climate
-    crop_data = K_Crops.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate))
+    crop_data = crop_table.filter((pl.col('Crop') == crop) & (pl.col('Climate_Zone') == climate))
     # print("Crop data retrieved:")
     # print(crop_data)
 
@@ -246,7 +249,7 @@ def create_KC_Curve(crop: str, climate: str):
     # print("Retrieving stages dates for crop:", crop)
     
     # Get the phanse day number as an integer value
-    planting_day_num_start = abs_date_table.filter(
+    planting_day_num_start = abs_table.filter(
         pl.col('Date') == crop_data['Planting_Greenup_Date']).select('Day_Num').item()
     planting_day_num_end = planting_day_num_start
     Initial_day_start = planting_day_num_end + 1
@@ -347,11 +350,24 @@ def create_KC_Curve(crop: str, climate: str):
     
     return Kc_df
 
-def monthly_KC_curve(crop: str, climate: str):
-    daily_Kc_curve = create_KC_Curve(crop, climate)
+def monthly_KC_curve(
+    crop: str,
+    climate: str,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+):
+    daily_Kc_curve = create_KC_Curve(
+        crop,
+        climate,
+        crop_table=crop_table,
+        abs_date_table=abs_date_table,
+    )
+
+    abs_table = _resolve_abs_date_table(abs_date_table)
 
     # Group by month and calculate average Kc for each month
-    absday_month = abs_date_table.select(
+    absday_month = abs_table.select(
         pl.col('Day_Num'),
         pl.col('Month')
     )
@@ -363,7 +379,17 @@ def monthly_KC_curve(crop: str, climate: str):
     return monthly_Kc
 
 
-def calculate_PET_crop_based(crop: str, climate_zone:str, monthly_temps, year: int, lat: float):
+def calculate_PET_crop_based(
+    crop: str,
+    climate_zone: str,
+    monthly_temps,
+    year: int,
+    lat: float,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+    days_in_month_table: Optional[pl.DataFrame] = None,
+):
     """
     Calculate crop-adjusted Potential Evapotranspiration (PET) on a daily, monthly, and annual basis.
 
@@ -397,23 +423,31 @@ def calculate_PET_crop_based(crop: str, climate_zone:str, monthly_temps, year: i
 
     Notes
     -----
-    - This function assumes availability of global variables or dataframes:
-      `K_Crops`, `abs_date_table`, `days_in_month_table`, and the functions
-      `create_KC_Curve` and `calculate_PET_location_based`.
+    - This function accepts optional data tables for easier testing. When not
+      provided, shared cached tables from :mod:`sbtn_leaf.data_loader` are used.
     - Monthly PET is computed from Kc-adjusted daily values.
     - Leap years are handled automatically through day correction logic.
     """
 
+    crop_table = _resolve_crop_table(crop_table)
+    abs_table = _resolve_abs_date_table(abs_date_table)
+    days_table = _resolve_days_in_month_table(days_in_month_table)
+
     # Create Kc curve for the specified crop and climate zone
-    Kc_curve = create_KC_Curve(crop, climate_zone)
+    Kc_curve = create_KC_Curve(
+        crop,
+        climate_zone,
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+    )
 
     # Calculate PET using the Kc values from the curve and monthly temperatures
     PET0 = calculate_PET_location_based(monthly_temps, year, lat)
     PET0 = pl.DataFrame({'Month': range(1, 13), 'PET0_Month': PET0})
 
     PET_daily = Kc_curve
-    PET_daily = PET_daily.join(abs_date_table, left_on='day_num', right_on='Day_Num', how='left')
-    PET_daily = PET_daily.join(PET0, on='Month', how='left').join(days_in_month_table, on='Month', how='left')
+    PET_daily = PET_daily.join(abs_table, left_on='day_num', right_on='Day_Num', how='left')
+    PET_daily = PET_daily.join(PET0, on='Month', how='left').join(days_table, on='Month', how='left')
     PET_daily = PET_daily.with_columns(
         PET_Daily = pl.col('Kc') * pl.col('PET0_Month')/pl.col("Days_in_Month")# Convert monthly PET to daily PET
     )
@@ -440,7 +474,11 @@ def calculate_crop_based_PET_raster_optimized(
     output_monthly_path: str,
     output_annual_path: str,
     pet_base_raster_path: str = "SOC_Data_Processing/uhth_pet_locationonly.tif",
-    thermal_zone_raster_path: str = "SOC_Data_Processing/uhth_thermal_climates.tif"
+    thermal_zone_raster_path: str = "SOC_Data_Processing/uhth_thermal_climates.tif",
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+    zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
 ):
     """
     Calculates crop-specific Potential Evapotranspiration (PET) rasters using optimized raster operations.
@@ -467,7 +505,11 @@ def calculate_crop_based_PET_raster_optimized(
 
 
     # 1) sanity check crop
-    if crop_name not in K_Crops['Crop'].unique():
+    crop_table = _resolve_crop_table(crop_table)
+    abs_table = _resolve_abs_date_table(abs_date_table)
+    _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
+
+    if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
 
     # 2) load rasters once
@@ -493,17 +535,22 @@ def calculate_crop_based_PET_raster_optimized(
     pet_annual  = np.full((H, W), np.nan, dtype="float32")
 
     # 3) Precompute one 12-month Kc vector per zone
-    unique_groups = list(zone_ids_by_group)
+    unique_groups = list(zone_groups)
     kc_by_group = {}
     for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
         print(f"Precomputing Kc curve for group: {grp}")
-        kc_df = monthly_KC_curve(crop_name, grp)
+        kc_df = monthly_KC_curve(
+            crop_name,
+            grp,
+            crop_table=crop_table,
+            abs_date_table=abs_table,
+        )
         kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
 
     # 4) Apply each zone’s Kc vector in one go
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
-        valid_zones = zone_ids_by_group[grp]
+        valid_zones = zone_groups[grp]
         mask = np.isin(thermal_zones, valid_zones) & (lu_data == 1)  # Filter for landuse == 1 and thermal zone in valid_zones
         if not mask.any():  # If no pixels match this group, skip
             continue
@@ -529,7 +576,11 @@ def calculate_crop_based_PET_raster_vPipeline(
     landuse_array: np.ndarray,
     output_monthly_path: str,
     pet_base_raster_path: str = "data/soil_weather/uhth_pet_locationonly.tif",
-    thermal_zone_raster_path: str = "data/soil_weather/uhth_thermal_climates.tif"
+    thermal_zone_raster_path: str = "data/soil_weather/uhth_thermal_climates.tif",
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+    zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
 ):
     """
     Calculates crop-specific Potential Evapotranspiration (PET) rasters using optimized raster operations.
@@ -556,7 +607,11 @@ def calculate_crop_based_PET_raster_vPipeline(
 
 
     # 1) sanity check crop
-    if crop_name not in K_Crops['Crop'].unique():
+    crop_table = _resolve_crop_table(crop_table)
+    abs_table = _resolve_abs_date_table(abs_date_table)
+    _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
+
+    if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
 
     # 2) load rasters once
@@ -579,17 +634,22 @@ def calculate_crop_based_PET_raster_vPipeline(
     pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
 
     # 3) Precompute one 12-month Kc vector per zone
-    unique_groups = list(zone_ids_by_group)
+    unique_groups = list(zone_groups)
     kc_by_group = {}
     for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
         print(f"Precomputing Kc curve for group: {grp}")
-        kc_df = monthly_KC_curve(crop_name, grp)
+        kc_df = monthly_KC_curve(
+            crop_name,
+            grp,
+            crop_table=crop_table,
+            abs_date_table=abs_table,
+        )
         kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
 
     # 4) Apply each zone’s Kc vector in one go
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
-        valid_zones = zone_ids_by_group[grp]
+        valid_zones = zone_groups[grp]
         mask = np.isin(thermal_zones, valid_zones) & (lu_data == 1)  # Filter for landuse == 1 and thermal zone in valid_zones
         if not mask.any():  # If no pixels match this group, skip
             continue
