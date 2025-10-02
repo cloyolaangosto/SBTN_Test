@@ -68,12 +68,16 @@ def _resolve_abs_date_table(abs_date_table: Optional[pl.DataFrame] = None) -> pl
     return get_absolute_day_table()
 
 
-def _resolve_days_in_month_table(days_table: Optional[pl.DataFrame] = None) -> pl.DataFrame:
+def _resolve_days_in_month_table(
+    days_table: Optional[pl.DataFrame] = None,
+    *,
+    year: int = 2023,
+) -> pl.DataFrame:
     """Return the provided days-in-month table or fetch the shared cached version."""
 
     if days_table is not None:
         return days_table
-    return get_days_in_month_table()
+    return get_days_in_month_table(year)
 
 
 def _resolve_zone_mappings(
@@ -474,7 +478,7 @@ def calculate_PET_crop_based(
 
     crop_table = _resolve_crop_table(crop_table)
     abs_table = _resolve_abs_date_table(abs_date_table)
-    days_table = _resolve_days_in_month_table(days_in_month_table)
+    days_table = _resolve_days_in_month_table(days_in_month_table, year=year)
 
     # Create Kc curve for the specified crop and climate zone
     Kc_curve = create_KC_Curve(
