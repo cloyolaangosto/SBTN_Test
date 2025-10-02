@@ -142,6 +142,8 @@ def test_calculate_pet_crop_based_respects_leap_year_days():
         abs_date_table=abs_table,
     )
 
+    assert "PET_Annual" in results
+
     feb_total = (
         results["PET_Daily"]
         .filter(pl.col("Month") == 2)
@@ -152,3 +154,7 @@ def test_calculate_pet_crop_based_respects_leap_year_days():
     feb_monthly_input = calculate_PET_location_based(monthly_temps, 2024, 0.0)[1]
 
     assert feb_total == pytest.approx(feb_monthly_input, rel=1e-9)
+
+    monthly_total = results["PET_Monthly"].select(pl.col("PET_Monthly").sum()).item()
+
+    assert results["PET_Annual"] == pytest.approx(monthly_total, rel=1e-9)

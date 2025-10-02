@@ -461,7 +461,7 @@ def calculate_PET_crop_based(
     -------
     dict
         A dictionary with the following keys:
-        - 'PET_Annaul' : float
+        - 'PET_Annual' : float
             Total annual PET (mm/year) for the specified crop and location.
         - 'PET_Monthly' : pl.DataFrame
             Monthly PET values (mm/month), grouped by calendar month.
@@ -506,7 +506,7 @@ def calculate_PET_crop_based(
     PET_Annual = PET_Monthly['PET_Monthly'].sum()
 
     results = {
-        'PET_Annaul': PET_Annual,
+        'PET_Annual': PET_Annual,
         'PET_Monthly': PET_Monthly,
         'PET_Daily': PET_daily
     }
