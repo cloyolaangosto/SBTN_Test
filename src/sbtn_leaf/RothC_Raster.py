@@ -315,6 +315,7 @@ def raster_rothc_annual_results_1yrloop(
     co2_annual[0] = 0
     
     dt = 1.0 / 12.0
+
     for t_abs in trange(months, desc="RothC months", position=1):
         # Re-assigning t_abs into t
         t = t_abs % 12
@@ -430,6 +431,8 @@ def raster_rothc_ReducedTillage_annual_results_1yrloop(
     co2_annual[0] = 0
     
     dt = 1.0 / 12.0
+    sand_has_time_dim = sand.ndim == 3
+
     for t_abs in trange(months, desc="RothC months", position=1):
         # Re-assigning t_abs into t
         t = t_abs % 12 
@@ -446,8 +449,12 @@ def raster_rothc_ReducedTillage_annual_results_1yrloop(
         rm_pc = RMF_PC(pc[t])
         rate_m = rm_tmp * rm_moist * rm_pc
 
-        # Tillage Rate Modifiers (TRMs)
-        TRM_DPM, TRM_RPM, TRM_BIO, TRM_HUM = RMF_TRM(sand[t], SOC[t])
+        # Tillage Rate Modifiers (TRMs). Sand inputs can be either time-varying
+        # (3-D) or static (2-D). In both cases RMF_TRM expects 2-D arrays that
+        # match the spatial SOC state, so we slice only when a time dimension is
+        # present and always pass the full SOC grid.
+        sand_current = sand[t] if sand_has_time_dim else sand
+        TRM_DPM, TRM_RPM, TRM_BIO, TRM_HUM = RMF_TRM(sand_current, SOC)
         
         # Decomposition
         D1 = DPM * np.exp(-rate_m * TRM_DPM * 10.0 * dt)
@@ -712,9 +719,9 @@ def run_rothC_sceneraios_from_csv(csv_filepath):
     for scenario in scenario_list:
     #for scenario in tqdm(scenario_list, desc="Running RothC Scenarios", unit="scenario", position=0):
         # tqdm.write(f"Processing scenario: {scenario['practices_string_id']}")
-        print(f"Running {scenario["crop_name"]} - {scenario["practices_string_id"]}")
+        print(f"Running {scenario['crop_name']} - {scenario['practices_string_id']}")
         run_RothC(**scenario)
-        print(f"\n\n")
+        print("\n\n")
 
 ##########################################
 #### OTHER USEFUL FUNCTIONS FOR ROTHC ####
