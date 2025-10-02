@@ -31,7 +31,7 @@ The following part of the code tries to automatize this calculations for annual 
 #### Modules ####
 import math  # For mathematical operations
 from calendar import monthrange  # For getting the number of days in a month
-from typing import Iterable, Mapping, Optional
+from typing import Iterable, Mapping, Optional, Tuple
 
 import polars as pl  # For data manipulation and analysis
 import numpy as np  # For numerical operations and array handling
@@ -561,6 +561,102 @@ def calculate_PET_crop_based(
     return results
 
 
+def _calculate_crop_based_pet_core(
+    crop_name: str,
+    pet_base: np.ndarray,
+    thermal_zones: np.ndarray,
+    *,
+    zone_groups: Mapping[str, Iterable[int]],
+    crop_table: pl.DataFrame,
+    abs_table: pl.DataFrame,
+    landuse_mask: Optional[np.ndarray] = None,
+    compute_annual: bool = False,
+) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    """Apply crop coefficients to a base PET raster for each thermal zone group.
+
+    Parameters
+    ----------
+    crop_name:
+        Name of the crop whose Kc curves should be generated.
+    pet_base:
+        ``(12, H, W)`` array containing the base PET values that will be adjusted
+        by the crop coefficients.
+    thermal_zones:
+        ``(H, W)`` array of thermal zone identifiers that align with
+        ``pet_base``.
+    zone_groups:
+        Mapping from zone group to the collection of thermal zone identifiers
+        associated with that group.
+    crop_table, abs_table:
+        Lookup tables required to generate the crop coefficient curves.
+    landuse_mask:
+        Optional boolean mask identifying which pixels should receive crop PET
+        values. When omitted, all pixels are considered valid.
+    compute_annual:
+        When ``True`` the function also aggregates monthly values into an
+        annual array.
+
+    Returns
+    -------
+    Tuple[np.ndarray, Optional[np.ndarray]]
+        The monthly PET array and, when requested, the annual PET array.
+    """
+
+    if pet_base.shape[0] != 12:
+        raise ValueError(
+            "pet_base is expected to contain 12 monthly bands; "
+            f"got shape {pet_base.shape}."
+        )
+
+    if pet_base.shape[1:] != thermal_zones.shape:
+        raise ValueError(
+            "pet_base and thermal_zones must share the same spatial dimensions; "
+            f"got {pet_base.shape[1:]} and {thermal_zones.shape}."
+        )
+
+    if landuse_mask is None:
+        landuse_mask = np.ones_like(thermal_zones, dtype=bool)
+    else:
+        if landuse_mask.shape != thermal_zones.shape:
+            raise ValueError(
+                "landuse_mask must match the spatial dimensions of thermal_zones; "
+                f"got {landuse_mask.shape} and {thermal_zones.shape}."
+            )
+        landuse_mask = landuse_mask.astype(bool, copy=False)
+
+    pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
+    pet_annual: Optional[np.ndarray]
+    if compute_annual:
+        pet_annual = np.full(thermal_zones.shape, np.nan, dtype="float32")
+    else:
+        pet_annual = None
+
+    kc_by_group = _build_monthly_kc_vectors(
+        crop_name,
+        zone_groups,
+        crop_table,
+        abs_table,
+        tqdm_desc="Precomputing Kc curves for group",
+    )
+
+    for group, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
+        valid_zones = zone_groups[group]
+        mask = np.isin(thermal_zones, valid_zones) & landuse_mask
+        if not mask.any():
+            continue
+
+        monthly_crop = pet_base[:, mask] * kc_vec[:, None]
+        pet_monthly[:, mask] = monthly_crop
+
+        if pet_annual is not None:
+            annual_values = np.asarray(np.nansum(monthly_crop, axis=0), dtype="float32")
+            all_nan = np.all(np.isnan(monthly_crop), axis=0)
+            annual_values[all_nan] = np.float32(np.nan)
+            pet_annual[mask] = annual_values
+
+    return pet_monthly, pet_annual
+
+
 def calculate_crop_based_PET_raster_optimized(
     crop_name: str,
     landuse_raster_path: str,
@@ -628,34 +724,16 @@ def calculate_crop_based_PET_raster_optimized(
         landuse_mask  = lu_data == 1
         profile       = PET_raster.profile.copy()
 
-    H, W = pet_base.shape[1:]
-    pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
-    pet_annual  = np.full((H, W), np.nan, dtype="float32")
-
-    # 3) Precompute one 12-month Kc vector per zone
-    kc_by_group = _build_monthly_kc_vectors(
+    pet_monthly, pet_annual = _calculate_crop_based_pet_core(
         crop_name,
-        zone_groups,
-        crop_table,
-        abs_table,
-        tqdm_desc="Precomputing Kc curves for group",
+        pet_base,
+        thermal_zones,
+        zone_groups=zone_groups,
+        crop_table=crop_table,
+        abs_table=abs_table,
+        landuse_mask=landuse_mask,
+        compute_annual=True,
     )
-
-    # 4) Apply each zone’s Kc vector in one go
-    for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
-        # mask all pixels whose zone_id is in this group
-        valid_zones = zone_groups[grp]
-        mask = np.isin(thermal_zones, valid_zones) & landuse_mask  # Filter for landuse == 1 and thermal zone in valid_zones
-        if not mask.any():  # If no pixels match this group, skip
-            continue
-
-        monthly_crop = pet_base[:, mask] * kc_vec[:, None]  # kc_vec[:, None] reshapes your (12,) Kc vector into shape (12, 1).
-        pet_monthly[:, mask] = monthly_crop
-
-        annual_values = np.asarray(np.nansum(monthly_crop, axis=0), dtype="float32")
-        all_nan = np.all(np.isnan(monthly_crop), axis=0)
-        annual_values[all_nan] = np.float32(np.nan)
-        pet_annual[mask] = annual_values
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully. Storing...")
     # 5) write out rasters
@@ -746,28 +824,16 @@ def calculate_crop_based_PET_raster_vPipeline(
             )
         profile       = PET_raster.profile.copy()
 
-    H, W = pet_base.shape[1:]
-    pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
-
-    # 3) Precompute one 12-month Kc vector per zone
-    kc_by_group = _build_monthly_kc_vectors(
+    pet_monthly, _ = _calculate_crop_based_pet_core(
         crop_name,
-        zone_groups,
-        crop_table,
-        abs_table,
-        tqdm_desc="Precomputing Kc curves for group",
+        pet_base,
+        thermal_zones,
+        zone_groups=zone_groups,
+        crop_table=crop_table,
+        abs_table=abs_table,
+        landuse_mask=landuse_mask,
+        compute_annual=False,
     )
-
-    # 4) Apply each zone’s Kc vector in one go
-    for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
-        # mask all pixels whose zone_id is in this group
-        valid_zones = zone_groups[grp]
-        mask = np.isin(thermal_zones, valid_zones) & landuse_mask  # Filter for landuse == 1 and thermal zone in valid_zones
-        if not mask.any():  # If no pixels match this group, skip
-            continue
-
-        monthly_crop = pet_base[:, mask] * kc_vec[:, None]  # kc_vec[:, None] reshapes your (12,) Kc vector into shape (12, 1).
-        pet_monthly[:, mask] = monthly_crop
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully")
     
