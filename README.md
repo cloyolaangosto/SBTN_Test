@@ -9,7 +9,7 @@ The repository also offers a reproducible workflows to help organizations evalua
 - [`data/`](data/): Lightweight input datasets (excluding GIS once), starter templates, and sample configurations used by the tutorials and processing pipelines.
 - [`documentation/`](documentation/): Theoretical references and step-by-step guides to develope LEAFs, including [SOC documentation](documentation/SOC_Documentation.md), and [Soil Erosion guide](documentation/Soil_Erosion_Documentation.md),as well as data harmonization notes.
 - [`examples/`](examples/): Executable notebooks and scripts that demonstrate how to prepare inputs and compute LEAF values.
-- [`src/`](src/): Reusable Python modules that implement the harmonization, calculation, and export utilities used across the examples.
+- [`src/`](src/): Reusable Python modules that implement the harmonization, calculation, and export utilities used across the examples. Shared lookups that power crop and climate calculations are lazily loaded through [`src/sbtn_leaf/data_loader.py`](src/sbtn_leaf/data_loader.py) so that downstream modules can request cached tables or inject test fixtures.
 - [`LEAFs/`](LEAFs/): Output directory with precomputed LEAFs tables and maps. New LEAFs generated are stored after here after running the processing workflows. See [LEAFs/README.md](LEAFs/README.md) for guidance on organizing and versioning run artifacts.
 
 ## Data and Documentation Resources
