@@ -8,7 +8,7 @@ Core RothC model routines: pool initialization, decomposition (with CO2 tracking
 # -----------------------------------------------------------------------------
 import numpy as np
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Callable, Tuple, Optional
 import polars as pl
 
 # -----------------------------------------------------------------------------
@@ -187,7 +187,8 @@ def decomp(
     clay: float,
     plant_c_inp: float,
     fym_inp: float,
-    dpm_rpm: float
+    dpm_rpm: float,
+    trm: Optional[Tuple[float, float, float, float]] = None,
 ) -> CarbonPools:
     """
     Update carbon pools and track CO2 emitted this timestep.
@@ -197,13 +198,17 @@ def decomp(
         pools.DPM, pools.RPM, pools.BIO, pools.HUM, pools.IOM, pools.CO2
     )
     k = dict(DPM=10.0, RPM=0.3, BIO=0.66, HUM=0.02)
+    if trm is None:
+        trm_vals = dict(DPM=1.0, RPM=1.0, BIO=1.0, HUM=1.0)
+    else:
+        trm_vals = dict(DPM=trm[0], RPM=trm[1], BIO=trm[2], HUM=trm[3])
     tstep = 1.0 / time_fact
 
     # decay existing pools
-    DPM_1 = DPM_0 * np.exp(-rate_m * k['DPM'] * tstep)
-    RPM_1 = RPM_0 * np.exp(-rate_m * k['RPM'] * tstep)
-    BIO_1 = BIO_0 * np.exp(-rate_m * k['BIO'] * tstep)
-    HUM_1 = HUM_0 * np.exp(-rate_m * k['HUM'] * tstep)
+    DPM_1 = DPM_0 * np.exp(-rate_m * trm_vals['DPM'] * k['DPM'] * tstep)
+    RPM_1 = RPM_0 * np.exp(-rate_m * trm_vals['RPM'] * k['RPM'] * tstep)
+    BIO_1 = BIO_0 * np.exp(-rate_m * trm_vals['BIO'] * k['BIO'] * tstep)
+    HUM_1 = HUM_0 * np.exp(-rate_m * trm_vals['HUM'] * k['HUM'] * tstep)
 
     # losses in each pool
     losses = {
@@ -278,15 +283,115 @@ def onemonth_step_rothc(
     dpm_rpm: float,
     c_inp: float,
     fym: float,
-    swc: float
+    swc: float,
+    trm: Optional[Tuple[float, float, float, float]] = None
 ) -> Tuple[CarbonPools, float]:
     """Advance pools one month"""
     rm_tmp = RMF_Tmp(temp)
     rm_moist, new_swc = RMF_Moist(rain, evap, clay, depth, cover, swc)
     rm_pc = RMF_PC(cover)
     rate_m = rm_tmp * rm_moist * rm_pc
-    new_pools = decomp(12.0, pools, rate_m, clay, c_inp, fym, dpm_rpm)
+    new_pools = decomp(12.0, pools, rate_m, clay, c_inp, fym, dpm_rpm, trm=trm)
     return new_pools, new_swc
+
+# -----------------------------------------------------------------------------
+# Shared monthly loop utilities
+# -----------------------------------------------------------------------------
+
+TRMProvider = Callable[[int, CarbonPools], Optional[Tuple[float, float, float, float]]]
+
+
+def _run_monthly_sequence(
+    pools: CarbonPools,
+    clay: float,
+    depth: float,
+    tmp: np.ndarray,
+    rain: np.ndarray,
+    evap: np.ndarray,
+    pc: np.ndarray,
+    dpm_rpm: float,
+    c_inp: Optional[np.ndarray],
+    fym: Optional[np.ndarray],
+    swc: float,
+    *,
+    irr: Optional[np.ndarray] = None,
+    trm_provider: Optional[TRMProvider] = None,
+) -> Tuple[CarbonPools, float, np.ndarray, np.ndarray]:
+    """Advance the RothC state through a sequence of monthly timesteps.
+
+    Parameters
+    ----------
+    pools : CarbonPools
+        Current pool state that will be updated in-place.
+    tmp, rain, evap, pc : array-like
+        Monthly time-series driving the model. All arrays must share the same
+        first dimension length.
+    dpm_rpm : float
+        Decomposable-to-resistant plant material ratio.
+    c_inp, fym : array-like or None
+        Monthly external carbon and FYM inputs. When ``None`` they are treated
+        as zero inputs.
+    swc : float
+        Soil water content carried between months.
+    irr : array-like or None, optional
+        Additional monthly irrigation amounts. When provided they are added to
+        ``rain`` before computing soil moisture.
+    trm_provider : callable, optional
+        Function returning per-pool tillage rate modifiers for the current
+        month. It receives the month index (0-based) and the current
+        ``CarbonPools`` instance and must return a ``tuple`` of four floats
+        ``(DPM, RPM, BIO, HUM)`` or ``None`` when no modifier is applied.
+
+    Returns
+    -------
+    CarbonPools
+        Updated pool state after processing all months.
+    float
+        Updated soil water content to carry forward.
+    np.ndarray
+        Monthly SOC log for the processed months.
+    np.ndarray
+        Monthly CO2 emissions for the processed months.
+    """
+
+    tmp_arr = np.asarray(tmp, dtype=float)
+    rain_arr = np.asarray(rain, dtype=float)
+    evap_arr = np.asarray(evap, dtype=float)
+    pc_arr = np.asarray(pc, dtype=int)
+    months = tmp_arr.shape[0]
+
+    c_arr = np.zeros(months, dtype=float) if c_inp is None else np.asarray(c_inp, dtype=float)
+    f_arr = np.zeros(months, dtype=float) if fym is None else np.asarray(fym, dtype=float)
+    irr_arr = None if irr is None else np.asarray(irr, dtype=float)
+
+    soc_monthly = np.empty(months, dtype=float)
+    co2_monthly = np.empty(months, dtype=float)
+    swc_curr = float(swc)
+
+    for month_idx in range(months):
+        prev_co2 = pools.CO2
+        water = rain_arr[month_idx]
+        if irr_arr is not None:
+            water = water + irr_arr[month_idx]
+        trm_val = trm_provider(month_idx, pools) if trm_provider is not None else None
+        pools, swc_curr = onemonth_step_rothc(
+            pools,
+            clay,
+            depth,
+            tmp_arr[month_idx],
+            water,
+            evap_arr[month_idx],
+            int(pc_arr[month_idx]),
+            dpm_rpm,
+            c_arr[month_idx],
+            f_arr[month_idx],
+            swc_curr,
+            trm=trm_val,
+        )
+        soc_monthly[month_idx] = pools.SOC
+        co2_monthly[month_idx] = pools.CO2 - prev_co2
+
+    return pools, swc_curr, soc_monthly, co2_monthly
 
 # -----------------------------------------------------------------------------
 # Equilibrium spin-up logging (formerly run_equilibrium)
@@ -302,6 +407,8 @@ def run_equilibrium(
     dpm_rpm: float,
     c12: Optional[np.ndarray] = None,
     f12: Optional[np.ndarray] = None,
+    irr12: Optional[np.ndarray] = None,
+    trm_provider: Optional[TRMProvider] = None,
     tol: float = 1e-6,
     max_cycles: int = 10000
 ) -> Tuple[
@@ -309,20 +416,38 @@ def run_equilibrium(
     np.ndarray, np.ndarray,
     np.ndarray, np.ndarray
 ]:
-    """
-    Iterate yearly cycles until SOC change < tol.
+    """Iterate yearly cycles until SOC change ``< tol``.
 
-    Variables:
-      - cycle: automatically increments via 'for cycle in range(max_cycles)'
-      - prev_soc: initialized to current pools.SOC at start of each cycle
+    Parameters
+    ----------
+    pools : CarbonPools
+        Initial carbon pools, typically produced by :func:`initialize_pools`.
+    clay, depth : float
+        Soil properties used by the moisture modifier.
+    tmp12, rain12, evap12, pc12 : array-like
+        Monthly climate forcing for a single year.
+    dpm_rpm : float
+        Decomposable-to-resistant plant material ratio.
+    c12, f12 : array-like or None, optional
+        Monthly external carbon and FYM inputs. ``None`` defaults to zeros.
+    irr12 : array-like or None, optional
+        Optional monthly irrigation totals (same length as ``tmp12``). These
+        are unique to reduced tillage scenarios and are added to precipitation
+        before soil moisture is evaluated.
+    trm_provider : callable, optional
+        Hook that injects per-pool tillage rate modifiers. Supply a callable
+        returning ``(DPM, RPM, BIO, HUM)`` multipliers to enable reduced
+        tillage behaviour; pass ``None`` for conventional runs.
+    tol : float, optional
+        SOC convergence threshold between yearly cycles.
+    max_cycles : int, optional
+        Maximum number of annual cycles to evaluate.
 
-    Returns:
-      - pools at equilibrium
-      - final SWC
-      - soc_monthly_log: array of shape (cycles,12)
-      - co2_monthly_log: array of shape (cycles,12)
-      - soc_annual_log: array of shape (cycles,)
-      - co2_annual_log: array of shape (cycles,)
+    Returns
+    -------
+    tuple
+        Updated pools, final soil water content, and monthly/annual SOC and
+        CO2 logs for each cycle.
     """
     
     # default external inputs = 0
@@ -345,22 +470,21 @@ def run_equilibrium(
         # Store SOC at beginning of cycle for convergence check
         prev_soc = pools.SOC
         # Prepare containers for this cycle
-        monthly_soc = np.empty(12, dtype=float)
-        monthly_co2 = np.empty(12, dtype=float)
-        swc_cycle = swc
-
-        # Run 12-month loop
-        for k in range(12):
-            # Track CO2 before step
-            prev_co2 = pools.CO2
-            pools, swc_cycle = onemonth_step_rothc(
-                pools, clay, depth,
-                tmp12[k], rain12[k], evap12[k], int(pc12[k]),
-                dpm_rpm, c12[k], f12[k], swc_cycle
-            )
-            # Log end-of-month SOC and CO2 emitted that month
-            monthly_soc[k] = pools.SOC
-            monthly_co2[k] = pools.CO2 - prev_co2
+        pools, swc_cycle, monthly_soc, monthly_co2 = _run_monthly_sequence(
+            pools,
+            clay,
+            depth,
+            tmp12,
+            rain12,
+            evap12,
+            pc12,
+            dpm_rpm,
+            c12,
+            f12,
+            swc,
+            irr=irr12,
+            trm_provider=trm_provider,
+        )
 
         # Annual metrics for this cycle
         annual_soc = monthly_soc[-1]          # December SOC
@@ -405,35 +529,78 @@ def run_simulation(
     n_years: int,
     do_equilibrium: bool = False,
     c_inp: Optional[np.ndarray] = None,
-    fym: Optional[np.ndarray] = None
+    fym: Optional[np.ndarray] = None,
+    irr: Optional[np.ndarray] = None,
+    trm_provider: Optional[TRMProvider] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Run RothC for n_years; return (soc_annual, co2_annual) arrays"""
+    """Run RothC for ``n_years`` and return annual SOC and CO2 series.
+
+    Parameters
+    ----------
+    clay, depth, iom, soc0 : float
+        Site-specific soil characteristics.
+    tmp, rain, evap, pc : array-like
+        Monthly climate and cover time-series of length ``n_years * 12``.
+    dpm_rpm : float
+        Decomposable-to-resistant plant material ratio.
+    n_years : int
+        Simulation horizon in years.
+    do_equilibrium : bool, optional
+        When ``True`` perform an equilibrium spin-up using the first 12 months.
+    c_inp, fym : array-like or None, optional
+        Monthly plant carbon and manure inputs. Defaults to zeros when ``None``.
+    irr : array-like or None, optional
+        Optional monthly irrigation totals. Provide these, together with a
+        ``trm_provider``, to model reduced tillage scenarios.
+    trm_provider : callable, optional
+        Callable returning tillage rate modifiers ``(DPM, RPM, BIO, HUM)`` for
+        each month. Leave ``None`` for conventional management.
+
+    Returns
+    -------
+    tuple of np.ndarray
+        Annual SOC and CO2 totals (length ``n_years``).
+    """
     pools = initialize_pools(soc0, clay)
     pools.IOM = iom
     swc = 0.0
-    
+
+    months = n_years * 12
+    tmp = np.asarray(tmp, dtype=float)
+    rain = np.asarray(rain, dtype=float)
+    evap = np.asarray(evap, dtype=float)
+    pc = np.asarray(pc, dtype=int)
+    c_inp = np.zeros(months, dtype=float) if c_inp is None else np.asarray(c_inp, dtype=float)
+    fym = np.zeros(months, dtype=float) if fym is None else np.asarray(fym, dtype=float)
+    irr = None if irr is None else np.asarray(irr, dtype=float)
+
     # optional spin-up
     if do_equilibrium:
         _, swc, _, _, _, _ = run_equilibrium(
             pools, clay, depth,
             tmp[:12], rain[:12], evap[:12], pc[:12],
-            dpm_rpm, c_inp[:12], fym[:12]
+            dpm_rpm, c_inp[:12], fym[:12],
+            irr12=None if irr is None else irr[:12],
+            trm_provider=trm_provider,
         )
 
     # run full simulation
-    months = n_years * 12
-    soc_monthly = np.empty(months, dtype=float)
-    co2_monthly = np.empty(months, dtype=float)
-    for t in range(months):
-        prev_co2 = pools.CO2
-        pools, swc = onemonth_step_rothc(
-            pools, clay, depth,
-            tmp[t], rain[t], evap[t], int(pc[t]),
-            dpm_rpm, c_inp[t], fym[t], swc
-        )
-        soc_monthly[t] = pools.SOC
-        co2_monthly[t] = pools.CO2 - prev_co2
+    pools, swc, soc_monthly, co2_monthly = _run_monthly_sequence(
+        pools,
+        clay,
+        depth,
+        tmp,
+        rain,
+        evap,
+        pc,
+        dpm_rpm,
+        c_inp,
+        fym,
+        swc,
+        irr=irr,
+        trm_provider=trm_provider,
+    )
     soc_annual = soc_monthly[11::12]
     co2_annual = co2_monthly.reshape(n_years, 12).sum(axis=1)
-    
+
     return soc_annual, co2_annual
