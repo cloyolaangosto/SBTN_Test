@@ -637,27 +637,34 @@ def calculate_crop_based_PET_raster_vPipeline(
     abs_date_table: Optional[pl.DataFrame] = None,
     zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
 ):
-    """
-    Calculates crop-specific Potential Evapotranspiration (PET) rasters using optimized raster operations.
-    This function computes monthly and annual PET rasters for a given crop by applying crop coefficients (Kc)
-    to a base PET raster, considering GAEZ thermal zones and land use. The output consists of two rasters:
-    one with monthly PET values and another with annual PET sums, both masked to relevant land use and thermal zones.
+    """Calculate monthly crop-specific PET rasters using optimized raster operations.
+
+    The function multiplies a base PET raster by crop coefficients (Kc) for each
+    thermal zone group to produce monthly crop-adjusted PET layers. Pixels are
+    masked according to the provided ``landuse_array`` so that only relevant land
+    uses (for example, where the value equals 1) receive crop PET values. After
+    the raster is written to ``output_monthly_path`` the in-memory monthly PET
+    array is returned for further use.
+
     Args:
-        crop_name (str): Name of the crop to calculate PET for. Must exist in the K_Crops table.
-        landuse_raster_path (str): File path to the land use raster (must align with PET and thermal zone rasters).
-        output_monthly_path (str): File path to write the output monthly PET raster (12 bands).
-        output_annual_path (str): File path to write the output annual PET raster (single band).
-        pet_base_raster_path (str, optional): File path to the base PET raster (default: "SOC_Data_Processing/uhth_pet_locationonly.tif").
-        thermal_zone_raster_path (str, optional): File path to the thermal zone raster (default: "SOC_Data_Processing/uhth_thermal_climates.tif").
-    
+        crop_name (str): Name of the crop to calculate PET for. Must exist in the
+            K_Crops table.
+        landuse_array (np.ndarray): 2D array aligned with the PET and thermal
+            zone rasters whose values indicate which pixels should be populated
+            with crop PET values.
+        output_monthly_path (str): File path to write the output monthly PET
+            raster (12 bands).
+        pet_base_raster_path (str, optional): File path to the base PET raster
+            (default: ``"data/soil_weather/uhth_pet_locationonly.tif"``).
+        thermal_zone_raster_path (str, optional): File path to the thermal zone
+            raster (default: ``"data/soil_weather/uhth_thermal_climates.tif"``).
+
     Raises:
         ValueError: If the crop name is not found in the K_Crops table.
         ValueError: If the rasters do not have matching CRS, transform, or shape.
-    
-    Outputs:
-        Writes two raster files:
-            - Monthly PET raster (12 bands) at `output_monthly_path`
-            - Annual PET raster (single band) at `output_annual_path`
+
+    Returns:
+        np.ndarray: The 12-band monthly PET array that was written to disk.
     """
 
 
@@ -718,7 +725,7 @@ def calculate_crop_based_PET_raster_vPipeline(
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully")
     
-    # 5) write out rasters
+    # 5) write out the monthly raster
     profile.update(count=12, dtype="float32", nodata=np.nan)
     with rasterio.open(output_monthly_path, "w", **profile) as dst:
         dst.write(pet_monthly)
