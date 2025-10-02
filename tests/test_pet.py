@@ -1,8 +1,13 @@
 import datetime as dt
 
 import polars as pl
+import pytest
 
-from sbtn_leaf.PET import calculate_PET_location_based, create_KC_Curve
+from sbtn_leaf.PET import (
+    calculate_PET_crop_based,
+    calculate_PET_location_based,
+    create_KC_Curve,
+)
 
 
 def test_january_daylight_duration_does_not_raise_index_error():
@@ -86,3 +91,64 @@ def test_create_kc_curve_respects_stage_lengths_without_rollover():
     active_days = kc_curve.filter(pl.col("Stage_id") > 0)["day_num"].to_list()
     assert max(active_days) == planting_day + sum(stage_lengths.values()) - 1
     assert max(active_days) <= 365
+
+
+def test_calculate_pet_crop_based_respects_leap_year_days():
+    """Daily PET totals for February should honour leap-year month lengths."""
+
+    def _absolute_day_table():
+        base = dt.date(2021, 1, 1)
+        rows = []
+        for offset in range(365):
+            current = base + dt.timedelta(days=offset)
+            rows.append(
+                {
+                    "Date": f"{current.day}-{current.strftime('%b')}",
+                    "Day_Num": offset + 1,
+                    "Day": current.day,
+                    "Month": current.month,
+                }
+            )
+        return pl.DataFrame(rows)
+
+    crop_table = pl.DataFrame(
+        {
+            "Climate_Zone": ["TestZone"],
+            "Crop": ["LeapCrop"],
+            "K_ini": [29 / 28],
+            "K_mid": [29 / 28],
+            "K_Late": [29 / 28],
+            "Initial_days": [364],
+            "Dev_Days": [0],
+            "Mid_Days": [0],
+            "Late_days": [0],
+            "Planting_Greenup_Date": ["1-Jan"],
+            "Soil_Cover_Period": [0],
+            "SCP_Starts": [0],
+            "SCP_End": [0],
+        }
+    )
+
+    abs_table = _absolute_day_table()
+    monthly_temps = [10.0] * 12
+
+    results = calculate_PET_crop_based(
+        "LeapCrop",
+        "TestZone",
+        monthly_temps,
+        2024,
+        0.0,
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+    )
+
+    feb_total = (
+        results["PET_Daily"]
+        .filter(pl.col("Month") == 2)
+        .select(pl.col("PET_Daily").sum())
+        .item()
+    )
+
+    feb_monthly_input = calculate_PET_location_based(monthly_temps, 2024, 0.0)[1]
+
+    assert feb_total == pytest.approx(feb_monthly_input, rel=1e-9)
