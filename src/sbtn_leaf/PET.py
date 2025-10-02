@@ -182,7 +182,7 @@ def calculate_PET_location_based(monthly_temps, year: int, lat: float):
         raise ValueError("monthly_temps must contain exactly 12 values for each month.")
 
     # Step 1: Calculate I (heat index)
-    I = sum([(t / 5.0) ** 1.514 for t in monthly_temps if t > 0])
+    I = sum(calcualte_heat_index(temp) for temp in monthly_temps)
 
     # Step 2: Calculate exponent a
     a  = calcualte_a(I)
