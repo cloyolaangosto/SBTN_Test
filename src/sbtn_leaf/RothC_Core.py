@@ -408,10 +408,23 @@ def run_simulation(
     fym: Optional[np.ndarray] = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Run RothC for n_years; return (soc_annual, co2_annual) arrays"""
+    tmp = np.asarray(tmp, dtype=float)
+    rain = np.asarray(rain, dtype=float)
+    evap = np.asarray(evap, dtype=float)
+    pc = np.asarray(pc, dtype=int)
+    if c_inp is None:
+        c_inp = np.zeros_like(tmp, dtype=float)
+    else:
+        c_inp = np.asarray(c_inp, dtype=float)
+    if fym is None:
+        fym = np.zeros_like(tmp, dtype=float)
+    else:
+        fym = np.asarray(fym, dtype=float)
+
     pools = initialize_pools(soc0, clay)
     pools.IOM = iom
     swc = 0.0
-    
+
     # optional spin-up
     if do_equilibrium:
         _, swc, _, _, _, _ = run_equilibrium(
