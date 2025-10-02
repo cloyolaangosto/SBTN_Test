@@ -1,5 +1,5 @@
 # SOC
-SOC LEAF are generated following the methods described in [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604) and [Teixeira, Morais & Domingos (2021)](https://doi.org/10.1038/s41597-021-01018-2), these in turn use the Rothmadel C (RothC) model to simulate SOC changes through time. RothC simulates "the turnover of organic carbon in non-waterlogged top-soils that allows for the effects of soil type, temperature, moisture content and plant cover on the turnover process" ([Coleman, Prout & Milne (2024)](https://www.rothamsted.ac.uk/sites/default/files/Documents/RothC_description.pdf)).
+SOC LEAF are generated following the methods described in [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604) and [Teixeira, Morais & Domingos (2021)](https://doi.org/10.1038/s41597-021-01018-2), and are delivered in ton of carbon per hectare (t C/ha). These referencfes in turn use the Rothmadel C (RothC) model to simulate SOC changes through time. RothC simulates "the turnover of organic carbon in non-waterlogged top-soils that allows for the effects of soil type, temperature, moisture content and plant cover on the turnover process" ([Coleman, Prout & Milne (2024)](https://www.rothamsted.ac.uk/sites/default/files/Documents/RothC_description.pdf)).
 
 The model has been adaptaed into GIS format, using as a base the one found on XXX.
 
@@ -37,7 +37,9 @@ For all crops, the ratio has been kept at 1.44.
 15 cm as default, due to the 0-30 cm SoilGrids data.
 
 #### 7) Growing location
-Specic location or map with locations for the commodity under study. For baseline and newly developed LEAF, maps were sourced from [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604), which divided the globe into UHTH zones of X by Y resolution.
+Specic location or map with locations for the commodity under study. For baseline and newly developed LEAF, maps were sourced from [Morais, Teixeria & Domingos (2019)](https://doi.org/10.1371/journal.pone.0222604), which divided the globe into UHTH zones of X by Y resolution following FAO GAEZ v2 suitability index maps.
+
+**[TODO - GET RESOLUTION OF UHTH]**
 
 #### 8) Soil Cover 
 Factor dependent if the soil is bare or not that month on a given location for each commodity. 
@@ -148,7 +150,7 @@ Once all data has been downloaded and inputs calculated, everything needs to be 
 
 Calculations and harmonization of all the data described above has been streamlined under the function prepare_crop_data under cropcalcs. The function needs as inputs: crop name, irrigation practice (rf for rainfed or irr for irrigated), GeoTIFF land use layer, and SPAM's all, rainfed, and irrigated layers.
 
-All data that could be made publicly available can be found here. PUT LINK PUBLIC DATA
+All data that could be made publicly available can be found here. **TODO - PUT LINK PUBLIC DATA**
 
 ## Step 3 - LEAFs Calculations
 Once all the data has been prepared and harmonized, LEAFs calculation can begin. For this, RothC model takes the baseline SOC of the land analyzed and performs a monthly SOC balance and projects into the future for a given number of years. The final $n$ year of the calculation results, given in ton C/ha, are the SOC LEAF. This can be compared to ecoregional threshold to determine if current, or changed, land use and corresponding land management practices will lead to safe operating conditions.
@@ -190,3 +192,6 @@ BLA BLA BLA
 
 ## LEAF Calculations Implementation Example
 An implementation example describing all steps can be found in [SOC Example](../examples/SOC_LEAF_Example.ipynb) for global production of Maize under different land management practices.
+
+## Step 4 - LEAFs Averages for Ecoregions, Countries and Subcountries
+**TODO**
