@@ -625,6 +625,7 @@ def calculate_crop_based_PET_raster_optimized(
             pet_base = pet_base.astype("float32", copy=False)
         thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
         lu_data       = landuse_raster.read(1).astype(int)          # (H, W)
+        landuse_mask  = lu_data == 1
         profile       = PET_raster.profile.copy()
 
     H, W = pet_base.shape[1:]
@@ -644,7 +645,7 @@ def calculate_crop_based_PET_raster_optimized(
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
         valid_zones = zone_groups[grp]
-        mask = np.isin(thermal_zones, valid_zones) & (lu_data == 1)  # Filter for landuse == 1 and thermal zone in valid_zones
+        mask = np.isin(thermal_zones, valid_zones) & landuse_mask  # Filter for landuse == 1 and thermal zone in valid_zones
         if not mask.any():  # If no pixels match this group, skip
             continue
 
@@ -736,6 +737,7 @@ def calculate_crop_based_PET_raster_vPipeline(
             pet_base = pet_base.astype("float32", copy=False)
         thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
         lu_data       = landuse_array.astype(int)          # (H, W)
+        landuse_mask  = lu_data == 1
         expected_shape = (PET_raster.height, PET_raster.width)
         if thermal_zones.shape != expected_shape or lu_data.shape != expected_shape:
             raise ValueError(
@@ -760,7 +762,7 @@ def calculate_crop_based_PET_raster_vPipeline(
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
         valid_zones = zone_groups[grp]
-        mask = np.isin(thermal_zones, valid_zones) & (lu_data == 1)  # Filter for landuse == 1 and thermal zone in valid_zones
+        mask = np.isin(thermal_zones, valid_zones) & landuse_mask  # Filter for landuse == 1 and thermal zone in valid_zones
         if not mask.any():  # If no pixels match this group, skip
             continue
 
