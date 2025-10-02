@@ -641,7 +641,8 @@ def _calculate_crop_based_pet_core(
 
     for group, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         valid_zones = zone_groups[group]
-        mask = np.isin(thermal_zones, valid_zones) & landuse_mask
+        valid_zones_array = np.array(valid_zones)
+        mask = np.isin(thermal_zones, valid_zones_array) & landuse_mask
         if not mask.any():
             continue
 
@@ -697,6 +698,8 @@ def calculate_crop_based_PET_raster_optimized(
     crop_table = _resolve_crop_table(crop_table)
     abs_table = _resolve_abs_date_table(abs_date_table)
     _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
+    if zone_groups is None:
+        zone_groups = {}
 
     if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
@@ -793,6 +796,8 @@ def calculate_crop_based_PET_raster_vPipeline(
     crop_table = _resolve_crop_table(crop_table)
     abs_table = _resolve_abs_date_table(abs_date_table)
     _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
+    if zone_groups is None:
+        zone_groups = {}
 
     if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
