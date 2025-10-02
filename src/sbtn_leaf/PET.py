@@ -468,7 +468,7 @@ def calculate_PET_crop_based(
     return results
 
 
-def calculate_crop_based_PET_raster_optimized(
+def _compute_crop_based_pet_rasters(
     crop_name: str,
     landuse_raster_path: str,
     output_monthly_path: str,
@@ -480,31 +480,9 @@ def calculate_crop_based_PET_raster_optimized(
     abs_date_table: Optional[pl.DataFrame] = None,
     zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
 ):
-    """
-    Calculates crop-specific Potential Evapotranspiration (PET) rasters using optimized raster operations.
-    This function computes monthly and annual PET rasters for a given crop by applying crop coefficients (Kc)
-    to a base PET raster, considering GAEZ thermal zones and land use. The output consists of two rasters:
-    one with monthly PET values and another with annual PET sums, both masked to relevant land use and thermal zones.
-    Args:
-        crop_name (str): Name of the crop to calculate PET for. Must exist in the K_Crops table.
-        landuse_raster_path (str): File path to the land use raster (must align with PET and thermal zone rasters).
-        output_monthly_path (str): File path to write the output monthly PET raster (12 bands).
-        output_annual_path (str): File path to write the output annual PET raster (single band).
-        pet_base_raster_path (str, optional): File path to the base PET raster (default: "SOC_Data_Processing/uhth_pet_locationonly.tif").
-        thermal_zone_raster_path (str, optional): File path to the thermal zone raster (default: "SOC_Data_Processing/uhth_thermal_climates.tif").
-    
-    Raises:
-        ValueError: If the crop name is not found in the K_Crops table.
-        ValueError: If the rasters do not have matching CRS, transform, or shape.
-    
-    Outputs:
-        Writes two raster files:
-            - Monthly PET raster (12 bands) at `output_monthly_path`
-            - Annual PET raster (single band) at `output_annual_path`
-    """
+    # Core implementation shared by the public crop-based PET helpers.
 
-
-    # 1) sanity check crop
+    # 1) Validate the requested crop against the coefficient table
     crop_table = _resolve_crop_table(crop_table)
     abs_table = _resolve_abs_date_table(abs_date_table)
     _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
@@ -512,29 +490,41 @@ def calculate_crop_based_PET_raster_optimized(
     if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
 
-    # 2) load rasters once
-    with rasterio.open(pet_base_raster_path) as PET_raster, \
-         rasterio.open(thermal_zone_raster_path) as thermal_zone_raster, \
-         rasterio.open(landuse_raster_path)  as landuse_raster:
+    # 2) Read the 12-band base PET raster stack and capture its metadata
+    with rasterio.open(pet_base_raster_path) as PET_raster:
+        pet_base = PET_raster.read()  # (12, H, W)
+        profile = PET_raster.profile.copy()
+        base_crs = PET_raster.crs
+        base_transform = PET_raster.transform
+        base_shape = (PET_raster.height, PET_raster.width)
 
-        # alignment check
-        for other_raster in (thermal_zone_raster, landuse_raster):
-            if (PET_raster.crs       != other_raster.crs
-            or  PET_raster.transform != other_raster.transform
-            or  PET_raster.width     != other_raster.width
-            or  PET_raster.height    != other_raster.height):
-                raise ValueError("CRS/transform/shape mismatch")
+    # 3) Capture the GAEZ thermal zone identifiers aligned to the PET grid
+    with rasterio.open(thermal_zone_raster_path) as thermal_zone_raster:
+        if (
+            thermal_zone_raster.crs != base_crs
+            or thermal_zone_raster.transform != base_transform
+            or thermal_zone_raster.width != base_shape[1]
+            or thermal_zone_raster.height != base_shape[0]
+        ):
+            raise ValueError("CRS/transform/shape mismatch")
+        thermal_zones = thermal_zone_raster.read(1).astype(int)
 
-        pet_base      = PET_raster.read()                       # (12, H, W)
-        thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
-        lu_data       = landuse_raster.read(1).astype(int)          # (H, W)
-        profile       = PET_raster.profile.copy()
+    # 4) Extract the land-use raster to mask cropland pixels only
+    with rasterio.open(landuse_raster_path) as landuse_raster:
+        if (
+            landuse_raster.crs != base_crs
+            or landuse_raster.transform != base_transform
+            or landuse_raster.width != base_shape[1]
+            or landuse_raster.height != base_shape[0]
+        ):
+            raise ValueError("CRS/transform/shape mismatch")
+        lu_data = landuse_raster.read(1).astype(int)
 
     H, W = pet_base.shape[1:]
     pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
     pet_annual  = np.full((H, W), np.nan, dtype="float32")
 
-    # 3) Precompute one 12-month Kc vector per zone
+    # 5) Precompute one 12-month Kc vector for every thermal group
     unique_groups = list(zone_groups)
     kc_by_group = {}
     for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
@@ -547,7 +537,7 @@ def calculate_crop_based_PET_raster_optimized(
         )
         kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
 
-    # 4) Apply each zone’s Kc vector in one go
+    # 6) Apply each zone’s Kc vector to the base PET stack
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
         valid_zones = zone_groups[grp]
@@ -560,7 +550,7 @@ def calculate_crop_based_PET_raster_optimized(
         pet_annual[mask]     = np.nansum(monthly_crop, axis=0)
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully. Storing...")
-    # 5) write out rasters
+    # 7) Persist the monthly and annual PET rasters to disk
     profile.update(count=12, dtype="float32", nodata=np.nan)
     with rasterio.open(output_monthly_path, "w", **profile) as dst:
         dst.write(pet_monthly)
@@ -568,6 +558,34 @@ def calculate_crop_based_PET_raster_optimized(
     profile.update(count=1)
     with rasterio.open(output_annual_path, "w", **profile) as dst:
         dst.write(pet_annual, 1)
+
+
+
+def calculate_crop_based_PET_raster_optimized(
+    crop_name: str,
+    landuse_raster_path: str,
+    output_monthly_path: str,
+    output_annual_path: str,
+    pet_base_raster_path: str = "SOC_Data_Processing/uhth_pet_locationonly.tif",
+    thermal_zone_raster_path: str = "SOC_Data_Processing/uhth_thermal_climates.tif",
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    abs_date_table: Optional[pl.DataFrame] = None,
+    zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
+):
+    """Public wrapper that maintains the original API for optimized raster workflows."""
+
+    _compute_crop_based_pet_rasters(
+        crop_name,
+        landuse_raster_path,
+        output_monthly_path,
+        output_annual_path,
+        pet_base_raster_path,
+        thermal_zone_raster_path,
+        crop_table=crop_table,
+        abs_date_table=abs_date_table,
+        zone_ids_by_group=zone_ids_by_group,
+    )
 
 
 
@@ -582,31 +600,10 @@ def calculate_crop_based_PET_raster_vPipeline(
     abs_date_table: Optional[pl.DataFrame] = None,
     zone_ids_by_group: Optional[Mapping[str, Iterable[int]]] = None,
 ):
-    """
-    Calculates crop-specific Potential Evapotranspiration (PET) rasters using optimized raster operations.
-    This function computes monthly and annual PET rasters for a given crop by applying crop coefficients (Kc)
-    to a base PET raster, considering GAEZ thermal zones and land use. The output consists of two rasters:
-    one with monthly PET values and another with annual PET sums, both masked to relevant land use and thermal zones.
-    Args:
-        crop_name (str): Name of the crop to calculate PET for. Must exist in the K_Crops table.
-        landuse_raster_path (str): File path to the land use raster (must align with PET and thermal zone rasters).
-        output_monthly_path (str): File path to write the output monthly PET raster (12 bands).
-        output_annual_path (str): File path to write the output annual PET raster (single band).
-        pet_base_raster_path (str, optional): File path to the base PET raster (default: "SOC_Data_Processing/uhth_pet_locationonly.tif").
-        thermal_zone_raster_path (str, optional): File path to the thermal zone raster (default: "SOC_Data_Processing/uhth_thermal_climates.tif").
-    
-    Raises:
-        ValueError: If the crop name is not found in the K_Crops table.
-        ValueError: If the rasters do not have matching CRS, transform, or shape.
-    
-    Outputs:
-        Writes two raster files:
-            - Monthly PET raster (12 bands) at `output_monthly_path`
-            - Annual PET raster (single band) at `output_annual_path`
-    """
+    # Compute crop-specific PET rasters for in-memory land-use data pipelines.
 
 
-    # 1) sanity check crop
+    # 1) Validate the requested crop before performing any raster IO
     crop_table = _resolve_crop_table(crop_table)
     abs_table = _resolve_abs_date_table(abs_date_table)
     _, _, zone_groups = _resolve_zone_mappings(zone_ids_by_group=zone_ids_by_group)
@@ -614,26 +611,34 @@ def calculate_crop_based_PET_raster_vPipeline(
     if crop_name not in crop_table['Crop'].unique():
         raise ValueError(f"Crop '{crop_name}' not found in K_Crops table.")
 
-    # 2) load rasters once
-    with rasterio.open(pet_base_raster_path) as PET_raster, \
-         rasterio.open(thermal_zone_raster_path) as thermal_zone_raster:
+    # 2) Read the base PET raster stack and metadata used across outputs
+    with rasterio.open(pet_base_raster_path) as PET_raster:
+        pet_base = PET_raster.read()
+        profile = PET_raster.profile.copy()
+        base_crs = PET_raster.crs
+        base_transform = PET_raster.transform
+        base_shape = (PET_raster.height, PET_raster.width)
 
-        # alignment check
-        if (PET_raster.crs       != thermal_zone_raster.crs
-            or  PET_raster.transform != thermal_zone_raster.transform
-            or  PET_raster.width     != thermal_zone_raster.width
-            or  PET_raster.height    != thermal_zone_raster.height):
-                raise ValueError("CRS/transform/shape mismatch")
+    # 3) Read the thermal zone raster and confirm alignment with the PET stack
+    with rasterio.open(thermal_zone_raster_path) as thermal_zone_raster:
+        if (
+            thermal_zone_raster.crs != base_crs
+            or thermal_zone_raster.transform != base_transform
+            or thermal_zone_raster.width != base_shape[1]
+            or thermal_zone_raster.height != base_shape[0]
+        ):
+            raise ValueError("CRS/transform/shape mismatch")
+        thermal_zones = thermal_zone_raster.read(1).astype(int)
 
-        pet_base      = PET_raster.read()                       # (12, H, W)
-        thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
-        lu_data       = landuse_array.astype(int)          # (H, W)
-        profile       = PET_raster.profile.copy()
+    # 4) Prepare the provided land-use array as a cropland mask
+    if landuse_array.shape != base_shape:
+        raise ValueError("Land-use array shape must match the PET raster dimensions")
+    lu_data = landuse_array.astype(int)
 
     H, W = pet_base.shape[1:]
     pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
 
-    # 3) Precompute one 12-month Kc vector per zone
+    # 5) Precompute one 12-month Kc vector for every thermal group
     unique_groups = list(zone_groups)
     kc_by_group = {}
     for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
@@ -646,7 +651,7 @@ def calculate_crop_based_PET_raster_vPipeline(
         )
         kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
 
-    # 4) Apply each zone’s Kc vector in one go
+    # 6) Apply each zone’s Kc vector to build the masked PET stack
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
         # mask all pixels whose zone_id is in this group
         valid_zones = zone_groups[grp]
@@ -658,8 +663,8 @@ def calculate_crop_based_PET_raster_vPipeline(
         pet_monthly[:, mask] = monthly_crop
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully")
-    
-    # 5) write out rasters
+
+    # 7) Persist the monthly PET raster for downstream pipeline stages
     profile.update(count=12, dtype="float32", nodata=np.nan)
     with rasterio.open(output_monthly_path, "w", **profile) as dst:
         dst.write(pet_monthly)
