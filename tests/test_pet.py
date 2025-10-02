@@ -1,9 +1,14 @@
 import datetime as dt
 
+import numpy as np
 import polars as pl
 import pytest
+import rasterio
+from rasterio.transform import from_origin
 
 from sbtn_leaf.PET import (
+    calculate_crop_based_PET_raster_optimized,
+    calculate_crop_based_PET_raster_vPipeline,
     calculate_PET_crop_based,
     calculate_PET_location_based,
     create_KC_Curve,
@@ -158,3 +163,133 @@ def test_calculate_pet_crop_based_respects_leap_year_days():
     monthly_total = results["PET_Monthly"].select(pl.col("PET_Monthly").sum()).item()
 
     assert results["PET_Annual"] == pytest.approx(monthly_total, rel=1e-9)
+
+
+def test_raster_pet_nodata_pixels_are_written_as_nan(tmp_path):
+    """PET rasters should propagate nodata pixels as NaN in outputs."""
+
+    transform = from_origin(0, 1, 1, 1)
+    pet_path = tmp_path / "pet.tif"
+    thermal_path = tmp_path / "thermal.tif"
+    landuse_path = tmp_path / "landuse.tif"
+    monthly_path = tmp_path / "monthly.tif"
+    annual_path = tmp_path / "annual.tif"
+    pipeline_monthly_path = tmp_path / "pipeline_monthly.tif"
+
+    pet_data = np.full((12, 1, 1), -9999.0, dtype="float32")
+
+    with rasterio.open(
+        pet_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=12,
+        dtype="float32",
+        nodata=-9999.0,
+        transform=transform,
+    ) as dst:
+        dst.write(pet_data)
+
+    thermal_data = np.array([[1]], dtype="int16")
+    with rasterio.open(
+        thermal_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=1,
+        dtype="int16",
+        transform=transform,
+    ) as dst:
+        dst.write(thermal_data, 1)
+
+    landuse_data = np.array([[1]], dtype="int16")
+    with rasterio.open(
+        landuse_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=1,
+        dtype="int16",
+        transform=transform,
+    ) as dst:
+        dst.write(landuse_data, 1)
+
+    def _absolute_day_table():
+        base = dt.date(2021, 1, 1)
+        rows = []
+        for offset in range(365):
+            current = base + dt.timedelta(days=offset)
+            rows.append(
+                {
+                    "Date": f"{current.day}-{current.strftime('%b')}",
+                    "Day_Num": offset + 1,
+                    "Day": current.day,
+                    "Month": current.month,
+                }
+            )
+        return pl.DataFrame(rows)
+
+    abs_table = _absolute_day_table()
+    crop_table = pl.DataFrame(
+        {
+            "Climate_Zone": ["TestClimate"],
+            "Crop": ["TestCrop"],
+            "K_ini": [1.0],
+            "K_mid": [1.0],
+            "K_Late": [1.0],
+            "Initial_days": [364],
+            "Dev_Days": [0],
+            "Mid_Days": [0],
+            "Late_days": [0],
+            "Planting_Greenup_Date": ["1-Jan"],
+            "Soil_Cover_Period": [0],
+            "SCP_Starts": [0],
+            "SCP_End": [0],
+        }
+    )
+
+    zone_ids_by_group = {"TestClimate": (1,)}
+
+    calculate_crop_based_PET_raster_optimized(
+        "TestCrop",
+        str(landuse_path),
+        str(monthly_path),
+        str(annual_path),
+        pet_base_raster_path=str(pet_path),
+        thermal_zone_raster_path=str(thermal_path),
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+        zone_ids_by_group=zone_ids_by_group,
+    )
+
+    with rasterio.open(monthly_path) as src:
+        monthly = src.read()
+        assert monthly.dtype == np.float32
+        assert np.isnan(monthly[:, 0, 0]).all()
+
+    with rasterio.open(annual_path) as src:
+        annual = src.read(1)
+        assert annual.dtype == np.float32
+        assert np.isnan(annual[0, 0])
+
+    pet_monthly = calculate_crop_based_PET_raster_vPipeline(
+        "TestCrop",
+        landuse_data,
+        str(pipeline_monthly_path),
+        pet_base_raster_path=str(pet_path),
+        thermal_zone_raster_path=str(thermal_path),
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+        zone_ids_by_group=zone_ids_by_group,
+    )
+
+    assert pet_monthly.dtype == np.float32
+    assert np.isnan(pet_monthly[:, 0, 0]).all()
+
+    with rasterio.open(pipeline_monthly_path) as src:
+        written = src.read()
+        assert written.dtype == np.float32
+        assert np.isnan(written[:, 0, 0]).all()

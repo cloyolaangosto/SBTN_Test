@@ -572,7 +572,11 @@ def calculate_crop_based_PET_raster_optimized(
             or  PET_raster.height    != other_raster.height):
                 raise ValueError("CRS/transform/shape mismatch")
 
-        pet_base      = PET_raster.read()                       # (12, H, W)
+        pet_base      = PET_raster.read(out_dtype="float32", masked=True)
+        if np.ma.isMaskedArray(pet_base):
+            pet_base = pet_base.filled(np.float32(np.nan))
+        else:
+            pet_base = pet_base.astype("float32", copy=False)
         thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
         lu_data       = landuse_raster.read(1).astype(int)          # (H, W)
         profile       = PET_raster.profile.copy()
@@ -604,7 +608,11 @@ def calculate_crop_based_PET_raster_optimized(
 
         monthly_crop = pet_base[:, mask] * kc_vec[:, None]  # kc_vec[:, None] reshapes your (12,) Kc vector into shape (12, 1).
         pet_monthly[:, mask] = monthly_crop
-        pet_annual[mask]     = np.nansum(monthly_crop, axis=0)
+
+        annual_values = np.asarray(np.nansum(monthly_crop, axis=0), dtype="float32")
+        all_nan = np.all(np.isnan(monthly_crop), axis=0)
+        annual_values[all_nan] = np.float32(np.nan)
+        pet_annual[mask] = annual_values
 
     print(f"PET calculation completed for crop '{crop_name}' succesfully. Storing...")
     # 5) write out rasters
@@ -672,7 +680,11 @@ def calculate_crop_based_PET_raster_vPipeline(
             or  PET_raster.height    != thermal_zone_raster.height):
                 raise ValueError("CRS/transform/shape mismatch")
 
-        pet_base      = PET_raster.read()                       # (12, H, W)
+        pet_base      = PET_raster.read(out_dtype="float32", masked=True)
+        if np.ma.isMaskedArray(pet_base):
+            pet_base = pet_base.filled(np.float32(np.nan))
+        else:
+            pet_base = pet_base.astype("float32", copy=False)
         thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
         lu_data       = landuse_array.astype(int)          # (H, W)
         profile       = PET_raster.profile.copy()
