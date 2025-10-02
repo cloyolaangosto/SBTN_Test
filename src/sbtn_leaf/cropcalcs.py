@@ -20,6 +20,13 @@ import rioxarray as rxr
 from sbtn_leaf.PET import monthly_KC_curve, calculate_crop_based_PET_raster_vPipeline
 from sbtn_leaf.data_loader import (
     get_crop_coefficients_table,
+    get_crop_ag_residue_table,
+    get_crop_naming_index_table,
+    get_crop_residue_ratio_table,
+    get_ecoregions_shapefile,
+    get_fao_crop_yields_table,
+    get_fao_statistics_table,
+    get_country_boundaries,
     get_thermal_climate_tables,
 )
 from sbtn_leaf.map_calculations import resample_to_match_noSaving
@@ -33,13 +40,6 @@ from scipy import ndimage
 
 
 ##### DATA ####
-er_17 = gpd.read_file("../data/Ecoregions2017/Ecoregions2017.shp")
-crops_name_table = pl.read_csv('../data/crops/crop_naming_index.csv')
-fao_stats = pl.read_csv('../data/crops/Production_Crops_Livestock_E_All_Data.csv')
-fao_crop_yields_1423 = pl.read_csv('../data/crops/fao_crop_yields_1423.csv', separator=';')
-country_shp = gpd.read_file('../data/CountryLayers/Country_Level0/g2015_2014_0.shp')
-crop_ag_res_table = pl.read_excel("../data/crops/crop_residue_data.xlsx", sheet_name="crop_ABG_Res")
-crop_res_table = pl.read_excel("../data/crops/crop_residue_data.xlsx", sheet_name="crop_res_ratios")
 rain_monthly_fp = "../data/soil_weather/uhth_monthly_avg_precip.tif"
 uhth_climates_fp = "../data/soil_weather/uhth_thermal_climates.tif"
 
@@ -66,6 +66,88 @@ def _resolve_climate_lookup(
     return lookup
 
 
+def _get_crop_naming_index_table() -> pl.DataFrame:
+    """Fetch the cached crop naming index table."""
+
+    return get_crop_naming_index_table()
+
+
+def _get_fao_statistics_table() -> pl.DataFrame:
+    """Fetch the cached FAO production statistics table."""
+
+    return get_fao_statistics_table()
+
+
+def _get_fao_crop_yields_table() -> pl.DataFrame:
+    """Fetch the cached FAO crop yields table."""
+
+    return get_fao_crop_yields_table()
+
+
+def _get_country_boundaries() -> gpd.GeoDataFrame:
+    """Fetch the cached country boundary GeoDataFrame."""
+
+    return get_country_boundaries()
+
+
+def _get_ecoregions_shapefile() -> gpd.GeoDataFrame:
+    """Fetch the cached ecoregions GeoDataFrame."""
+
+    return get_ecoregions_shapefile()
+
+
+def _get_crop_ag_residue_table() -> pl.DataFrame:
+    """Fetch the cached crop above-ground residue table."""
+
+    return get_crop_ag_residue_table()
+
+
+def _get_crop_residue_ratio_table() -> pl.DataFrame:
+    """Fetch the cached crop residue ratio table."""
+
+    return get_crop_residue_ratio_table()
+
+
+# Backwards compatibility: expose lazy proxies for legacy imports expecting
+# module-level tables.  The proxies load the underlying dataset on first use
+# and then delegate attribute/item access to the cached object.
+
+
+class _LazyDatasetProxy:
+    """Proxy that exposes a lazily loaded dataset via ``__getattr__``/``__getitem__``."""
+
+    def __init__(self, loader):
+        self._loader = loader
+        self._cached = None
+
+    def _get(self):
+        if self._cached is None:
+            self._cached = self._loader()
+        return self._cached
+
+    def __call__(self):
+        return self._get()
+
+    def __getattr__(self, name):
+        return getattr(self._get(), name)
+
+    def __getitem__(self, item):
+        return self._get()[item]
+
+    def __iter__(self):
+        return iter(self._get())
+
+
+# Legacy attribute names for external callers
+crops_name_table = _LazyDatasetProxy(_get_crop_naming_index_table)
+fao_stats = _LazyDatasetProxy(_get_fao_statistics_table)
+fao_crop_yields_1423 = _LazyDatasetProxy(_get_fao_crop_yields_table)
+country_shp = _LazyDatasetProxy(_get_country_boundaries)
+crop_ag_res_table = _LazyDatasetProxy(_get_crop_ag_residue_table)
+crop_res_table = _LazyDatasetProxy(_get_crop_residue_ratio_table)
+er_17 = _LazyDatasetProxy(_get_ecoregions_shapefile)
+
+
 def index_files(folder_path: str, output_csv: str):
     """
     Walks through `folder_path`, indexes all files, and writes a CSV with:
@@ -88,23 +170,35 @@ def index_files(folder_path: str, output_csv: str):
     df = pd.DataFrame(rows)
     df.to_csv(output_csv, index=False)
 
-def create_crop_yield_shapefile(fao_crop: str):
+def create_crop_yield_shapefile(
+    fao_crop: str,
+    *,
+    crop_table: Optional[pl.DataFrame] = None,
+    yields_table: Optional[pl.DataFrame] = None,
+    country_shapes: Optional[gpd.GeoDataFrame] = None,
+):
+    """Create a country-level shapefile containing FAO yield statistics."""
+
+    crop_table = _get_crop_naming_index_table() if crop_table is None else crop_table
+    yields_table = _get_fao_crop_yields_table() if yields_table is None else yields_table
+    country_shapes = _get_country_boundaries() if country_shapes is None else country_shapes
+
     # Checks if the crop is in the list
-    if fao_crop not in crops_name_table['FAO_Crop'].unique():
+    if fao_crop not in crop_table['FAO_Crop'].unique():
         raise ValueError(f'{fao_crop} not found or has no data')
 
     # Extract needed data
     yields_df = (
-        fao_crop_yields_1423.filter(pl.col("Item") == fao_crop)
+        yields_table.filter(pl.col("Item") == fao_crop)
         .select(["Area", "Unit", "avg_yield_1423", "ratio_yield_20_toavg"])
         .to_pandas()
     )
 
-    # rename to shorter namies
+    # rename to shorter names
     yields_df = yields_df.rename(columns={"avg_yield_1423": "avg_yield", "ratio_yield_20_toavg": "yld_ratio"})
 
     # Merges with shapefile
-    yield_shp = country_shp.merge(yields_df, how='left', left_on='ADM0_NAME', right_on='Area').drop(columns='Area')
+    yield_shp = country_shapes.merge(yields_df, how='left', left_on='ADM0_NAME', right_on='Area').drop(columns='Area')
 
     return yield_shp
 
@@ -479,7 +573,7 @@ def calculate_SPAM_yield_modifiers(
 def calculate_average_yield_by_ecoregion_and_biome(
     result_arr: np.ndarray,
     croplu_grid_raster: str,
-    er_shapefile = er_17
+    er_shapefile: Optional[gpd.GeoDataFrame] = None,
 ) -> Tuple[Dict[int, float], Dict[str, float], np.ndarray, Dict[int, str]]:
     """
     Calculate average yields per ecoregion and per biome.
@@ -489,13 +583,15 @@ def calculate_average_yield_by_ecoregion_and_biome(
       - zone_array: rasterized zone_id array
       - biome_name_map: zone_id -> biome_name mapping
     """
+    er_shapefile = _get_ecoregions_shapefile() if er_shapefile is None else er_shapefile
+
     # load LU raster for transform & CRS
     with rasterio.open(croplu_grid_raster) as src:
         transform, crs = src.transform, src.crs
         height, width = src.height, src.width
 
     # load and reproject ecoregions
-    er_gdf = er_17.to_crs(crs).reset_index(drop=True)
+    er_gdf = er_shapefile.to_crs(crs).reset_index(drop=True)
     er_gdf["zone_id"] = er_gdf.index.astype("int32")
 
     # rasterize zone_id
@@ -548,7 +644,11 @@ def calculate_crop_residues(crop: str, crop_yield: float, C_Content: float = 0.5
       - 'Total': sum of ABG + BG
     """
     
-    if crop not in (crops_name_table["Crops"].to_list() + crops_name_table["IPCC_Crop"].to_list()):
+    crop_table = _get_crop_naming_index_table()
+    res_table = _get_crop_residue_ratio_table()
+    ag_table = _get_crop_ag_residue_table()
+
+    if crop not in (crop_table["Crops"].to_list() + crop_table["IPCC_Crop"].to_list()):
         raise ValueError(f"{crop} not found in data table")
     
     # Initialize crop amounts
@@ -557,14 +657,14 @@ def calculate_crop_residues(crop: str, crop_yield: float, C_Content: float = 0.5
     Res = ABG + BG
 
     # Getting IPCC name and calculating belowground
-    ipcc_crop = crops_name_table.filter(pl.col('Crops') == crop).select('IPCC_Crop').item()
-    res_crop_data = crop_res_table.filter(pl.col('Crop') == ipcc_crop)
+    ipcc_crop = crop_table.filter(pl.col('Crops') == crop).select('IPCC_Crop').item()
+    res_crop_data = res_table.filter(pl.col('Crop') == ipcc_crop)
     dry = res_crop_data.select('DRY').item()
     RS = res_crop_data.select("RS").item()
 
     # Checkes if ABG can be calculated with line equation
-    if crop in crop_ag_res_table["Crop"].to_list():
-        AG_crop_data = crop_ag_res_table.filter(pl.col("Crop") == crop)
+    if crop in ag_table["Crop"].to_list():
+        AG_crop_data = ag_table.filter(pl.col("Crop") == crop)
         slope = AG_crop_data.select("Slope").item()
         intercept = AG_crop_data.select("Intercept").item()
 
@@ -695,8 +795,12 @@ def create_residue_raster_rasterops(
     yld_arr = np.where(valid, yields, np.nan)
 
     # 2) Map user crop → IPCC crop key
+    crop_table = _get_crop_naming_index_table()
+    res_table = _get_crop_residue_ratio_table()
+    ag_table = _get_crop_ag_residue_table()
+
     ipcc_crop = (
-        crops_name_table
+        crop_table
         .filter(pl.col("Crops") == crop)
         .select("IPCC_Crop")
         .to_series()
@@ -704,7 +808,7 @@ def create_residue_raster_rasterops(
     )
 
     # 3) Pull core residue parameters
-    res_row = crop_res_table.filter(pl.col("Crop") == ipcc_crop)
+    res_row = res_table.filter(pl.col("Crop") == ipcc_crop)
     dry      = float(res_row["DRY"].to_list()[0])
     dry_C_content = dry * C_Content
     
@@ -721,7 +825,7 @@ def create_residue_raster_rasterops(
         R_T      = float(res_row["R_T"].to_list()[0])
 
     # 4) See if regression parameters exist
-    ag_row = crop_ag_res_table.filter(pl.col("Crop") == crop)
+    ag_row = ag_table.filter(pl.col("Crop") == crop)
     if ag_row.height > 0:
         slope     = float(ag_row["Slope"].to_list()[0])
         intercept = float(ag_row["Intercept"].to_list()[0])
@@ -1307,7 +1411,8 @@ def prepare_crop_data(
 
     # Step 2 - Calculate yields
     # preparing fao yield shapefile
-    fao_crop_name = crops_name_table.filter(pl.col("Crops")== crop_name).select(pl.col("FAO_Crop")).item()
+    crop_table = _get_crop_naming_index_table()
+    fao_crop_name = crop_table.filter(pl.col("Crops")== crop_name).select(pl.col("FAO_Crop")).item()
     print(f"Creating {fao_crop_name} shapefile...")
     fao_yield_shp = create_crop_yield_shapefile(fao_crop_name)
 
@@ -1655,8 +1760,12 @@ def create_monthly_residue_vPipeline(
     yld_arr = np.where(valid, yields, np.nan)
 
     # 2) Map user crop → IPCC crop key
+    crop_table = _get_crop_naming_index_table()
+    res_table = _get_crop_residue_ratio_table()
+    ag_table = _get_crop_ag_residue_table()
+
     ipcc_crop = (
-        crops_name_table
+        crop_table
         .filter(pl.col("Crops") == crop)
         .select("IPCC_Crop")
         .to_series()
@@ -1664,7 +1773,7 @@ def create_monthly_residue_vPipeline(
     )
 
     # 3) Pull core residue parameters
-    res_row = crop_res_table.filter(pl.col("Crop") == ipcc_crop)
+    res_row = res_table.filter(pl.col("Crop") == ipcc_crop)
     dry      = float(res_row["DRY"].to_list()[0])
     dry_C_content = dry * C_Content
     
@@ -1681,7 +1790,7 @@ def create_monthly_residue_vPipeline(
         R_T      = float(res_row["R_T"].to_list()[0])
 
     # 4) See if regression parameters exist
-    ag_row = crop_ag_res_table.filter(pl.col("Crop") == crop)
+    ag_row = ag_table.filter(pl.col("Crop") == crop)
     if ag_row.height > 0:
         slope     = float(ag_row["Slope"].to_list()[0])
         intercept = float(ag_row["Intercept"].to_list()[0])
