@@ -10,7 +10,7 @@ import rioxarray as rxr
 import rasterio
 from rasterio.enums import Resampling
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 import polars as pl
 from tqdm import trange
 from tqdm import tqdm
@@ -254,7 +254,11 @@ def raster_rothc_annual_only(
 
 
 
-def raster_rothc_annual_results_1yrloop(
+TRMHandler = Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
+
+
+def _raster_rothc_annual_results(
+    *,
     n_years: int,
     clay: np.ndarray,
     soc0: np.ndarray,
@@ -262,49 +266,37 @@ def raster_rothc_annual_results_1yrloop(
     rain: np.ndarray,
     evap: np.ndarray,
     pc: np.ndarray,
-    irr: Optional[np.ndarray]   = None,
-    c_inp: Optional[np.ndarray] = None,
-    fym:   Optional[np.ndarray] = None,
-    depth: float = 23,
-    dpm_rpm: float = 1.44,
-    soc0_nodatavalue = -32768.0
+    irr: Optional[np.ndarray],
+    c_inp: Optional[np.ndarray],
+    fym: Optional[np.ndarray],
+    sand: Optional[np.ndarray],
+    depth: float,
+    dpm_rpm: float,
+    soc0_nodatavalue: float,
+    trm_handler: Optional[TRMHandler],
+    progress_desc: str = "RothC months",
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Vectorized RothC that returns only annual SOC and CO2.
-    
-    Parameters
-    ----------
-    clay, soc0 : 2D (y, x)
-    tmp, rain, evap, pc, c_inp, fym : 3D (time, y, x)
-      time can be 12 (annual cycle) or n_years*12.
-    depth : float (cm)
-    dpm_rpm : float
-    n_years : int
-    
-    Returns
-    -------
-    soc_annual : ndarray (years, y, x)
-    co2_annual : ndarray (years, y, x)
-    """
-    t_dim, y, x = tmp.shape
+    """Shared implementation for baseline and reduced tillage raster RothC runs."""
+
     months = n_years * 12
+    _, y, x = tmp.shape
 
     # Initialize c_inp and fym if no input given
     c_inp = c_inp if c_inp is not None else np.zeros_like(tmp)
-    fym   = fym   if fym   is not None else np.zeros_like(tmp)
-    
+    fym = fym if fym is not None else np.zeros_like(tmp)
+
     # Initialize pools
-    with np.errstate(invalid='ignore'):
-        IOM = 0.049 * soc0**1.139
-        RPM = (0.1847*soc0 + 0.1555)*(clay + 1.275)**(-0.1158)
-        HUM = (0.7148*soc0)      *(clay + 0.3421)**(0.0184)
-        BIO = (0.014*soc0 + 0.0075)*(clay + 8.8473)**(0.0567)
+    with np.errstate(invalid="ignore"):
+        IOM = 0.049 * soc0 ** 1.139
+        RPM = (0.1847 * soc0 + 0.1555) * (clay + 1.275) ** (-0.1158)
+        HUM = (0.7148 * soc0) * (clay + 0.3421) ** (0.0184)
+        BIO = (0.014 * soc0 + 0.0075) * (clay + 8.8473) ** (0.0567)
     DPM = soc0 - (IOM + RPM + HUM + BIO)
     SOC = soc0.copy()
     swc = np.zeros_like(soc0)
-    
+
     # Prepare annual outputs
-    soc_annual = np.zeros((n_years + 1,y,x), dtype=np.float32)
+    soc_annual = np.zeros((n_years + 1, y, x), dtype=np.float32)
     co2_annual = np.zeros_like(soc_annual)
     annual_co2_acc = np.zeros((y, x), dtype=np.float32)
 
@@ -313,60 +305,116 @@ def raster_rothc_annual_results_1yrloop(
     arr0[arr0 == soc0_nodatavalue] = np.nan
     soc_annual[0] = arr0
     co2_annual[0] = 0
-    
-    dt = 1.0 / 12.0
 
-    for t_abs in trange(months, desc="RothC months", position=1):
-        # Re-assigning t_abs into t
+    dt = 1.0 / 12.0
+    sand_has_time_dim = sand is not None and sand.ndim == 3
+
+    for t_abs in trange(months, desc=progress_desc, position=1):
         t = t_abs % 12
 
-        # Includes irrigation if provided
-        if irr is not None:
-            wat = rain[t] + irr[t]
-        else:
-            wat = rain[t]
+        wat = rain[t] + irr[t] if irr is not None else rain[t]
 
         # Rate-modifying factors
         rm_tmp = RMF_Tmp(tmp[t])
         rm_moist, swc = RMF_Moist(wat, evap[t], clay, depth, pc[t], swc)
         rm_pc = RMF_PC(pc[t])
         rate_m = rm_tmp * rm_moist * rm_pc
-        
+
+        trm_dpm = trm_rpm = trm_bio = trm_hum = 1.0
+        if trm_handler is not None:
+            if sand is None:
+                raise ValueError("sand must be provided when a TRM handler is supplied")
+            sand_current = sand[t] if sand_has_time_dim else sand
+            trm_dpm, trm_rpm, trm_bio, trm_hum = trm_handler(sand_current, SOC)
+
         # Decomposition
-        D1 = DPM * np.exp(-rate_m * 10.0 * dt)
-        R1 = RPM * np.exp(-rate_m *  0.3 * dt)
-        B1 = BIO * np.exp(-rate_m *  0.66 * dt)
-        H1 = HUM * np.exp(-rate_m *  0.02 * dt)
-        
+        D1 = DPM * np.exp(-rate_m * trm_dpm * 10.0 * dt)
+        R1 = RPM * np.exp(-rate_m * trm_rpm * 0.3 * dt)
+        B1 = BIO * np.exp(-rate_m * trm_bio * 0.66 * dt)
+        H1 = HUM * np.exp(-rate_m * trm_hum * 0.02 * dt)
+
         lossD, lossR, lossB, lossH = DPM - D1, RPM - R1, BIO - B1, HUM - H1
         x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
         resp_frac = x / (x + 1.0)
         total_co2 = (lossD + lossR + lossB + lossH) * resp_frac
-        
+
         # Pool partition
         def part(arr):
-            return arr * (0.46/(x+1.0)), arr * (0.54/(x+1.0))
-        D2B, D2H = part(lossD); R2B, R2H = part(lossR)
-        B2B, B2H = part(lossB); H2B, H2H = part(lossH)
-        
+            return arr * (0.46 / (x + 1.0)), arr * (0.54 / (x + 1.0))
+
+        D2B, D2H = part(lossD)
+        R2B, R2H = part(lossR)
+        B2B, B2H = part(lossB)
+        H2B, H2H = part(lossH)
+
         # Update pools
-        DPM = D1 + (dpm_rpm/(dpm_rpm+1.0))*c_inp[t] + 0.49*fym[t]
-        RPM = R1 + (1.0/(dpm_rpm+1.0))*c_inp[t] + 0.49*fym[t]
+        DPM = D1 + (dpm_rpm / (dpm_rpm + 1.0)) * c_inp[t] + 0.49 * fym[t]
+        RPM = R1 + (1.0 / (dpm_rpm + 1.0)) * c_inp[t] + 0.49 * fym[t]
         BIO = B1 + D2B + R2B + B2B + H2B
         HUM = H1 + D2H + R2H + B2H + H2H
         SOC = DPM + RPM + BIO + HUM + IOM
-        
-        # Accumulate CO2 this month
+
         annual_co2_acc += total_co2.astype(np.float32)
-        
-        # End-of-year: record and reset CO2 accumulator
+
         if (t_abs + 1) % 12 == 0:
-            yi = (t_abs + 1)//12
+            yi = (t_abs + 1) // 12
             soc_annual[yi] = SOC.astype(np.float32)
             co2_annual[yi] = annual_co2_acc
             annual_co2_acc[:] = 0
-    
+
     return soc_annual, co2_annual
+
+
+def raster_rothc_annual_results_1yrloop(
+    n_years: int,
+    clay: np.ndarray,
+    soc0: np.ndarray,
+    tmp: np.ndarray,
+    rain: np.ndarray,
+    evap: np.ndarray,
+    pc: np.ndarray,
+    irr: Optional[np.ndarray] = None,
+    c_inp: Optional[np.ndarray] = None,
+    fym: Optional[np.ndarray] = None,
+    depth: float = 23,
+    dpm_rpm: float = 1.44,
+    soc0_nodatavalue: float = -32768.0,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Vectorized RothC that returns only annual SOC and CO2.
+
+    Parameters
+    ----------
+    clay, soc0 : 2D (y, x)
+    tmp, rain, evap, pc, c_inp, fym : 3D (time, y, x)
+      time can be 12 (annual cycle) or n_years*12.
+    depth : float (cm)
+    dpm_rpm : float
+    n_years : int
+
+    Returns
+    -------
+    soc_annual : ndarray (years, y, x)
+    co2_annual : ndarray (years, y, x)
+    """
+
+    return _raster_rothc_annual_results(
+        n_years=n_years,
+        clay=clay,
+        soc0=soc0,
+        tmp=tmp,
+        rain=rain,
+        evap=evap,
+        pc=pc,
+        irr=irr,
+        c_inp=c_inp,
+        fym=fym,
+        sand=None,
+        depth=depth,
+        dpm_rpm=dpm_rpm,
+        soc0_nodatavalue=soc0_nodatavalue,
+        trm_handler=None,
+    )
 
 
 def raster_rothc_ReducedTillage_annual_results_1yrloop(
@@ -378,16 +426,16 @@ def raster_rothc_ReducedTillage_annual_results_1yrloop(
     evap: np.ndarray,
     pc: np.ndarray,
     sand: np.ndarray,
-    irr: Optional[np.ndarray]   = None,
+    irr: Optional[np.ndarray] = None,
     c_inp: Optional[np.ndarray] = None,
-    fym:   Optional[np.ndarray] = None,
+    fym: Optional[np.ndarray] = None,
     depth: float = 23,
     dpm_rpm: float = 1.44,
-    soc0_nodatavalue: float = -32768
+    soc0_nodatavalue: float = -32768,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC for reduced tillage that returns only annual SOC and CO2.
-    
+
     Parameters
     ----------
     clay, soc0 : 2D (y, x)
@@ -396,101 +444,30 @@ def raster_rothc_ReducedTillage_annual_results_1yrloop(
     depth : float (cm)
     dpm_rpm : float
     n_years : int
-    
+
     Returns
     -------
     soc_annual : ndarray (years, y, x)
     co2_annual : ndarray (years, y, x)
     """
-    t_dim, y, x = tmp.shape
-    months = n_years * 12
 
-    # Initialize c_inp and fym if no input given
-    c_inp = c_inp if c_inp is not None else np.zeros_like(tmp)
-    fym   = fym   if fym   is not None else np.zeros_like(tmp)
-    
-    # Initialize pools
-    with np.errstate(invalid='ignore'):
-        IOM = 0.049 * soc0**1.139
-        RPM = (0.1847*soc0 + 0.1555)*(clay + 1.275)**(-0.1158)
-        HUM = (0.7148*soc0)      *(clay + 0.3421)**(0.0184)
-        BIO = (0.014*soc0 + 0.0075)*(clay + 8.8473)**(0.0567)
-    DPM = soc0 - (IOM + RPM + HUM + BIO)
-    SOC = soc0.copy()
-    swc = np.zeros_like(soc0)
-    
-    # Prepare annual outputs
-    soc_annual = np.zeros((n_years + 1,y,x), dtype=np.float32)
-    co2_annual = np.zeros_like(soc_annual)
-    annual_co2_acc = np.zeros((y, x), dtype=np.float32)
-
-    # Year 0 state
-    arr0 = soc0.astype(np.float32)
-    arr0[arr0 == soc0_nodatavalue] = np.nan
-    soc_annual[0] = arr0
-    co2_annual[0] = 0
-    
-    dt = 1.0 / 12.0
-    sand_has_time_dim = sand.ndim == 3
-
-    for t_abs in trange(months, desc="RothC months", position=1):
-        # Re-assigning t_abs into t
-        t = t_abs % 12 
-
-        # Includes irrigation if provided
-        if irr is not None:
-            wat = rain[t] + irr[t]
-        else:
-            wat = rain[t]
-
-        # Rate-modifying factors
-        rm_tmp = RMF_Tmp(tmp[t])
-        rm_moist, swc = RMF_Moist(wat, evap[t], clay, depth, pc[t], swc)
-        rm_pc = RMF_PC(pc[t])
-        rate_m = rm_tmp * rm_moist * rm_pc
-
-        # Tillage Rate Modifiers (TRMs). Sand inputs can be either time-varying
-        # (3-D) or static (2-D). In both cases RMF_TRM expects 2-D arrays that
-        # match the spatial SOC state, so we slice only when a time dimension is
-        # present and always pass the full SOC grid.
-        sand_current = sand[t] if sand_has_time_dim else sand
-        TRM_DPM, TRM_RPM, TRM_BIO, TRM_HUM = RMF_TRM(sand_current, SOC)
-        
-        # Decomposition
-        D1 = DPM * np.exp(-rate_m * TRM_DPM * 10.0 * dt)
-        R1 = RPM * np.exp(-rate_m * TRM_RPM * 0.3  * dt)
-        B1 = BIO * np.exp(-rate_m * TRM_BIO * 0.66 * dt)
-        H1 = HUM * np.exp(-rate_m * TRM_HUM * 0.02 * dt)
-        
-        lossD, lossR, lossB, lossH = DPM - D1, RPM - R1, BIO - B1, HUM - H1
-        x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
-        resp_frac = x / (x + 1.0)
-        total_co2 = (lossD + lossR + lossB + lossH) * resp_frac
-        
-        # Pool partition
-        def part(arr):
-            return arr * (0.46/(x+1.0)), arr * (0.54/(x+1.0))
-        D2B, D2H = part(lossD); R2B, R2H = part(lossR)
-        B2B, B2H = part(lossB); H2B, H2H = part(lossH)
-        
-        # Update pools
-        DPM = D1 + (dpm_rpm/(dpm_rpm+1.0))*c_inp[t] + 0.49*fym[t]
-        RPM = R1 + (1.0/(dpm_rpm+1.0))*c_inp[t] + 0.49*fym[t]
-        BIO = B1 + D2B + R2B + B2B + H2B
-        HUM = H1 + D2H + R2H + B2H + H2H
-        SOC = DPM + RPM + BIO + HUM + IOM
-        
-        # Accumulate CO2 this month
-        annual_co2_acc += total_co2.astype(np.float32)
-        
-        # End-of-year: record and reset CO2 accumulator
-        if (t_abs + 1) % 12 == 0:
-            yi = (t_abs + 1)//12
-            soc_annual[yi] = SOC.astype(np.float32)
-            co2_annual[yi] = annual_co2_acc
-            annual_co2_acc[:] = 0
-    
-    return soc_annual, co2_annual
+    return _raster_rothc_annual_results(
+        n_years=n_years,
+        clay=clay,
+        soc0=soc0,
+        tmp=tmp,
+        rain=rain,
+        evap=evap,
+        pc=pc,
+        irr=irr,
+        c_inp=c_inp,
+        fym=fym,
+        sand=sand,
+        depth=depth,
+        dpm_rpm=dpm_rpm,
+        soc0_nodatavalue=soc0_nodatavalue,
+        trm_handler=RMF_TRM,
+    )
 
 
 # -----------------------------------------------------------------------------
