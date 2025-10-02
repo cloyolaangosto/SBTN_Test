@@ -26,6 +26,16 @@ def test_january_daylight_duration_does_not_raise_index_error():
     assert len(pet_values) == 12
 
 
+def test_negative_monthly_temperatures_return_zero_pet():
+    """Months with sub-zero temperatures should not contribute to PET totals."""
+
+    temps = [-5.0] * 12
+
+    pet_values = calculate_PET_location_based(temps, 2024, 45.0)
+
+    assert all(value == 0.0 for value in pet_values)
+
+
 def test_create_kc_curve_respects_stage_lengths_without_rollover():
     """The generated Kc curve should honour configured stage durations."""
 
