@@ -12,6 +12,19 @@ from typing import Tuple, Optional
 import polars as pl
 
 # -----------------------------------------------------------------------------
+# Constants used by the Tillage Rate Modifier (TRM) calculation
+# -----------------------------------------------------------------------------
+_TRM_COEFFICIENTS = np.array(
+    [
+        [1.54, 1.71, 1.54, 0.72],  # DPM
+        [0.35, 0.35, 2.15, 0.97],  # RPM
+        [1.42, 0.38, 2.38, 0.99],  # BIO
+        [0.42, 0.87, 2.93, 0.94],  # HUM
+    ],
+    dtype=float,
+)
+
+# -----------------------------------------------------------------------------
 # Data structure for carbon pools (including CO2 emissions)
 # -----------------------------------------------------------------------------
 @dataclass
@@ -105,75 +118,30 @@ def RMF_PC(pc: int):
 
 
 def RMF_TRM(sand, SOC):
-    """Calculates the Tillage Rate Modifiers (TRM) of applying conservation tillage according to Hyun & Yoo (2024). This uses sand and SOC stock content from the soil to calculate TRM
+    """Calculate the tillage rate modifiers (TRM) for conservation tillage.
 
-    Args:
-        sand (_type_): Sand Soil Content as percentage 
-        SOC (_type_): SOC stock content of soil as t C/ha
-
-    Returns:
-        _type_: _description_
+    The implementation follows Hyun & Yoo (2024) and mirrors the previous
+    behaviour of this routine, but relies on pre-computed coefficient tables so
+    repeated allocation/initialisation is avoided.
     """
-    # Defines TRMs
-    TRMs = {'DPM': [1.54, 1.71, 1.54, 0.72],
-            'RPM': [0.35, 0.35, 2.15, 0.97],
-            'BIO': [1.42, 0.38, 2.38, 0.99],
-            'HUM': [0.42, 0.87, 2.93, 0.94]
-            }
-    
-    # pull out the per-node lists as NumPy arrays
-    dpm_vals = np.array(TRMs['DPM'], dtype=float)   # shape (4,)
-    rpm_vals = np.array(TRMs['RPM'], dtype=float)
-    bio_vals = np.array(TRMs['BIO'], dtype=float)
-    hum_vals = np.array(TRMs['HUM'], dtype=float)
 
-    # Load variables as array
     sand = np.asarray(sand, dtype=float)
     SOC = np.asarray(SOC, dtype=float)
 
-    # Initializes TRMs
-    TRM_DPM = np.zeros_like(SOC, dtype=float)
-    TRM_RPM = np.zeros_like(SOC, dtype=float)
-    TRM_BIO = np.zeros_like(SOC, dtype=float)
-    TRM_HUM = np.zeros_like(SOC, dtype=float)
-
-    # Initialize node classification
-    nodes = np.zeros_like(SOC, dtype=int)
-
-    # Classifies each cell into 4 different nodes
-    SN1 = sand > 37.6   # (SN1)
-
-    # Goes through SN 2
-    high_soc = (SOC > 75.7) & (SN1)
-    nodes = np.where(high_soc, 1, 2)    # TN1 if SOC > 75.7, TN2 if <=
-    
-    # Goes through SN 3
+    # Classify each cell into one of the four decision-tree "nodes".  This
+    # retains the original step-by-step logic even though it results in only
+    # nodes 3 and 4 being reachable; the goal of the refactor is parity.
+    SN1 = sand > 37.6
+    high_soc = (SOC > 75.7) & SN1
+    nodes = np.where(high_soc, 1, 2)
     high_sand = (sand > 35.0) & (~SN1)
     nodes = np.where(high_sand, 3, 4)
+    nodes_idx = nodes.astype(int) - 1
 
-    # if sand > 37.6:     # (SN1)
-    #    # Goes through Separation Node 2
-    #    high_soc = SOC > 75.7
-    #    nodes = np.where(high_soc, 1, 2)    # TN1 if SOC > 75.7, TN2 if <=
-    # else:
-    #    # Goes through SN3
-    #    high_sand = sand > 35.0
-    #    nodes = np.where(high_sand, 3, 4)
+    # Look up the TRM coefficients for every pool simultaneously.
+    trm_values = np.take(_TRM_COEFFICIENTS, nodes_idx, axis=1)
+    TRM_DPM, TRM_RPM, TRM_BIO, TRM_HUM = trm_values
 
-    # Transaling nodes into 0-index array
-    nodes_idx = (nodes.astype(int) - 1)
-
-    # Now updating TRMs
-    TRM_DPM = dpm_vals[nodes_idx]   # shape (ny, nx)
-    TRM_RPM = rpm_vals[nodes_idx]
-    TRM_BIO = bio_vals[nodes_idx]
-    TRM_HUM = hum_vals[nodes_idx]
-
-    # Why does the above work:
-    # When you index a 1-D array with another integer array of shape (ny, nx), NumPy builds a new array of shape (ny, nx) where each element is TRM_DPM[i,j] = dpm_vals[ node_idx[i,j] ]. 
-    # In other words, at each pixel location (i,j) you look up which “node” index lives there, then grab the corresponding DPM value from dpm_vals.
-
-    # Finally returning this
     return TRM_DPM, TRM_RPM, TRM_BIO, TRM_HUM
 
 
