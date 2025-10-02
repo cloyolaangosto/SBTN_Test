@@ -114,5 +114,8 @@ All crops C-Factors raster were downsampled into 25km values using the *RLSK* ra
 No other data harmonization was needed.
 
 ## Step 3 - LEAFs Calculations
+After preparing and harmonizing the RLSK and the C-Factor crop layers, soil erosion rates for each commodity are calculated simply as the multiplication of both. The baseline scenario assumes that no soil erosion reducing practices, as conservative tillage or leaving crop residues on field, are implemented. 
+
+To calculate other land management options, as well as combination of those, the baseline soil erosion rates are simply mutiplied by the corresponding $C_{mgmt}$.
 
 ## Step 4 - LEAFs Averages for Ecoregions, Countries and Subcountries
