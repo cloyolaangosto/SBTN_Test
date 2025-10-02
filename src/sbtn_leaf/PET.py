@@ -418,12 +418,58 @@ def monthly_KC_curve(
         pl.col('Day_Num'),
         pl.col('Month')
     )
-    
+
     monthly_Kc = daily_Kc_curve.join(absday_month, left_on='day_num', right_on='Day_Num', how='left').group_by('Month').agg(
         pl.col('Kc').mean().alias('Kc')
     ).sort('Month')
 
     return monthly_Kc
+
+
+def _build_monthly_kc_vectors(
+    crop_name: str,
+    zone_groups: Mapping[str, Iterable[int]],
+    crop_table: pl.DataFrame,
+    abs_table: pl.DataFrame,
+    *,
+    tqdm_desc: Optional[str] = "Precomputing Kc curves for group",
+    log_template: Optional[str] = "Precomputing Kc curve for group: {group}",
+):
+    """Return a mapping of zone group names to monthly Kc vectors.
+
+    Parameters
+    ----------
+    crop_name:
+        Name of the crop whose Kc curves should be generated.
+    zone_groups:
+        Mapping from zone group identifier to the collection of thermal zone ids
+        associated with that group.
+    crop_table:
+        Crop coefficient table to use when building the Kc curves.
+    abs_table:
+        Absolute day lookup table providing month assignments for each day of the
+        year.
+    tqdm_desc:
+        Optional description passed to :func:`tqdm.tqdm` so caller-specific log
+        messages remain intact.
+    log_template:
+        Optional per-group log message that will be formatted with ``group``.
+    """
+
+    unique_groups = list(zone_groups)
+    kc_by_group = {}
+    for group in tqdm(unique_groups, desc=tqdm_desc):
+        if log_template:
+            print(log_template.format(group=group))
+        kc_df = monthly_KC_curve(
+            crop_name,
+            group,
+            crop_table=crop_table,
+            abs_date_table=abs_table,
+        )
+        kc_by_group[group] = kc_df.sort("Month")["Kc"].to_numpy()
+
+    return kc_by_group
 
 
 def calculate_PET_crop_based(
@@ -586,17 +632,13 @@ def calculate_crop_based_PET_raster_optimized(
     pet_annual  = np.full((H, W), np.nan, dtype="float32")
 
     # 3) Precompute one 12-month Kc vector per zone
-    unique_groups = list(zone_groups)
-    kc_by_group = {}
-    for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
-        print(f"Precomputing Kc curve for group: {grp}")
-        kc_df = monthly_KC_curve(
-            crop_name,
-            grp,
-            crop_table=crop_table,
-            abs_date_table=abs_table,
-        )
-        kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
+    kc_by_group = _build_monthly_kc_vectors(
+        crop_name,
+        zone_groups,
+        crop_table,
+        abs_table,
+        tqdm_desc="Precomputing Kc curves for group",
+    )
 
     # 4) Apply each zone’s Kc vector in one go
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):
@@ -706,17 +748,13 @@ def calculate_crop_based_PET_raster_vPipeline(
     pet_monthly = np.full_like(pet_base, np.nan, dtype="float32")
 
     # 3) Precompute one 12-month Kc vector per zone
-    unique_groups = list(zone_groups)
-    kc_by_group = {}
-    for grp in tqdm(unique_groups, desc=f"Precomputing Kc curves for group"):
-        print(f"Precomputing Kc curve for group: {grp}")
-        kc_df = monthly_KC_curve(
-            crop_name,
-            grp,
-            crop_table=crop_table,
-            abs_date_table=abs_table,
-        )
-        kc_by_group[grp] = kc_df.sort("Month")["Kc"].to_numpy()
+    kc_by_group = _build_monthly_kc_vectors(
+        crop_name,
+        zone_groups,
+        crop_table,
+        abs_table,
+        tqdm_desc="Precomputing Kc curves for group",
+    )
 
     # 4) Apply each zone’s Kc vector in one go
     for grp, kc_vec in tqdm(kc_by_group.items(), desc="Applying Kc to thremal groups"):

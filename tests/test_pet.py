@@ -7,11 +7,13 @@ import rasterio
 from rasterio.transform import from_origin
 
 from sbtn_leaf.PET import (
+    _build_monthly_kc_vectors,
     calculate_crop_based_PET_raster_optimized,
     calculate_crop_based_PET_raster_vPipeline,
     calculate_PET_crop_based,
     calculate_PET_location_based,
     create_KC_Curve,
+    monthly_KC_curve,
 )
 
 
@@ -303,6 +305,140 @@ def test_raster_pet_nodata_pixels_are_written_as_nan(tmp_path):
         written = src.read()
         assert written.dtype == np.float32
         assert np.isnan(written[:, 0, 0]).all()
+
+
+def test_raster_pet_paths_share_kc_vectors(tmp_path):
+    """Both raster paths should rely on the same precomputed Kc vectors."""
+
+    transform = from_origin(0, 1, 1, 1)
+    pet_path = tmp_path / "pet_values.tif"
+    thermal_path = tmp_path / "thermal_values.tif"
+    landuse_path = tmp_path / "landuse_values.tif"
+    monthly_path = tmp_path / "optimized_monthly.tif"
+    annual_path = tmp_path / "optimized_annual.tif"
+    pipeline_monthly_path = tmp_path / "pipeline_monthly.tif"
+
+    pet_data = np.arange(1, 13, dtype="float32").reshape(12, 1, 1)
+
+    with rasterio.open(
+        pet_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=12,
+        dtype="float32",
+        transform=transform,
+    ) as dst:
+        dst.write(pet_data)
+
+    thermal_data = np.array([[1]], dtype="int16")
+    with rasterio.open(
+        thermal_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=1,
+        dtype="int16",
+        transform=transform,
+    ) as dst:
+        dst.write(thermal_data, 1)
+
+    landuse_data = np.array([[1]], dtype="int16")
+    with rasterio.open(
+        landuse_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=1,
+        dtype="int16",
+        transform=transform,
+    ) as dst:
+        dst.write(landuse_data, 1)
+
+    def _absolute_day_table():
+        base = dt.date(2021, 1, 1)
+        rows = []
+        for offset in range(365):
+            current = base + dt.timedelta(days=offset)
+            rows.append(
+                {
+                    "Date": f"{current.day}-{current.strftime('%b')}",
+                    "Day_Num": offset + 1,
+                    "Day": current.day,
+                    "Month": current.month,
+                }
+            )
+        return pl.DataFrame(rows)
+
+    abs_table = _absolute_day_table()
+    crop_table = pl.DataFrame(
+        {
+            "Climate_Zone": ["TestClimate"],
+            "Crop": ["TestCrop"],
+            "K_ini": [0.9],
+            "K_mid": [1.2],
+            "K_Late": [0.8],
+            "Initial_days": [10],
+            "Dev_Days": [10],
+            "Mid_Days": [20],
+            "Late_days": [5],
+            "Planting_Greenup_Date": ["1-Jan"],
+            "Soil_Cover_Period": [0],
+            "SCP_Starts": [0],
+            "SCP_End": [0],
+        }
+    )
+
+    zone_ids_by_group = {"TestClimate": (1,)}
+
+    calculate_crop_based_PET_raster_optimized(
+        "TestCrop",
+        str(landuse_path),
+        str(monthly_path),
+        str(annual_path),
+        pet_base_raster_path=str(pet_path),
+        thermal_zone_raster_path=str(thermal_path),
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+        zone_ids_by_group=zone_ids_by_group,
+    )
+
+    with rasterio.open(monthly_path) as src:
+        optimized_monthly = src.read()
+
+    pipeline_monthly = calculate_crop_based_PET_raster_vPipeline(
+        "TestCrop",
+        landuse_data,
+        str(pipeline_monthly_path),
+        pet_base_raster_path=str(pet_path),
+        thermal_zone_raster_path=str(thermal_path),
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+        zone_ids_by_group=zone_ids_by_group,
+    )
+
+    np.testing.assert_allclose(optimized_monthly, pipeline_monthly)
+
+    kc_vectors = _build_monthly_kc_vectors(
+        "TestCrop",
+        zone_ids_by_group,
+        crop_table,
+        abs_table,
+        tqdm_desc=None,
+        log_template=None,
+    )
+    expected_curve = monthly_KC_curve(
+        "TestCrop",
+        "TestClimate",
+        crop_table=crop_table,
+        abs_date_table=abs_table,
+    )["Kc"].to_numpy()
+
+    assert set(kc_vectors) == {"TestClimate"}
+    np.testing.assert_allclose(kc_vectors["TestClimate"], expected_curve)
 
 
 def test_pipeline_pet_raises_on_landuse_shape_mismatch(tmp_path):
