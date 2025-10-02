@@ -694,6 +694,12 @@ def calculate_crop_based_PET_raster_vPipeline(
             pet_base = pet_base.astype("float32", copy=False)
         thermal_zones = thermal_zone_raster.read(1).astype(int)          # (H, W)
         lu_data       = landuse_array.astype(int)          # (H, W)
+        expected_shape = (PET_raster.height, PET_raster.width)
+        if thermal_zones.shape != expected_shape or lu_data.shape != expected_shape:
+            raise ValueError(
+                "landuse_array and thermal_zones must match raster dimensions "
+                f"{expected_shape}; got landuse {lu_data.shape} and thermal {thermal_zones.shape}."
+            )
         profile       = PET_raster.profile.copy()
 
     H, W = pet_base.shape[1:]

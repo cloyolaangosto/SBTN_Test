@@ -293,3 +293,87 @@ def test_raster_pet_nodata_pixels_are_written_as_nan(tmp_path):
         written = src.read()
         assert written.dtype == np.float32
         assert np.isnan(written[:, 0, 0]).all()
+
+
+def test_pipeline_pet_raises_on_landuse_shape_mismatch(tmp_path):
+    """A mismatched landuse array should trigger a descriptive shape error."""
+
+    transform = from_origin(0, 1, 1, 1)
+    pet_path = tmp_path / "pet.tif"
+    thermal_path = tmp_path / "thermal.tif"
+
+    pet_data = np.ones((12, 1, 1), dtype="float32")
+    with rasterio.open(
+        pet_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=12,
+        dtype="float32",
+        transform=transform,
+    ) as dst:
+        dst.write(pet_data)
+
+    thermal_data = np.array([[1]], dtype="int16")
+    with rasterio.open(
+        thermal_path,
+        "w",
+        driver="GTiff",
+        height=1,
+        width=1,
+        count=1,
+        dtype="int16",
+        transform=transform,
+    ) as dst:
+        dst.write(thermal_data, 1)
+
+    def _absolute_day_table():
+        base = dt.date(2021, 1, 1)
+        rows = []
+        for offset in range(365):
+            current = base + dt.timedelta(days=offset)
+            rows.append(
+                {
+                    "Date": f"{current.day}-{current.strftime('%b')}",
+                    "Day_Num": offset + 1,
+                    "Day": current.day,
+                    "Month": current.month,
+                }
+            )
+        return pl.DataFrame(rows)
+
+    abs_table = _absolute_day_table()
+    crop_table = pl.DataFrame(
+        {
+            "Climate_Zone": ["TestClimate"],
+            "Crop": ["TestCrop"],
+            "K_ini": [1.0],
+            "K_mid": [1.0],
+            "K_Late": [1.0],
+            "Initial_days": [364],
+            "Dev_Days": [0],
+            "Mid_Days": [0],
+            "Late_days": [0],
+            "Planting_Greenup_Date": ["1-Jan"],
+            "Soil_Cover_Period": [0],
+            "SCP_Starts": [0],
+            "SCP_End": [0],
+        }
+    )
+
+    zone_ids_by_group = {"TestClimate": (1,)}
+
+    mis_sized_landuse = np.ones((2, 1), dtype="int16")
+
+    with pytest.raises(ValueError, match="must match raster dimensions"):
+        calculate_crop_based_PET_raster_vPipeline(
+            "TestCrop",
+            mis_sized_landuse,
+            str(tmp_path / "pipeline_monthly.tif"),
+            pet_base_raster_path=str(pet_path),
+            thermal_zone_raster_path=str(thermal_path),
+            crop_table=crop_table,
+            abs_date_table=abs_table,
+            zone_ids_by_group=zone_ids_by_group,
+        )
