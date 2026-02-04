@@ -536,17 +536,34 @@ def _fill_with_ecoregions(
 
     remaining = lu_mask & np.isnan(result)
     if np.any(remaining):
-        ys, xs = np.where(remaining)
-        for y, x in zip(ys, xs):
-            zid = int(zone_array[y, x])
-            if zid in ecoregion_avg:
-                result[y, x] = ecoregion_avg[zid]
-            else:
-                biome = biome_name_map.get(zid)
-                if isinstance(biome, str):
-                    result[y, x] = biome_avg.get(biome, global_fao_ratio)
-                else:
-                    result[y, x] = global_fao_ratio
+        zone_max = int(zone_array.max())
+        if zone_max >= 0:
+            zone_lookup = np.full(zone_max + 1, np.nan, dtype=float)
+            for zid, avg in ecoregion_avg.items():
+                if 0 <= zid <= zone_max:
+                    zone_lookup[zid] = avg
+
+            unique_zones = np.unique(zone_array)
+            unique_zones = unique_zones[unique_zones >= 0]
+            if unique_zones.size:
+                missing = np.isnan(zone_lookup[unique_zones])
+                if np.any(missing):
+                    for zid in unique_zones[missing]:
+                        biome = biome_name_map.get(int(zid))
+                        if isinstance(biome, str):
+                            zone_lookup[zid] = biome_avg.get(biome, global_fao_ratio)
+                        else:
+                            zone_lookup[zid] = global_fao_ratio
+            zone_lookup = np.where(np.isnan(zone_lookup), global_fao_ratio, zone_lookup)
+
+            remaining_zones = zone_array[remaining]
+            fill_vals = np.full(remaining_zones.shape, global_fao_ratio, dtype=float)
+            valid_zones = remaining_zones >= 0
+            if np.any(valid_zones):
+                fill_vals[valid_zones] = zone_lookup[remaining_zones[valid_zones]]
+            result[remaining] = fill_vals
+        else:
+            result[remaining] = global_fao_ratio
 
     remaining = lu_mask & np.isnan(result)
     if np.any(remaining):
