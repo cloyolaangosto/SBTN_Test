@@ -528,7 +528,7 @@ def _create_crop_yield_raster_core(
     print_outputs: bool = False,
 ):
     """Shared implementation for the crop yield raster generators."""
-
+    # Step 1 - Read cropland raster
     (
         lu_meta,
         lu_mask,
@@ -538,6 +538,7 @@ def _create_crop_yield_raster_core(
         lu_width,
     ) = _read_cropland_raster(croplu_grid_raster)
 
+    # Step 2 - Reprojects spam to lu raster
     spam_on_lu = _reproject_spam_to_lu(
         spam_crop_raster,
         spam_band=spam_band,
@@ -548,6 +549,7 @@ def _create_crop_yield_raster_core(
         resampling_method=resampling_method,
     )
 
+    # Step 3 - Rasterize fao yields
     (
         fao_avg_yields_array,
         fao_sd_yields_array,
@@ -570,6 +572,7 @@ def _create_crop_yield_raster_core(
     all_fp_on_lu = None
     scaling_mode = None
 
+    # Apply yields scaling based on irrigation technique and SPAM yields
     if irr_yield_scaling is not None:
         (
             fao_avg_yields_array,
@@ -587,6 +590,7 @@ def _create_crop_yield_raster_core(
             print_outputs=print_outputs,
         )
 
+    # Prepare results
     result = _compose_yield_result(
         spam_on_lu,
         fao_gdf,
@@ -612,6 +616,7 @@ def _create_crop_yield_raster_core(
 
     result[~lu_mask] = np.nan
 
+    # Apply uncertainty to results
     averaged_result = _apply_uncertainty_to_yields(
         result,
         fao_avg_yields_array,
