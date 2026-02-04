@@ -300,29 +300,32 @@ def _apply_uncertainty_to_yields(
     if random_runs <= 1:
         return baseline
 
+    baseline_valid = baseline[lu_mask]
+    coef_valid = coefficient[lu_mask]
+
     # Generate normally distributed perturbations with a standard deviation set
     # by the coefficient of variation.  The RNG is injectable to support
     # reproducible testing.
     rng = np.random.default_rng() if rng is None else rng
-    draws = rng.normal(
-        loc=0.0,
-        scale=coefficient,
-        size=(random_runs - 1, *coefficient.shape),
-    ).astype("float32", copy=False)
+    n_valid = baseline_valid.size
+    sum_draws = np.zeros(n_valid, dtype="float32")
+    remaining_runs = random_runs - 1
+    chunk_size = 1024
+    while remaining_runs > 0:
+        chunk_runs = min(chunk_size, remaining_runs)
+        draws = rng.normal(
+            loc=0.0,
+            scale=coef_valid,
+            size=(chunk_runs, n_valid),
+        ).astype("float32", copy=False)
+        sum_draws += draws.sum(axis=0, dtype="float32")
+        remaining_runs -= chunk_runs
 
-    # Apply the multiplicative perturbation to the deterministic baseline for
-    # each stochastic run.  The ensemble mean is computed from the baseline plus
-    # all stochastic draws, using ``nanmean`` so masked pixels stay excluded.
-    stochastic = baseline[np.newaxis, ...] * (1.0 + draws)
-    stack = np.concatenate((baseline[np.newaxis, ...], stochastic), axis=0)
-    
+    mean_draws = sum_draws / random_runs
+    averaged_valid = baseline_valid * (1.0 + mean_draws)
+
     # Preallocate result full of NaNs
     averaged = np.full_like(baseline, np.nan, dtype="float32")
-
-    # Only compute the nanmean where we actually have land / want values
-    masked_stack = stack[:, lu_mask]            # shape: (runs, n_valid_pixels)
-    averaged_valid = np.nanmean(masked_stack, axis=0, dtype="float32")
-
     averaged[lu_mask] = averaged_valid
 
     return averaged.astype("float32", copy=False)
