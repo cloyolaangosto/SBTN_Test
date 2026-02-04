@@ -49,7 +49,10 @@ from scipy import ndimage
 
 @dataclass(frozen=True)
 class CropYieldRasterConfig:
-    """Configuration for crop yield raster generation."""
+    """Configuration for crop yield raster generation.
+
+    SPAM yields are clipped per FAO zone to avoid outliers using FAO statistics.
+    """
 
     fao_avg_yield_name: str
     fao_yield_ratio_name: str
@@ -66,6 +69,9 @@ class CropYieldRasterConfig:
     write_output: bool = True
     return_array: bool = False
     print_outputs: bool = False
+    spam_outlier_strategy: str = "spam_sd"
+    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0)
+    spam_outlier_k: float = 2.0
 
 
 @dataclass(frozen=True)
@@ -483,6 +489,82 @@ def _apply_irrigation_scaling(
     )
 
 
+def _compute_spam_outlier_limits(
+    spam_on_lu: np.ndarray,
+    fao_avg_yields_array: np.ndarray,
+    zone_array: np.ndarray,
+    lu_mask: np.ndarray,
+    *,
+    strategy: str,
+    percentile_bounds: Tuple[float, float],
+    k: float,
+) -> Dict[int, Tuple[Optional[float], Optional[float]]]:
+    """Compute per-zone SPAM limits using FAO statistics to guard against outliers.
+
+    Strategy options:
+    - "spam_sd": clamp per-zone SPAM values to mean ± k*std, then ensure
+      bounds are not far from the FAO average by applying ratio percentiles.
+    - "ratio_percentile": clamp per-zone SPAM/FAO ratios to percentiles.
+    """
+    valid = (
+        lu_mask
+        & (zone_array >= 0)
+        & ~np.isnan(spam_on_lu)
+        & ~np.isnan(fao_avg_yields_array)
+        & (fao_avg_yields_array > 0)
+    )
+    if not np.any(valid):
+        return {}
+
+    limits: Dict[int, Tuple[Optional[float], Optional[float]]] = {}
+    low_pct, high_pct = percentile_bounds
+    zones = np.unique(zone_array[valid])
+    for zid in zones:
+        zid = int(zid)
+        zid_mask = valid & (zone_array == zid)
+        spam_vals = spam_on_lu[zid_mask]
+        fao_vals = fao_avg_yields_array[zid_mask]
+        if spam_vals.size == 0:
+            continue
+
+        if strategy == "ratio_percentile":
+            ratios = spam_vals / fao_vals
+            if ratios.size == 0:
+                continue
+            low, high = np.nanpercentile(ratios, [low_pct, high_pct])
+            zone_fao_avg = np.nanmedian(fao_vals)
+            min_val = low * zone_fao_avg
+            max_val = high * zone_fao_avg
+        elif strategy == "spam_sd":
+            zone_fao_avg = np.nanmedian(fao_vals)
+            zone_mean = np.nanmean(spam_vals)
+            zone_sd = np.nanstd(spam_vals)
+            if np.isnan(zone_sd) or np.isnan(zone_mean):
+                low, high = np.nanpercentile(spam_vals, [low_pct, high_pct])
+                min_val, max_val = low, high
+            else:
+                min_val = max(zone_mean - k * zone_sd, 0.0)
+                max_val = zone_mean + k * zone_sd
+
+            ratios = spam_vals / fao_vals
+            if ratios.size:
+                low_ratio, high_ratio = np.nanpercentile(
+                    ratios, [low_pct, high_pct]
+                )
+                min_val = max(min_val, low_ratio * zone_fao_avg)
+                max_val = min(max_val, high_ratio * zone_fao_avg)
+        else:
+            raise ValueError(f"Unknown SPAM outlier strategy: {strategy}")
+
+        if np.isnan(min_val):
+            min_val = None
+        if np.isnan(max_val):
+            max_val = None
+        limits[zid] = (min_val, max_val)
+
+    return limits
+
+
 def _compose_yield_result(
     spam_on_lu: np.ndarray,
     fao_gdf: gpd.GeoDataFrame,
@@ -497,14 +579,33 @@ def _compose_yield_result(
     avg_wat_ratio: float,
     scaling_mode: Optional[str],
     print_outputs: bool,
+    spam_outlier_strategy: str,
+    spam_outlier_percentile: Tuple[float, float],
+    spam_outlier_k: float,
 ) -> np.ndarray:
+    """Compose the yield raster while clipping SPAM outliers per FAO zone."""
     result = np.full_like(fao_avg_yields_array, np.nan, dtype="float32")
+    zone_limits = _compute_spam_outlier_limits(
+        spam_on_lu,
+        fao_avg_yields_array,
+        zone_array,
+        lu_mask,
+        strategy=spam_outlier_strategy,
+        percentile_bounds=spam_outlier_percentile,
+        k=spam_outlier_k,
+    )
 
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])
         ratio = row[fao_yield_ratio_name]
         zid_mask = zone_array == zid
         spam_scaled = spam_on_lu * ratio
+        if zid in zone_limits:
+            min_val, max_val = zone_limits[zid]
+            if max_val is not None and np.isfinite(max_val):
+                spam_scaled = np.minimum(spam_scaled, max_val * ratio)
+            if min_val is not None and np.isfinite(min_val):
+                spam_scaled = np.maximum(spam_scaled, min_val * ratio)
         valid_mask = zid_mask & ~np.isnan(spam_scaled)
         result[valid_mask] = spam_scaled[valid_mask]
 
@@ -662,6 +763,9 @@ def _create_crop_yield_raster_core(
         avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
         scaling_mode=irrigation_scaling.scaling_mode,
         print_outputs=config.print_outputs,
+        spam_outlier_strategy=config.spam_outlier_strategy,
+        spam_outlier_percentile=config.spam_outlier_percentile,
+        spam_outlier_k=config.spam_outlier_k,
     )
 
     if config.apply_ecoregion_fill:
