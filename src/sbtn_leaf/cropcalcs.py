@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import xarray as xr
+from dataclasses import dataclass
 from typing import Mapping, Optional, Tuple, Dict, Union, List, NamedTuple, Set
 import geopandas as gpd
 import rasterio
@@ -44,6 +45,45 @@ from sbtn_leaf.map_calculations import resample_raster_to_match
 from rasterio.enums import Resampling
 from rasterio.fill import fillnodata
 from scipy import ndimage
+
+
+@dataclass(frozen=True)
+class CropYieldRasterConfig:
+    """Configuration for crop yield raster generation."""
+
+    fao_avg_yield_name: str
+    fao_yield_ratio_name: str
+    fao_sd_yield_name: str
+    irr_yield_scaling: Optional[str] = None
+    all_fp: Optional[str] = None
+    irr_fp: Optional[str] = None
+    rf_fp: Optional[str] = None
+    spam_band: int = 1
+    resampling_method: Resampling = Resampling.bilinear
+    apply_ecoregion_fill: bool = False
+    random_runs: int = 1
+    rng: Optional[np.random.Generator] = None
+    write_output: bool = True
+    return_array: bool = False
+    print_outputs: bool = False
+
+
+@dataclass(frozen=True)
+class CropYieldRasterResult:
+    """Result object for crop yield raster generation."""
+
+    averaged_result: np.ndarray
+    yield_result: np.ndarray
+    fao_avg_yields_array: np.ndarray
+    fao_sd_yields_array: np.ndarray
+    spam_on_lu: np.ndarray
+    zone_array: np.ndarray
+    lu_meta: Dict[str, object]
+    lu_mask: np.ndarray
+    lu_transform: Affine
+    lu_crs: CRS
+    avg_wat_ratio: float
+    scaling_mode: Optional[str]
 
 
 ##### DATA ####
@@ -509,24 +549,9 @@ def _create_crop_yield_raster_core(
     croplu_grid_raster: str,
     fao_crop_shp: gpd.GeoDataFrame,
     spam_crop_raster: str,
-    output_rst_path: Optional[str] = None,
-    *,
-    spam_band: int = 1,
-    resampling_method: Resampling = Resampling.bilinear,
-    fao_avg_yield_name: str,
-    fao_yield_ratio_name: str,
-    fao_sd_yield_name: str,
-    irr_yield_scaling: Optional[str] = None,
-    all_fp: Optional[str] = None,
-    irr_fp: Optional[str] = None,
-    rf_fp: Optional[str] = None,
-    apply_ecoregion_fill: bool = False,
-    random_runs: int = 1,
-    rng: Optional[np.random.Generator] = None,
-    write_output: bool = True,
-    return_array: bool = False,
-    print_outputs: bool = False,
-):
+    output_rst_path: Optional[str],
+    config: CropYieldRasterConfig,
+) -> CropYieldRasterResult:
     """Shared implementation for the crop yield raster generators."""
     # Step 1 - Read cropland raster
     (
@@ -541,12 +566,12 @@ def _create_crop_yield_raster_core(
     # Step 2 - Reprojects spam to lu raster
     spam_on_lu = _reproject_spam_to_lu(
         spam_crop_raster,
-        spam_band=spam_band,
+        spam_band=config.spam_band,
         lu_height=lu_height,
         lu_width=lu_width,
         lu_transform=lu_transform,
         lu_crs=lu_crs,
-        resampling_method=resampling_method,
+        resampling_method=config.resampling_method,
     )
 
     # Step 3 - Rasterize fao yields
@@ -562,9 +587,9 @@ def _create_crop_yield_raster_core(
         lu_height,
         lu_width,
         lu_transform,
-        fao_avg_yield_name,
-        fao_yield_ratio_name,
-        fao_sd_yield_name,
+        config.fao_avg_yield_name,
+        config.fao_yield_ratio_name,
+        config.fao_sd_yield_name,
     )
 
     valid_fao = ~np.isnan(fao_avg_yields_array)
@@ -573,7 +598,7 @@ def _create_crop_yield_raster_core(
     scaling_mode = None
 
     # Apply yields scaling based on irrigation technique and SPAM yields
-    if irr_yield_scaling is not None:
+    if config.irr_yield_scaling is not None:
         (
             fao_avg_yields_array,
             avg_wat_ratio,
@@ -582,12 +607,12 @@ def _create_crop_yield_raster_core(
         ) = _apply_irrigation_scaling(
             fao_avg_yields_array,
             valid_fao,
-            irr_yield_scaling,
-            all_fp=all_fp,
-            irr_fp=irr_fp,
-            rf_fp=rf_fp,
+            config.irr_yield_scaling,
+            all_fp=config.all_fp,
+            irr_fp=config.irr_fp,
+            rf_fp=config.rf_fp,
             croplu_grid_raster=croplu_grid_raster,
-            print_outputs=print_outputs,
+            print_outputs=config.print_outputs,
         )
 
     # Prepare results
@@ -599,14 +624,14 @@ def _create_crop_yield_raster_core(
         lu_mask,
         valid_fao,
         global_fao_ratio,
-        fao_yield_ratio_name,
+        config.fao_yield_ratio_name,
         all_fp_on_lu=all_fp_on_lu,
         avg_wat_ratio=avg_wat_ratio,
         scaling_mode=scaling_mode,
-        print_outputs=print_outputs,
+        print_outputs=config.print_outputs,
     )
 
-    if apply_ecoregion_fill:
+    if config.apply_ecoregion_fill:
         result = _fill_with_ecoregions(
             result,
             croplu_grid_raster,
@@ -622,12 +647,12 @@ def _create_crop_yield_raster_core(
         fao_avg_yields_array,
         fao_sd_yields_array,
         lu_mask,
-        random_runs=random_runs,
-        rng=rng,
+        random_runs=config.random_runs,
+        rng=config.rng,
     )
 
     # Output block
-    if write_output:
+    if config.write_output:
         if output_rst_path is None:
             raise ValueError("output_rst_path is required when write_output is True")
         lu_meta.update(dtype="float32", count=1, nodata=np.nan)
@@ -636,10 +661,20 @@ def _create_crop_yield_raster_core(
 
         print(f"Yield raster written to {output_rst_path}")
 
-    if return_array:
-        return averaged_result
-
-    return None
+    return CropYieldRasterResult(
+        averaged_result=averaged_result,
+        yield_result=result,
+        fao_avg_yields_array=fao_avg_yields_array,
+        fao_sd_yields_array=fao_sd_yields_array,
+        spam_on_lu=spam_on_lu,
+        zone_array=zone_array,
+        lu_meta=lu_meta,
+        lu_mask=lu_mask,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        avg_wat_ratio=avg_wat_ratio,
+        scaling_mode=scaling_mode,
+    )
 
 
 def create_crop_yield_raster(
@@ -652,17 +687,20 @@ def create_crop_yield_raster(
 ):
     """Create a crop yield raster without irrigation scaling."""
 
+    config = CropYieldRasterConfig(
+        fao_avg_yield_name="avg_yield_1423",
+        fao_yield_ratio_name="ratio_yield_20_toavg",
+        fao_sd_yield_name="sd_yields_1423",
+        spam_band=spam_band,
+        resampling_method=resampling_method,
+        print_outputs=True,
+    )
     _create_crop_yield_raster_core(
         croplu_grid_raster,
         fao_crop_shp,
         spam_crop_raster,
         output_rst_path,
-        spam_band=spam_band,
-        resampling_method=resampling_method,
-        fao_avg_yield_name="avg_yield_1423",
-        fao_yield_ratio_name="ratio_yield_20_toavg",
-        fao_sd_yield_name="sd_yields_1423",
-        print_outputs=True
+        config,
     )
 
 
@@ -694,13 +732,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         remaining nodata pixels, matching the historical pipeline behaviour.
     """
 
-    _create_crop_yield_raster_core(
-        croplu_grid_raster,
-        fao_crop_shp,
-        spam_crop_raster,
-        output_rst_path,
-        spam_band=spam_band,
-        resampling_method=resampling_method,
+    config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
         fao_yield_ratio_name=fao_yield_ratio_name,
         fao_sd_yield_name=fao_sd_yield_name,
@@ -708,8 +740,17 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         all_fp=all_fp,
         irr_fp=irr_fp,
         rf_fp=rf_fp,
+        spam_band=spam_band,
+        resampling_method=resampling_method,
         apply_ecoregion_fill=apply_ecoregion_fill,
-        print_outputs=True
+        print_outputs=True,
+    )
+    _create_crop_yield_raster_core(
+        croplu_grid_raster,
+        fao_crop_shp,
+        spam_crop_raster,
+        output_rst_path,
+        config,
     )
 
 
@@ -1828,7 +1869,7 @@ def calculate_monthly_residues_array(
     # print(f"Creating {fao_crop_name} helper shapefile...")
     fao_yield_shp = create_crop_yield_shapefile(fao_crop_name)
 
-    yields = calculate_crop_yield_array_with_irrigation_scaling(
+    yield_result = calculate_crop_yield_array_with_irrigation_scaling(
         croplu_grid_raster_fp=   lu_fp,
         fao_crop_shp=fao_yield_shp,
         spam_crop_raster=spam_crop_raster,
@@ -1844,7 +1885,7 @@ def calculate_monthly_residues_array(
     plant_residues = create_monthly_residue_vPipeline(
         crop_name,
         crop_type,
-        yield_array=yields,
+        yield_array=yield_result.averaged_result,
         write_output=False,
         return_array=True
     )
@@ -2105,13 +2146,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
 ):
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
-    _create_crop_yield_raster_core(
-        croplu_grid_raster,
-        fao_crop_shp,
-        spam_crop_raster,
-        output_rst_path,
-        spam_band=spam_band,
-        resampling_method=resampling_method,
+    config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
         fao_yield_ratio_name=fao_yield_ratio_name,
         fao_sd_yield_name=fao_sd_yield_name,
@@ -2119,9 +2154,18 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         all_fp=all_fp,
         irr_fp=irr_fp,
         rf_fp=rf_fp,
+        spam_band=spam_band,
+        resampling_method=resampling_method,
         apply_ecoregion_fill=apply_ecoregion_fill,
         random_runs=random_runs,
-        print_outputs=print_outputs
+        print_outputs=print_outputs,
+    )
+    _create_crop_yield_raster_core(
+        croplu_grid_raster,
+        fao_crop_shp,
+        spam_crop_raster,
+        output_rst_path,
+        config,
     )
 
 def calculate_crop_yield_array_with_irrigation_scaling(
@@ -2140,15 +2184,10 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     apply_ecoregion_fill: bool = True,
     random_runs: int = 1,
     print_outputs: bool = False
-):
+) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
-    yields = _create_crop_yield_raster_core(
-        croplu_grid_raster= croplu_grid_raster_fp,
-        fao_crop_shp = fao_crop_shp,
-        spam_crop_raster = spam_crop_raster,
-        spam_band=spam_band,
-        resampling_method=resampling_method,
+    config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
         fao_yield_ratio_name=fao_yield_ratio_name,
         fao_sd_yield_name=fao_sd_yield_name,
@@ -2156,14 +2195,21 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         all_fp=all_fp,
         irr_fp=irr_fp,
         rf_fp=rf_fp,
-        random_runs=random_runs,
+        spam_band=spam_band,
+        resampling_method=resampling_method,
         apply_ecoregion_fill=apply_ecoregion_fill,
-        write_output= False,
+        random_runs=random_runs,
+        write_output=False,
         return_array=True,
-        print_outputs= print_outputs
+        print_outputs=print_outputs,
     )
-
-    return yields
+    return _create_crop_yield_raster_core(
+        croplu_grid_raster= croplu_grid_raster_fp,
+        fao_crop_shp = fao_crop_shp,
+        spam_crop_raster = spam_crop_raster,
+        output_rst_path=None,
+        config=config,
+    )
 
 def create_monthly_residue_vPipeline(
     crop: str,
