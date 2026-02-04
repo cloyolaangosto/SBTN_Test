@@ -653,13 +653,7 @@ def _create_crop_yield_raster_core(
 
     # Output block
     if config.write_output:
-        if output_rst_path is None:
-            raise ValueError("output_rst_path is required when write_output is True")
-        lu_meta.update(dtype="float32", count=1, nodata=np.nan)
-        with rasterio.open(output_rst_path, "w", **lu_meta) as dst:
-            dst.write(averaged_result[np.newaxis, ...])
-
-        print(f"Yield raster written to {output_rst_path}")
+        _write_yield_raster(output_rst_path, lu_meta, averaged_result)
 
     return CropYieldRasterResult(
         averaged_result=averaged_result,
@@ -675,6 +669,23 @@ def _create_crop_yield_raster_core(
         avg_wat_ratio=avg_wat_ratio,
         scaling_mode=scaling_mode,
     )
+
+
+def _write_yield_raster(
+    output_rst_path: Optional[str],
+    lu_meta: Dict[str, object],
+    averaged_result: np.ndarray,
+) -> None:
+    """Write the averaged yield raster to disk."""
+
+    if output_rst_path is None:
+        raise ValueError("output_rst_path is required when write_output is True")
+
+    lu_meta.update(dtype="float32", count=1, nodata=np.nan)
+    with rasterio.open(output_rst_path, "w", **lu_meta) as dst:
+        dst.write(averaged_result[np.newaxis, ...])
+
+    print(f"Yield raster written to {output_rst_path}")
 
 
 def create_crop_yield_raster(
