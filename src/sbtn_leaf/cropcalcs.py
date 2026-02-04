@@ -86,6 +86,16 @@ class CropYieldRasterResult:
     scaling_mode: Optional[str]
 
 
+@dataclass(frozen=True)
+class IrrigationScalingResult:
+    """Result object for irrigation scaling."""
+
+    fao_avg_yields_array: np.ndarray
+    avg_wat_ratio: float
+    all_fp_on_lu: Optional[np.ndarray]
+    scaling_mode: Optional[str]
+
+
 ##### DATA ####
 rain_monthly_fp = data_path("soil_weather", "uhth_monthly_avg_precip.tif")
 uhth_climates_fp = data_path("soil_weather", "uhth_thermal_climates.tif")
@@ -417,7 +427,7 @@ def _apply_irrigation_scaling(
     rf_fp: Optional[str],
     croplu_grid_raster: str,
     print_outputs: bool,
-) -> tuple[np.ndarray, float, np.ndarray, str]:
+) -> IrrigationScalingResult:
     scaling_mode = irr_yield_scaling.lower()
     if scaling_mode not in {"irr", "rf"}:
         raise ValueError("irr_yield_scaling must be either 'irr' or 'rf'")
@@ -462,7 +472,12 @@ def _apply_irrigation_scaling(
         scaled,
     )
 
-    return scaled, avg_wat_ratio, all_fp_on_lu, scaling_mode
+    return IrrigationScalingResult(
+        fao_avg_yields_array=scaled,
+        avg_wat_ratio=avg_wat_ratio,
+        all_fp_on_lu=all_fp_on_lu,
+        scaling_mode=scaling_mode,
+    )
 
 
 def _compose_yield_result(
@@ -593,18 +608,16 @@ def _create_crop_yield_raster_core(
     )
 
     valid_fao = ~np.isnan(fao_avg_yields_array)
-    avg_wat_ratio = np.nan
-    all_fp_on_lu = None
-    scaling_mode = None
+    irrigation_scaling = IrrigationScalingResult(
+        fao_avg_yields_array=fao_avg_yields_array,
+        avg_wat_ratio=np.nan,
+        all_fp_on_lu=None,
+        scaling_mode=None,
+    )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
     if config.irr_yield_scaling is not None:
-        (
-            fao_avg_yields_array,
-            avg_wat_ratio,
-            all_fp_on_lu,
-            scaling_mode,
-        ) = _apply_irrigation_scaling(
+        irrigation_scaling = _apply_irrigation_scaling(
             fao_avg_yields_array,
             valid_fao,
             config.irr_yield_scaling,
@@ -620,14 +633,14 @@ def _create_crop_yield_raster_core(
         spam_on_lu,
         fao_gdf,
         zone_array,
-        fao_avg_yields_array,
+        irrigation_scaling.fao_avg_yields_array,
         lu_mask,
         valid_fao,
         global_fao_ratio,
         config.fao_yield_ratio_name,
-        all_fp_on_lu=all_fp_on_lu,
-        avg_wat_ratio=avg_wat_ratio,
-        scaling_mode=scaling_mode,
+        all_fp_on_lu=irrigation_scaling.all_fp_on_lu,
+        avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
+        scaling_mode=irrigation_scaling.scaling_mode,
         print_outputs=config.print_outputs,
     )
 
@@ -644,7 +657,7 @@ def _create_crop_yield_raster_core(
     # Apply uncertainty to results
     averaged_result = _apply_uncertainty_to_yields(
         result,
-        fao_avg_yields_array,
+        irrigation_scaling.fao_avg_yields_array,
         fao_sd_yields_array,
         lu_mask,
         random_runs=config.random_runs,
@@ -658,7 +671,7 @@ def _create_crop_yield_raster_core(
     return CropYieldRasterResult(
         averaged_result=averaged_result,
         yield_result=result,
-        fao_avg_yields_array=fao_avg_yields_array,
+        fao_avg_yields_array=irrigation_scaling.fao_avg_yields_array,
         fao_sd_yields_array=fao_sd_yields_array,
         spam_on_lu=spam_on_lu,
         zone_array=zone_array,
@@ -666,8 +679,8 @@ def _create_crop_yield_raster_core(
         lu_mask=lu_mask,
         lu_transform=lu_transform,
         lu_crs=lu_crs,
-        avg_wat_ratio=avg_wat_ratio,
-        scaling_mode=scaling_mode,
+        avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
+        scaling_mode=irrigation_scaling.scaling_mode,
     )
 
 
