@@ -832,7 +832,7 @@ def create_crop_yield_raster(
     output_rst_path: str,
     spam_band: int = 1,
     resampling_method: Resampling = Resampling.bilinear,
-):
+) -> CropYieldRasterResult:
     """Create a crop yield raster without irrigation scaling."""
 
     config = CropYieldRasterConfig(
@@ -843,7 +843,7 @@ def create_crop_yield_raster(
         resampling_method=resampling_method,
         print_outputs=True,
     )
-    _create_crop_yield_raster_core(
+    return _create_crop_yield_raster_core(
         croplu_grid_raster,
         fao_crop_shp,
         spam_crop_raster,
@@ -867,7 +867,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     fao_yield_ratio_name: str = "yld_ratio",
     fao_sd_yield_name: str = "sd_yield",
     apply_ecoregion_fill: bool = True,
-):
+) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
 
     Parameters
@@ -893,7 +893,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         apply_ecoregion_fill=apply_ecoregion_fill,
         print_outputs=True,
     )
-    _create_crop_yield_raster_core(
+    return _create_crop_yield_raster_core(
         croplu_grid_raster,
         fao_crop_shp,
         spam_crop_raster,
@@ -1895,7 +1895,7 @@ def prepare_crop_data(
     yield_output_path = output_practice_based.parent / f"{output_practice_based.name}_yield.tif"
     if all_new_files or not yield_output_path.exists():
         print("Creating yield raster...")
-        create_crop_yield_raster_with_irrigation_scaling_pipeline(
+        _ = create_crop_yield_raster_with_irrigation_scaling_pipeline(
             croplu_grid_raster=str(lu_bin_output),
             fao_crop_shp=fao_yield_shp,
             spam_crop_raster=spam_crop_raster,
@@ -2291,7 +2291,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     apply_ecoregion_fill: bool = True,
     random_runs: int = 1,
     print_outputs: bool = False
-):
+) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
     config = CropYieldRasterConfig(
@@ -2308,7 +2308,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         random_runs=random_runs,
         print_outputs=print_outputs,
     )
-    _create_crop_yield_raster_core(
+    return _create_crop_yield_raster_core(
         croplu_grid_raster,
         fao_crop_shp,
         spam_crop_raster,
