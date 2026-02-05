@@ -688,7 +688,18 @@ def _create_crop_yield_raster_core(
     output_rst_path: Optional[str],
     config: CropYieldRasterConfig,
 ) -> CropYieldRasterResult:
-    """Shared implementation for the crop yield raster generators."""
+    """Shared implementation for the crop yield raster generators.
+
+    When ``config.return_array`` is ``True``, raster output is skipped and the
+    caller is expected to use the arrays in the returned result instead.
+    """
+    write_output = config.write_output
+    if config.return_array:
+        if write_output:
+            logging.info(
+                "return_array=True requested; skipping raster write for crop yield results."
+            )
+        write_output = False
     # Step 1 - Read cropland raster
     (
         lu_meta,
@@ -789,7 +800,7 @@ def _create_crop_yield_raster_core(
     )
 
     # Output block
-    if config.write_output:
+    if write_output:
         _write_yield_raster(output_rst_path, lu_meta, averaged_result)
 
     return CropYieldRasterResult(
