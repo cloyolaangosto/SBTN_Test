@@ -139,7 +139,7 @@ from .RothC_Raster import (
 from .cropcalcs import (
     apply_residues_to_raster_flexible,
     _binarize_raster_pipeline,
-    calculate_SPAM_yield_modifiers,
+    _calculate_SPAM_yield_modifiers,
     calculate_average_yield_by_ecoregion_and_biome,
     calculate_carbon_dung,
     calculate_crop_residues,
