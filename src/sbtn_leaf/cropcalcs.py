@@ -2074,7 +2074,10 @@ def calculate_monthly_residues_array(
         irr_fp=spam_irr_fp,
         rf_fp=spam_rf_fp,
         random_runs=random_runs,
-        print_outputs= print_outputs
+        print_outputs= print_outputs,
+        spam_outlier_strategy=spam_outlier_strategy,
+        spam_outlier_percentile=spam_outlier_percentile,
+        spam_outlier_k=spam_outlier_k,
     )
 
     # Step 4 - Create plant residue raster
