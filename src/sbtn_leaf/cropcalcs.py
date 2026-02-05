@@ -1433,7 +1433,25 @@ def create_plant_cover_monthly_raster(
     climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
 
     # 4. Loop over each unique climate ID
-    unique_ids = np.unique(ids[~np.isnan(ids)]).astype(int)
+    # Pull nodata from rioxarray metadata, falling back to legacy attrs.
+    nodata = da.rio.nodata
+    if nodata is None:
+        nodata = da.attrs.get("nodata")
+    # Start with all pixels valid, then progressively filter out invalid ones.
+    valid_mask = np.ones(ids.shape, dtype=bool)
+    # Drop NaN values for floating-point rasters.
+    if np.issubdtype(ids.dtype, np.floating):
+        valid_mask &= ~np.isnan(ids)
+    if nodata is not None:
+        # Skip nodata comparison if nodata itself is NaN or non-numeric.
+        try:
+            nodata_is_nan = np.isnan(nodata)
+        except TypeError:
+            nodata_is_nan = False
+        # Exclude explicit nodata values for integer or float rasters.
+        if not nodata_is_nan:
+            valid_mask &= ids != nodata
+    unique_ids = np.unique(ids[valid_mask]).astype(int)
     for cid in unique_ids:
         group = climate_lookup.get(cid)
         if group is None:
