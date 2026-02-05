@@ -603,6 +603,24 @@ def _compose_yield_result(
         k=spam_outlier_k,
     )
 
+    def _clamp_fallback_values(values: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        if not np.any(mask) or not zone_limits:
+            return values
+
+        clamped = values.copy()
+        zones = np.unique(zone_array[mask])
+        for zid in zones:
+            zid = int(zid)
+            if zid not in zone_limits:
+                continue
+            min_val, max_val = zone_limits[zid]
+            zid_mask = mask & (zone_array == zid)
+            if max_val is not None and np.isfinite(max_val):
+                clamped[zid_mask] = np.minimum(clamped[zid_mask], max_val)
+            if min_val is not None and np.isfinite(min_val):
+                clamped[zid_mask] = np.maximum(clamped[zid_mask], min_val)
+        return clamped
+
     # Fill the array
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])  # Gets zone id
@@ -640,7 +658,9 @@ def _compose_yield_result(
         if np.any(mask_all):
             if print_outputs:
                 print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
-            result[mask_all] = all_fp_on_lu[mask_all] * avg_wat_ratio
+            fallback_values = all_fp_on_lu * avg_wat_ratio
+            fallback_values = _clamp_fallback_values(fallback_values, mask_all)
+            result[mask_all] = fallback_values[mask_all]
 
     # If there are still missing pixels, fills them with fao yields
     mask_fao = lu_mask & np.isnan(result) & valid_fao
@@ -654,7 +674,9 @@ def _compose_yield_result(
     if np.any(mask_spam):
         if print_outputs:
             print(f"Pixels still missing values... Applying spam {scaling_mode} multiplied by global fao ratio")
-        result[mask_spam] = spam_on_lu[mask_spam] * global_fao_ratio
+        fallback_values = spam_on_lu * global_fao_ratio
+        fallback_values = _clamp_fallback_values(fallback_values, mask_spam)
+        result[mask_spam] = fallback_values[mask_spam]
 
     return result
 
