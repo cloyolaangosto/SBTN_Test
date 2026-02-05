@@ -744,6 +744,10 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
             # Weighted stats (population variance)
             wsum = np.sum(weights)
+            if (not np.isfinite(wsum)) or (wsum <= 0):
+                if log:
+                    log.debug("Degenerate weights for %s. Skipping...", region_text)
+                continue
             wmean = np.sum(values * weights) / wsum
             wvar = np.sum(weights * (values - wmean) ** 2) / wsum
             wstd = np.sqrt(wvar)
