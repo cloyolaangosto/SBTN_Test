@@ -1194,6 +1194,12 @@ def _apply_outlier_filter(values, weights, method=None, q_low=0.01, q_high=0.99,
         keep = np.abs(val - avg) <= std_thresh * sd
 
     elif method in ['log1p_cap','log1p_win']:
+        valid_mask = val > -1
+        if not np.all(valid_mask):
+            val = val[valid_mask]
+            wghts = wghts[valid_mask]
+            if val.size == 0:
+                return val, wghts
         val_trans = np.log1p(val)
         mu = np.average(val_trans, weights=wghts)
         var = np.average((val_trans - mu) ** 2, weights=wghts)
