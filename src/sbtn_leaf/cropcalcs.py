@@ -2051,7 +2051,10 @@ def calculate_monthly_residues_array(
     spam_irr_fp: str,
     spam_rf_fp: str,
     random_runs: int,
-    print_outputs: bool = False
+    print_outputs: bool = False,
+    spam_outlier_strategy: str = "spam_sd",
+    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
+    spam_outlier_k: float = 2.0
 ):
     # print("    Calculating stochastic residue array...")
 
@@ -2376,7 +2379,10 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     fao_sd_yield_name: str = "sd_yield",
     apply_ecoregion_fill: bool = True,
     random_runs: int = 1,
-    print_outputs: bool = False
+    print_outputs: bool = False,
+    spam_outlier_strategy: str = "spam_sd",
+    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
+    spam_outlier_k: float = 2.0
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2395,6 +2401,9 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         write_output=False,
         return_array=True,
         print_outputs=print_outputs,
+        spam_outlier_strategy = spam_outlier_strategy,
+        spam_outlier_percentile = spam_outlier_percentile,
+        spam_outlier_k = spam_outlier_k
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster= croplu_grid_raster_fp,

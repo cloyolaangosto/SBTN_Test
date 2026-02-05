@@ -337,6 +337,9 @@ def _raster_rothc_annual_results(
     trm_handler: Optional[TRMHandler],
     progress_desc: str = "RothC months",
     progress_position: Optional[int] = None,
+    spam_outlier_strategy = str | None,
+    spam_outlier_percentile = Tuple[float, float] | None,
+    spam_outlier_k = float | None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -379,7 +382,10 @@ def _raster_rothc_annual_results(
                     spam_irr_fp = spam_irr_fp,
                     spam_rf_fp = spam_rf_fp,
                     random_runs=residue_runs,
-                    print_outputs= False
+                    print_outputs= False,
+                    spam_outlier_strategy = spam_outlier_strategy,
+                    spam_outlier_percentile = spam_outlier_percentile,
+                    spam_outlier_k = spam_outlier_k
                 )
             if c_inp is None:
                 if practices_string_id is not None and "roff" in practices_string_id:
@@ -396,7 +402,10 @@ def _raster_rothc_annual_results(
                         spam_all_fp = spam_all_fp,
                         spam_irr_fp = spam_irr_fp,
                         spam_rf_fp = spam_rf_fp,
-                        random_runs=residue_runs
+                        random_runs=residue_runs,
+                        spam_outlier_strategy = spam_outlier_strategy,
+                        spam_outlier_percentile = spam_outlier_percentile,
+                        spam_outlier_k = spam_outlier_k
                     )
             c_inp = np.squeeze(np.asarray(c_inp))
         
@@ -416,7 +425,10 @@ def _raster_rothc_annual_results(
                 spam_all_fp=spam_all_fp,
                 spam_irr_fp=spam_irr_fp,
                 spam_rf_fp=spam_rf_fp,
-                random_runs=residue_runs
+                random_runs=residue_runs,
+                spam_outlier_strategy = spam_outlier_strategy,
+                spam_outlier_percentile = spam_outlier_percentile,
+                spam_outlier_k = spam_outlier_k
             )
         c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -580,7 +592,10 @@ def _raster_rothc_annual_results(
                         spam_irr_fp = spam_irr_fp,
                         spam_rf_fp = spam_rf_fp,
                         random_runs=residue_runs,
-                        print_outputs= True
+                        print_outputs= True,
+                        spam_outlier_strategy = spam_outlier_strategy,
+                        spam_outlier_percentile = spam_outlier_percentile,
+                        spam_outlier_k = spam_outlier_k
                     )
                 c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -617,6 +632,9 @@ def raster_rothc_annual_results(
     soc0_nodatavalue: float = -32768.0,
     red_till: bool = False,
     sand: Optional[np.ndarray] = None,
+    spam_outlier_strategy = str | None,
+    spam_outlier_percentile = Tuple[float, float] | None,
+    spam_outlier_k = float | None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -673,6 +691,9 @@ def raster_rothc_annual_results(
         spam_all_fp=spam_all_fp,
         spam_irr_fp=spam_irr_fp,
         spam_rf_fp=spam_rf_fp,
+        spam_outlier_strategy = spam_outlier_strategy,
+        spam_outlier_percentile = spam_outlier_percentile,
+        spam_outlier_k = spam_outlier_k
     )
 
 
@@ -1056,6 +1077,9 @@ def run_RothC_crops(
     red_till: bool = False,
     save_CO2: bool = False,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
+    spam_outlier_strategy: str = "spam_sd",
+    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
+    spam_outlier_k: float = 2.0
 ):
     def _crop_loader(
         *,
@@ -1095,6 +1119,9 @@ def run_RothC_crops(
         spam_all_fp: Optional[str],
         spam_irr_fp: Optional[str],
         spam_rf_fp: Optional[str],
+        spam_outlier_strategy: str | None,
+        spam_outlier_percentile: Tuple[float, float] | None,
+        spam_outlier_k: float | None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1123,6 +1150,9 @@ def run_RothC_crops(
             spam_all_fp = spam_all_fp,
             spam_irr_fp = spam_irr_fp,
             spam_rf_fp = spam_rf_fp,
+            spam_outlier_strategy = spam_outlier_strategy,
+            spam_outlier_percentile = spam_outlier_percentile,
+            spam_outlier_k = spam_outlier_k
         )
 
         if irr_a is not None:
@@ -1164,6 +1194,9 @@ def run_RothC_crops(
             "spam_all_fp": spam_all_fp,
             "spam_irr_fp": spam_irr_fp,
             "spam_rf_fp": spam_rf_fp,
+            "spam_outlier_strategy": spam_outlier_strategy,
+            "spam_outlier_percentile": spam_outlier_percentile,
+            "spam_outlier_k": spam_outlier_k
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
