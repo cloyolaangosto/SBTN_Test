@@ -1979,7 +1979,23 @@ def prepare_crop_data_irrigation_plantcover(
     output_practice_based = output_base / f"{crop_name}_{crop_practice_string}"
 
     # Step 0 - Opening input path
-    lu_array = rxr.open_rasterio(lu_data_path, masked=False).squeeze()
+    # Load land-use raster so we can enforce single-band inputs before squeezing.
+    lu_raster = rxr.open_rasterio(lu_data_path, masked=False)
+    # Determine how many bands are present; default to 1 if the dimension is missing.
+    band_count = lu_raster.sizes.get("band", 1)
+    if band_count != 1:
+        raise ValueError(
+            f"Land-use raster '{lu_data_path}' has {band_count} bands; "
+            "multiband land-use rasters are not supported. Please provide a single-band raster."
+        )
+    # Explicitly select the first band to guarantee a 2D (H, W) array for downstream logic.
+    lu_array = lu_raster.isel(band=0).squeeze()
+    if lu_array.ndim != 2:
+        # Fail fast if the land-use raster still isn't 2D after band selection.
+        raise ValueError(
+            f"Land-use raster '{lu_data_path}' must be a 2D array shaped (H, W); "
+            f"got shape {lu_array.shape}."
+        )
 
     # Step 1 - Prepare PET and irrigation
     # Step 1.1 - PET
