@@ -621,9 +621,29 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
     # Ensure equal-area CRS
     # If raster isn't in equal-area, reproject raster to equal_area_crs
+    def _resolve_nodata(data_array: xr.DataArray) -> Optional[float]:
+        # Prefer the explicit rio nodata tag when available.
+        nodata_value = data_array.rio.nodata
+        if nodata_value is None:
+            # Fall back to common CF/NetCDF-style attrs if rio nodata is unset.
+            for attr_key in ("_FillValue", "nodata"):
+                if attr_key in data_array.attrs and data_array.attrs[attr_key] is not None:
+                    nodata_value = data_array.attrs[attr_key]
+                    break
+        if nodata_value is None:
+            # As a last resort, use encoded nodata to catch per-band fill values.
+            nodata_value = data_array.rio.encoded_nodata()
+        return nodata_value
+
     need_reproj = raster_crs.is_geographic or (str(raster_crs) != equal_area_crs)
     if need_reproj:
-        raster = raster.rio.reproject(equal_area_crs, resampling=resampling)
+        # Carry forward the resolved nodata so reprojection preserves fill values.
+        reproject_nodata = _resolve_nodata(raster)
+        raster = raster.rio.reproject(
+            equal_area_crs,
+            resampling=resampling,
+            nodata=reproject_nodata,
+        )
         raster_crs = raster.rio.crs
 
     # Pre-compute the transform and pixel area once so it can be reused per region
@@ -674,11 +694,12 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
             # Extract band given as ndarray; masked is xarray.DataArray with shape (band, y, x)
             arr = masked.values[raster_band-1]  # (H, W)
-            # nodata from reprojected raster
-            nodata = masked.rio.nodata
+            # nodata from masked raster (with fallback to attrs/encoded values)
+            nodata = _resolve_nodata(masked)
 
             # Build validity mask for data values (finite and not nodata)
             if nodata is not None:
+                # Exclude fill/nodata values from stats to avoid contaminating averages.
                 valid = np.isfinite(arr) & (arr != nodata)
             else:
                 valid = np.isfinite(arr)
@@ -723,6 +744,10 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
             # Weighted stats (population variance)
             wsum = np.sum(weights)
+            if (not np.isfinite(wsum)) or (wsum <= 0):
+                if log:
+                    log.debug("Degenerate weights for %s. Skipping...", region_text)
+                continue
             wmean = np.sum(values * weights) / wsum
             wvar = np.sum(weights * (values - wmean) ** 2) / wsum
             wstd = np.sqrt(wvar)
@@ -1173,6 +1198,12 @@ def _apply_outlier_filter(values, weights, method=None, q_low=0.01, q_high=0.99,
         keep = np.abs(val - avg) <= std_thresh * sd
 
     elif method in ['log1p_cap','log1p_win']:
+        valid_mask = val > -1
+        if not np.all(valid_mask):
+            val = val[valid_mask]
+            wghts = wghts[valid_mask]
+            if val.size == 0:
+                return val, wghts
         val_trans = np.log1p(val)
         mu = np.average(val_trans, weights=wghts)
         var = np.average((val_trans - mu) ** 2, weights=wghts)

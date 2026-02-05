@@ -1450,15 +1450,18 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
     # 3) Iterate with tqdm
     for scenario in scenario_list:
-        if "force_new_file" in scenario:
-            file_fnw = scenario["force_new_file"]
+        file_fnw = None
+        file_fnw = scenario.get("force_new_file")
 
         if scenario["commodity_type"] == "permanent_crop":
             crop_type_string = "Permanent"
         else:
             crop_type_string = "Annual"
         
-        scenario_description = (scenario["practices_string_id"] if "practices_string_id" in scenario else scenario    ["irr_yield_scaling"])
+        if scenario.get("commodity_type") == "permanent_crop":
+            scenario_description = scenario.get("irr_yield_scaling")
+        else:
+            scenario_description = scenario.get("practices_string_id")
         scn_string_text = f"{crop_type_string} crop - {scenario['crop_name']} - {scenario_description}"
 
         if run_test:
