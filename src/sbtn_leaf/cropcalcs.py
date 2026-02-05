@@ -2292,6 +2292,21 @@ def calculate_irrigation_vPipeline(evap: np.ndarray, output_path: str, rain_fp =
         irr (np.array): Irrigation required (mm/month), where ET > precipitation; 0 elsewhere.
     """
 
+    def _get_rio_metadata(data: object) -> Tuple[Optional[CRS], Optional[Affine]]:
+        if not isinstance(data, xr.DataArray):
+            return None, None
+        try:
+            crs = data.rio.crs
+        except Exception:
+            return None, None
+        if crs is None:
+            return None, None
+        try:
+            transform = data.rio.transform()
+        except Exception:
+            transform = None
+        return crs, transform
+
     # Transform data into array if needed
     with rasterio.open(rain_fp) as src:
         rain = src.read().astype("float32")
@@ -2299,7 +2314,35 @@ def calculate_irrigation_vPipeline(evap: np.ndarray, output_path: str, rain_fp =
         rain_profile = src.profile
 
     rain = np.asarray(rain, dtype=float)
+
+    evap_crs, evap_transform = _get_rio_metadata(evap)
+    rain_transform = rain_profile.get("transform")
+    rain_da = None
+
+    shape_mismatch = np.asarray(evap).shape != rain.shape
+    grid_mismatch = (
+        evap_crs is not None
+        and rain_crs is not None
+        and (evap_crs != rain_crs or (evap_transform is not None and rain_transform is not None and evap_transform != rain_transform))
+    )
+
+    if shape_mismatch or grid_mismatch:
+        if evap_crs is None or evap_transform is None:
+            raise ValueError(
+                "Evapotranspiration inputs do not align with the rainfall grid. "
+                "Please provide evap inputs with matching shape and spatial alignment "
+                "(CRS/transform) or supply a georeferenced xarray DataArray so it can be resampled."
+            )
+        if rain_da is None:
+            rain_da = rxr.open_rasterio(rain_fp, masked=False)
+        evap = evap.rio.reproject_match(rain_da)
+
     evap = np.asarray(evap, dtype=float)
+    if evap.shape != rain.shape:
+        raise ValueError(
+            "Evapotranspiration inputs do not align with the rainfall grid after resampling. "
+            "Please provide aligned inputs with matching shape and spatial metadata."
+        )
 
     # Creates a new empty array
     irr = np.zeros_like(rain, dtype=float)
