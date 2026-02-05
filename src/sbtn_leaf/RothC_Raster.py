@@ -1417,8 +1417,8 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
     # 3) Iterate with tqdm
     for scenario in scenario_list:
-        if "force_new_file" in scenario:
-            file_fnw = scenario["force_new_file"]
+        file_fnw = None
+        file_fnw = scenario.get("force_new_file")
 
         if scenario["commodity_type"] == "permanent_crop":
             crop_type_string = "Permanent"
