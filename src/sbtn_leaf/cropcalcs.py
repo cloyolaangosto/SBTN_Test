@@ -380,7 +380,7 @@ def _reproject_spam_to_lu(
     return spam_on_lu
 
 
-def _rasterize_fao_fields(
+def _rasterize_fao_yields(
     fao_crop_shp: gpd.GeoDataFrame,
     lu_crs: CRS,
     lu_height: int,
@@ -390,17 +390,38 @@ def _rasterize_fao_fields(
     fao_yield_ratio_name: str,
     fao_sd_yield_name: str,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, gpd.GeoDataFrame]:
-    fao_gdf = fao_crop_shp.to_crs(lu_crs).reset_index(drop=True)
+    """Transform FAO yields from ton/ha to kg/ha and rasterize the shapefile into a raster aligned with the LU raster. 
+    Returns fao_average_yields_array, fao_sd_yields_array, zone_array, global_fao_ratio, and fao_gdf_on_lu reprojected to LU raster.
+
+    Args:
+        fao_crop_shp (gpd.GeoDataFrame): _description_
+        lu_crs (CRS): _description_
+        lu_height (int): _description_
+        lu_width (int): _description_
+        lu_transform (Affine): _description_
+        fao_avg_yield_name (str): _description_
+        fao_yield_ratio_name (str): _description_
+        fao_sd_yield_name (str): _description_
+
+    Raises:
+        KeyError: _description_
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray, float, gpd.GeoDataFrame]: fao_average_yields_array, fao_sd_yields_array, zone_array, global_fao_ratio, and fao_gdf_on_lu reprojected
+    """
+    
+    
+    fao_gdf_on_lu = fao_crop_shp.to_crs(lu_crs).reset_index(drop=True)
     for field in (fao_avg_yield_name, fao_yield_ratio_name, fao_sd_yield_name):
-        if field not in fao_gdf.columns:
+        if field not in fao_gdf_on_lu.columns:
             raise KeyError(f"Missing '{field}' in FAO shapefile")
 
-    fao_gdf[fao_avg_yield_name] = fao_gdf[fao_avg_yield_name] / 1000.0
-    fao_gdf[fao_sd_yield_name] = fao_gdf[fao_sd_yield_name] / 1000.0
-    global_fao_ratio = fao_gdf[fao_yield_ratio_name].dropna().mean()
+    fao_gdf_on_lu[fao_avg_yield_name] = fao_gdf_on_lu[fao_avg_yield_name] / 1000.0
+    fao_gdf_on_lu[fao_sd_yield_name] = fao_gdf_on_lu[fao_sd_yield_name] / 1000.0
+    global_fao_ratio = fao_gdf_on_lu[fao_yield_ratio_name].dropna().mean()
 
-    fao_gdf["zone_id"] = fao_gdf.index.astype("int32")
-    shapes = ((geom, zid) for geom, zid in zip(fao_gdf.geometry, fao_gdf.zone_id))
+    fao_gdf_on_lu["zone_id"] = fao_gdf_on_lu.index.astype("int32")
+    shapes = ((geom, zid) for geom, zid in zip(fao_gdf_on_lu.geometry, fao_gdf_on_lu.zone_id))
     zone_array = rasterize(
         shapes=shapes,
         out_shape=(lu_height, lu_width),
@@ -411,7 +432,7 @@ def _rasterize_fao_fields(
 
     fao_avg_yields_array = np.full((lu_height, lu_width), np.nan, dtype="float32")
     fao_sd_yields_array = np.full((lu_height, lu_width), np.nan, dtype="float32")
-    for _, row in fao_gdf.iterrows():
+    for _, row in fao_gdf_on_lu.iterrows():
         zid = int(row["zone_id"])
         zid_mask = zone_array == zid
         fao_avg_yields_array[zid_mask] = row[fao_avg_yield_name]
@@ -422,7 +443,7 @@ def _rasterize_fao_fields(
         fao_sd_yields_array,
         zone_array,
         global_fao_ratio,
-        fao_gdf,
+        fao_gdf_on_lu,
     )
 
 
@@ -646,8 +667,10 @@ def _compose_yield_result(
         # Checks where there are not results for spam values
         mask_need_avg = zid_mask & np.isnan(result)
         if np.any(mask_need_avg):
+            mean = np.nanmean(result)
+            median = np.nanmedian(result)
             if print_outputs:
-                print(f"Yields missing after filling with spam {scaling_mode} raster. Applying scaled fao yields")
+                print(f"Current mean and median yields are {mean} and {median}. Yields missing after filling with spam {scaling_mode} raster. Applying scaled fao yields")
         result[mask_need_avg] = fao_avg_yields_array[mask_need_avg]
 
     # Fill results where there are still missing pixels
@@ -656,8 +679,10 @@ def _compose_yield_result(
 
         mask_all = lu_mask & np.isnan(result) & ~np.isnan(all_fp_on_lu)
         if np.any(mask_all):
+            mean = np.nanmean(result)
+            median = np.nanmedian(result)
             if print_outputs:
-                print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
+                print(f"Current mean and median yields are {mean} and {median}. Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
             fallback_values = all_fp_on_lu * avg_wat_ratio
             fallback_values = _clamp_fallback_values(fallback_values, mask_all)
             result[mask_all] = fallback_values[mask_all]
@@ -677,6 +702,13 @@ def _compose_yield_result(
         fallback_values = spam_on_lu * global_fao_ratio
         fallback_values = _clamp_fallback_values(fallback_values, mask_spam)
         result[mask_spam] = fallback_values[mask_spam]
+
+    # TODO - Final check to see if there are outliers here
+
+    mean = np.nanmean(result)
+    median = np.nanmedian(result)
+    if print_outputs:
+        print(f"Current mean and median yields are {mean} and {median}.")
 
     return result
 
@@ -733,6 +765,57 @@ def _fill_with_ecoregions(
 
     return result
 
+def _pre_filter_spam_yields(
+    spam_arrays: tuple[np.ndarray, ...],
+    fao_gdf: gpd.GeoDataFrame,
+    zone_array: np.ndarray,
+    fao_avg_yield_name: str,
+    *,
+    spam_outlier_strategy: str,
+    spam_outlier_percentile: Tuple[float, float],
+    spam_outlier_k: float,
+):
+    #  Initialize out
+    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
+
+    # Goes through each FAO Zone (Country)
+    for _, row in fao_gdf.iterrows():
+        zid = int(row["zone_id"])                       #  Gets the zone id
+        zid_mask = zone_array == zid                    #  Mask of the country
+        fao_yield_zone_avg = row[fao_avg_yield_name]    #  Country yield average (10-year)
+
+        # For each array:
+        for i, array in enumerate(spam_arrays):
+            valid_zone = zid_mask & ~np.isnan(array)
+            spam_vals = array[valid_zone]
+
+            # Check if there are any values
+            if spam_vals.size == 0:
+                continue
+
+            # If not, continue filtering
+            if spam_outlier_strategy == "ratio_percentile":
+                if not np.isfinite(fao_yield_zone_avg) or fao_yield_zone_avg <= 0:
+                    continue
+                ratios = spam_vals / fao_yield_zone_avg
+                low, high = np.nanpercentile(ratios, [spam_outlier_percentile[0], spam_outlier_percentile[1]])
+                min_val = low * fao_yield_zone_avg
+                max_val = high * fao_yield_zone_avg
+            elif spam_outlier_strategy == "spam_sd":
+                spam_avg = np.nanmean(spam_vals)
+                spam_sd  = np.nanstd(spam_vals)
+
+                min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
+                max_val = spam_avg + spam_outlier_k * spam_sd
+            else:
+                raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
+
+            # Fills the array and append results
+            clipped = np.clip(array, min_val, max_val)
+            out_arrays[i][valid_zone] = clipped[valid_zone]
+
+    return out_arrays
+
 
 def _create_crop_yield_raster_core(
     croplu_grid_raster: str,
@@ -763,9 +846,39 @@ def _create_crop_yield_raster_core(
         lu_width,
     ) = _read_cropland_raster(croplu_grid_raster)
 
-    # Step 2 - Reprojects spam to lu raster
+    # Step 2 - Reprojects all spam bands
     spam_on_lu = _reproject_spam_to_lu(
         spam_crop_raster,
+        spam_band=config.spam_band,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=config.resampling_method,
+    )
+
+    spam_all = _reproject_spam_to_lu(
+        spam_crop_raster=config.all_fp,
+        spam_band=config.spam_band,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=config.resampling_method,
+    )
+
+    spam_irr = _reproject_spam_to_lu(
+        spam_crop_raster=config.irr_fp,
+        spam_band=config.spam_band,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=config.resampling_method,
+    )
+
+    spam_rf = _reproject_spam_to_lu(
+        spam_crop_raster=config.rf_fp,
         spam_band=config.spam_band,
         lu_height=lu_height,
         lu_width=lu_width,
@@ -781,7 +894,7 @@ def _create_crop_yield_raster_core(
         zone_array,
         global_fao_ratio,
         fao_gdf,
-    ) = _rasterize_fao_fields(
+    ) = _rasterize_fao_yields(
         fao_crop_shp,
         lu_crs,
         lu_height,
@@ -798,6 +911,19 @@ def _create_crop_yield_raster_core(
         avg_wat_ratio=np.nan,
         all_fp_on_lu=None,
         scaling_mode=None,
+    )
+
+    #  Pre process SPAM yields
+   spam_arrays = [spam_on_lu, spam_all, spam_irr, spam_rf]
+   
+   spam_filtered_arrays = _pre_filter_spam_yields(
+        spam_arrays=spam_arrays,
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name=config.fao_avg_yield_name,
+        spam_outlier_strategy=config.spam_outlier_strategy,
+        spam_outlier_percentile=config.spam_outlier_percentile,
+        spam_outlier_k=config.spam_outlier_k,
     )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
@@ -851,6 +977,11 @@ def _create_crop_yield_raster_core(
         random_runs=config.random_runs,
         rng=config.rng,
     )
+
+    mean = np.nanmean(averaged_result)
+    median = np.nanmedian(averaged_result)
+
+    print(f"Final mean is {mean} and median is {median}")
 
     # Output block
     if write_output:
