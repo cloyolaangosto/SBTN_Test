@@ -2594,6 +2594,9 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         apply_ecoregion_fill=apply_ecoregion_fill,
         random_runs=random_runs,
         print_outputs=print_outputs,
+        spam_outlier_strategy=spam_outlier_strategy,
+        spam_outlier_percentile=spam_outlier_percentile,
+        spam_outlier_k=spam_outlier_k,
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
