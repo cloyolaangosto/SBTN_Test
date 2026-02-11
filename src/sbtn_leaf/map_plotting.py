@@ -330,8 +330,10 @@ def _create_plt_choropleth(
         quantile_edges = edges
 
     if is_categorical:
-        # Discrete categories
-        if len(unique_vals) > 1:
+        ncat = len(unique_vals)
+
+        # --- build boundaries (len = ncat+1) ---
+        if ncat > 1:
             diffs = np.diff(unique_vals)
             boundaries = np.concatenate([
                 [unique_vals[0] - diffs[0] / 2],
@@ -339,10 +341,25 @@ def _create_plt_choropleth(
                 [unique_vals[-1] + diffs[-1] / 2],
             ])
         else:
-            boundaries = [unique_vals[0] - 0.5, unique_vals[0] + 0.5]
+            boundaries = np.array([unique_vals[0] - 0.5, unique_vals[0] + 0.5])
 
-        cmap_obj = ListedColormap(plt.cm.tab20.colors[: len(unique_vals)])
-        norm = BoundaryNorm(boundaries, ncolors=len(unique_vals))
+        # --- choose colormap: USE the one the user passed ---
+        # assume `cmap` is your input argument (string or Colormap)
+        if cmap is None:
+            cmap_obj = ListedColormap(plt.cm.tab20.colors[:ncat])
+        else:
+            cmap_obj = plt.get_cmap(cmap) if isinstance(cmap, str) else cmap
+
+            # If it's a continuous cmap, sample it into ncat discrete colors
+            if not isinstance(cmap_obj, ListedColormap):
+                cmap_obj = ListedColormap(cmap_obj(np.linspace(0, 1, ncat)))
+
+            # If it's categorical but too short, resample/cycle to ncat
+            if getattr(cmap_obj, "N", ncat) < ncat:
+                cmap_obj = ListedColormap(cmap_obj(np.linspace(0, 1, ncat)))
+
+        # IMPORTANT: ncolors should align with cmap_obj
+        norm = BoundaryNorm(boundaries, ncolors=cmap_obj.N, clip=True)
 
     else:
         # Continuous

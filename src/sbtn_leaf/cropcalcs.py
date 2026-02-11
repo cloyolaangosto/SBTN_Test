@@ -1238,7 +1238,7 @@ def calculate_crop_residues(crop: str, crop_yield: float, C_Content: float = 0.5
     dry = res_crop_data.select('DRY').item()
     RS = res_crop_data.select("RS").item()
 
-    # Checkes if ABG can be calculated with line equation
+    # Checks if ABG can be calculated with line equation
     if crop in ag_table["Crop"].to_list():
         AG_crop_data = ag_table.filter(pl.col("Crop") == crop)
         slope = AG_crop_data.select("Slope").item()
