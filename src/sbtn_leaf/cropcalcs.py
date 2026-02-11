@@ -70,8 +70,9 @@ class CropYieldRasterConfig:
     return_array: bool = False
     print_outputs: bool = False
     spam_outlier_strategy: str = "spam_sd"
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0)
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0)
     spam_outlier_k: float = 2.0
+    ylds_src = "GAEZ"
 
 
 @dataclass(frozen=True)
@@ -510,6 +511,7 @@ def _compose_yield_result(
     all_fp_on_lu: Optional[np.ndarray],
     scaling_mode: Optional[str],
     print_outputs: bool,
+    ylds_src: str = "GAEZ"
 ) -> np.ndarray:
     """Compose the yield raster while clipping SPAM outliers per FAO zone."""
     # Creates an empty array of yields with the same size as fao yields raster
@@ -518,7 +520,7 @@ def _compose_yield_result(
     # Fill the array
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])  # Gets zone id
-        fao_yield_adjustment_ratio = row[fao_yield_ratio_name]
+        fao_yield_adjustment_ratio = 1 if (ylds_src == "GAEZ") else row[fao_yield_ratio_name]
         
         zid_mask = zone_array == zid  # Creates a mask to apply only for the given fao zone
         spam_scaled = spam_on_lu * fao_yield_adjustment_ratio  # Loads the spam yields
@@ -529,9 +531,6 @@ def _compose_yield_result(
 
         # Checks where there are not results for spam values
         mask_need_avg = zid_mask & np.isnan(result)
-        if np.any(mask_need_avg):
-            if print_outputs:
-                print(f"Yields missing after filling with spam {scaling_mode} raster. Applying scaled fao yields")
         result[mask_need_avg] = fao_avg_yields_array[mask_need_avg] * avg_wat_ratio
 
     # Fill results where there are still missing pixels
@@ -555,11 +554,8 @@ def _compose_yield_result(
     result_median = np.nanmedian(result)
     result_max = np.nanmax(result)
     result_min = np.nanmin(result)
-
-    missing_final = lu_mask & np.isnan(result)
     
     if print_outputs:
-        print(f'There are {missing_final.size} pixels missing')
         print(f"Current mean and median yields are {result_mean} and {result_median}. Max is {result_max} and min is {result_min}")
 
     return result
@@ -804,6 +800,7 @@ def _create_crop_yield_raster_core(
         avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
         scaling_mode=irrigation_scaling.scaling_mode,
         print_outputs=config.print_outputs,
+        ylds_src = config.ylds_src
     )
 
     if config.apply_ecoregion_fill:
@@ -875,6 +872,7 @@ def create_crop_yield_raster(
     output_rst_path: str,
     spam_band: int = 1,
     resampling_method: Resampling = Resampling.bilinear,
+    ylds_src: str = "GAEZ"
 ) -> CropYieldRasterResult:
     """Create a crop yield raster without irrigation scaling."""
 
@@ -885,6 +883,7 @@ def create_crop_yield_raster(
         spam_band=spam_band,
         resampling_method=resampling_method,
         print_outputs=True,
+        ylds_src = ylds_src
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
@@ -959,8 +958,7 @@ def _calculate_SPAM_yield_modifiers(
     all_rasters_fp: Optional[str] = None,
     irr_ratios_fp: Optional[str] = None,
     rf_ratios_fp: Optional[str] = None,
-    print_outputs: bool = False,
-    percentile: Tuple[float, float] = (0.05, 0.95)
+    print_outputs: bool = False
 ):
     '''
     Calculates the the ratios yields between irrigated:all and rainfed:all
@@ -1003,17 +1001,6 @@ def _calculate_SPAM_yield_modifiers(
     if print_outputs:
         print("Average irrigated ratio: {:.2f}".format(avg_irr))
         print("Average rainfed ratio: {:.2f}".format(avg_rf))
-
-    # Filter ratios as some of them might be too crazy to a 5%-95% interval
-    # min_irr, max_irr = np.percentile(irr_ratios, percentile)
-    # min_rf, max_rf = np.percentile(rf_ratios, percentile)
-
-    # irr_ratios = np.clip(irr_ratios, min_irr, max_irr)
-    # rf_ratios = np.clip(rf_ratios, min_rf, max_rf)
-
-    # compute updated means
-    # avg_irr = np.nanmean(irr_ratios)
-    # avg_rf = np.nanmean(rf_ratios)
 
     # Step 5 - Optional, Save as GeoTiff
     if save_ratios:
@@ -2104,8 +2091,9 @@ def calculate_monthly_residues_array(
     random_runs: int,
     print_outputs: bool = False,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
-    spam_outlier_k: float = 2.0
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
+    spam_outlier_k: float = 2.0,
+    ylds_src: str = "GAEZ"
 ):
     # print("    Calculating stochastic residue array...")
 
@@ -2481,8 +2469,9 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     random_runs: int = 1,
     print_outputs: bool = False,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
-    spam_outlier_k: float = 2.0
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
+    spam_outlier_k: float = 2.0,
+    ylds_src: str = "GAEZ"
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2503,7 +2492,8 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         print_outputs=print_outputs,
         spam_outlier_strategy = spam_outlier_strategy,
         spam_outlier_percentile = spam_outlier_percentile,
-        spam_outlier_k = spam_outlier_k
+        spam_outlier_k = spam_outlier_k,
+        ylds_src = ylds_src
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster= croplu_grid_raster_fp,
