@@ -414,22 +414,21 @@ def _raster_rothc_annual_results(
         crop_type = "permanent"
 
         # initialize c_inp
-        if c_inp is None:
-            print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
-            c_inp = cropcalcs.calculate_monthly_residues_array(
-                lu_fp=commodity_lu_fp,
-                crop_name=crop_name,
-                crop_type=crop_type,
-                spam_crop_raster=spam_crop_raster,
-                irr_yield_scaling=irr_yield_scaling,
-                spam_all_fp=spam_all_fp,
-                spam_irr_fp=spam_irr_fp,
-                spam_rf_fp=spam_rf_fp,
-                random_runs=residue_runs,
-                spam_outlier_strategy = spam_outlier_strategy,
-                spam_outlier_percentile = spam_outlier_percentile,
-                spam_outlier_k = spam_outlier_k
-            )
+        print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
+        c_inp = cropcalcs.calculate_monthly_residues_array(
+            lu_fp=commodity_lu_fp,
+            crop_name=crop_name,
+            crop_type=crop_type,
+            spam_crop_raster=spam_crop_raster,
+            irr_yield_scaling=irr_yield_scaling,
+            spam_all_fp=spam_all_fp,
+            spam_irr_fp=spam_irr_fp,
+            spam_rf_fp=spam_rf_fp,
+            random_runs=residue_runs,
+            spam_outlier_strategy = spam_outlier_strategy,
+            spam_outlier_percentile = spam_outlier_percentile,
+            spam_outlier_k = spam_outlier_k
+        )
         c_inp = np.squeeze(np.asarray(c_inp))
 
     else: # forest type
@@ -581,7 +580,7 @@ def _raster_rothc_annual_results(
                     print(f"        C_inputs are 0's")
                     c_inp = np.zeros_like(rain)
                 else:
-                    print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
+                    print(f"        Calculating residue inputs for {crop_type} {crop_name}")
                     c_inp = cropcalcs.calculate_monthly_residues_array(
                         lu_fp=commodity_lu_fp,
                         crop_name=crop_name,
