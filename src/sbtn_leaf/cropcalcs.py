@@ -828,9 +828,8 @@ def _create_crop_yield_raster_core(
 
     mean = np.nanmean(averaged_result)
     median = np.nanmedian(averaged_result)
-    missing_mask = lu_mask & np.isnan(averaged_result)
 
-    print(f"Final mean is {mean} and median is {median}. Missing pixels {missing_mask.size}")
+    print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
 
     # Output block
     if write_output:
@@ -912,7 +911,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     fao_sd_yield_name: str = "sd_yield",
     apply_ecoregion_fill: bool = True,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = [0.5, 0.95],
+    spam_outlier_percentile: Tuple[float, float] = (0.5, 0.95),
     spam_outlier_k: float = 2
 ) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
