@@ -72,6 +72,11 @@ class CropYieldRasterConfig:
     spam_outlier_strategy: str = "spam_sd"
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0)
     spam_outlier_k: float = 2.0
+    spam_local_window: int = 7
+    spam_local_min_neighbors: int = 8
+    spam_local_k_irr: float = 3.0
+    spam_local_k_rf: float = 2.5
+    spam_local_k_all: float = 2.8
     ylds_src: str = "GAEZ"
 
 
@@ -622,6 +627,11 @@ def _pre_filter_yields_rasters(
     spam_outlier_strategy: str,
     spam_outlier_percentile: Tuple[float, float],
     spam_outlier_k: float,
+    spam_local_window: int,
+    spam_local_min_neighbors: int,
+    spam_local_k_irr: float,
+    spam_local_k_rf: float,
+    spam_local_k_all: float,
 ):
     #  Initialize out
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
@@ -655,6 +665,58 @@ def _pre_filter_yields_rasters(
 
                 min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
                 max_val = spam_avg + spam_outlier_k * spam_sd
+            elif spam_outlier_strategy == "local_ratio_mad":
+                if not np.isfinite(fao_yield_zone_avg) or fao_yield_zone_avg <= 0:
+                    continue
+
+                k_local = spam_local_k_all
+                if i == 2:
+                    k_local = spam_local_k_irr
+                elif i == 3:
+                    k_local = spam_local_k_rf
+
+                ratio_array = np.full_like(array, np.nan, dtype="float32")
+                ratio_array[valid_zone] = array[valid_zone] / fao_yield_zone_avg
+
+                def _nanmedian_with_min(values: np.ndarray) -> float:
+                    finite = np.isfinite(values)
+                    if finite.sum() < spam_local_min_neighbors:
+                        return np.nan
+                    return float(np.nanmedian(values[finite]))
+
+                local_median = ndimage.generic_filter(
+                    ratio_array,
+                    _nanmedian_with_min,
+                    size=spam_local_window,
+                    mode="constant",
+                    cval=np.nan,
+                )
+                abs_dev = np.abs(ratio_array - local_median)
+                local_mad = ndimage.generic_filter(
+                    abs_dev,
+                    _nanmedian_with_min,
+                    size=spam_local_window,
+                    mode="constant",
+                    cval=np.nan,
+                )
+
+                clipped_vals = yld_vals.copy()
+                local_median_zone = local_median[valid_zone]
+                local_mad_zone = local_mad[valid_zone]
+                finite_local = np.isfinite(local_median_zone) & np.isfinite(local_mad_zone)
+
+                if np.any(finite_local):
+                    local_sigma = 1.4826 * local_mad_zone[finite_local]
+                    min_ratio = np.maximum(0, local_median_zone[finite_local] - k_local * local_sigma)
+                    max_ratio = local_median_zone[finite_local] + k_local * local_sigma
+                    clipped_vals[finite_local] = np.clip(
+                        yld_vals[finite_local],
+                        min_ratio * fao_yield_zone_avg,
+                        max_ratio * fao_yield_zone_avg,
+                    )
+
+                out_arrays[i][valid_zone] = clipped_vals
+                continue
             else:
                 raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
 
@@ -772,6 +834,11 @@ def _create_crop_yield_raster_core(
         spam_outlier_strategy=config.spam_outlier_strategy,
         spam_outlier_percentile=config.spam_outlier_percentile,
         spam_outlier_k=config.spam_outlier_k,
+        spam_local_window=config.spam_local_window,
+        spam_local_min_neighbors=config.spam_local_min_neighbors,
+        spam_local_k_irr=config.spam_local_k_irr,
+        spam_local_k_rf=config.spam_local_k_rf,
+        spam_local_k_all=config.spam_local_k_all,
     )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
