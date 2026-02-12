@@ -636,16 +636,35 @@ def _pre_filter_yields_rasters(
     #  Initialize out
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
 
+    # Pre-compute per-zone bounding boxes so local filters only process relevant windows.
+    zone_bboxes: dict[int, tuple[int, int, int, int]] = {}
+    for zid in fao_gdf["zone_id"].astype(int).unique():
+        rows, cols = np.where(zone_array == zid)
+        if rows.size == 0:
+            continue
+        zone_bboxes[zid] = (
+            int(rows.min()),
+            int(rows.max()) + 1,
+            int(cols.min()),
+            int(cols.max()) + 1,
+        )
+
     # Goes through each FAO Zone (Country)
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])                       #  Gets the zone id
-        zid_mask = zone_array == zid                    #  Mask of the country
+        if zid not in zone_bboxes:
+            continue
+
+        r0, r1, c0, c1 = zone_bboxes[zid]
+        zone_sub = zone_array[r0:r1, c0:c1]
+        zid_mask = zone_sub == zid                      #  Mask of the country
         fao_yield_zone_avg = row[fao_avg_yield_name]    #  Country yield average (10-year)
 
         # For each array:
         for i, array in enumerate(spam_arrays):
-            valid_zone = zid_mask & ~np.isnan(array)
-            yld_vals = array[valid_zone]
+            array_sub = array[r0:r1, c0:c1]
+            valid_zone = zid_mask & np.isfinite(array_sub)
+            yld_vals = array_sub[valid_zone]
 
             # Check if there are any values
             if yld_vals.size == 0:
@@ -678,8 +697,8 @@ def _pre_filter_yields_rasters(
                 elif i == 3:
                     k_local = spam_local_k_rf
 
-                ratio_array = np.full_like(array, np.nan, dtype="float32")
-                ratio_array[valid_zone] = array[valid_zone] / fao_yield_zone_avg
+                ratio_sub = np.full_like(array_sub, np.nan, dtype="float32")
+                ratio_sub[valid_zone] = array_sub[valid_zone] / fao_yield_zone_avg
 
                 def _nanmedian_with_min(values: np.ndarray) -> float:
                     finite = np.isfinite(values)
@@ -688,15 +707,15 @@ def _pre_filter_yields_rasters(
                     return float(np.nanmedian(values[finite]))
 
                 local_median = ndimage.generic_filter(
-                    ratio_array,
+                    ratio_sub,
                     _nanmedian_with_min,
                     size=spam_local_window,
                     mode="constant",
                     cval=np.nan,
                 )
-                abs_dev = np.abs(ratio_array - local_median)
+                abs_dev_sub = np.abs(ratio_sub - local_median)
                 local_mad = ndimage.generic_filter(
-                    abs_dev,
+                    abs_dev_sub,
                     _nanmedian_with_min,
                     size=spam_local_window,
                     mode="constant",
@@ -718,14 +737,15 @@ def _pre_filter_yields_rasters(
                         max_ratio * fao_yield_zone_avg,
                     )
 
-                out_arrays[i][valid_zone] = clipped_vals
+                target_mask = zid_mask & np.isfinite(array_sub)
+                out_arrays[i][r0:r1, c0:c1][target_mask] = clipped_vals
                 continue
             else:
                 raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
 
             # Fills the array and append results
-            clipped = np.clip(array, min_val, max_val)
-            out_arrays[i][valid_zone] = clipped[valid_zone]
+            clipped = np.clip(array_sub, min_val, max_val)
+            out_arrays[i][r0:r1, c0:c1][valid_zone] = clipped[valid_zone]
 
     return out_arrays
 
