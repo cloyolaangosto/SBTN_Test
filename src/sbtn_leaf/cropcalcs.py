@@ -990,6 +990,23 @@ def _write_yield_raster(
     print(f"Yield raster written to {output_rst_path}")
 
 
+def _validate_fao_yield_columns(
+    fao_crop_shp: gpd.GeoDataFrame,
+    required_columns: Tuple[str, str, str],
+    entrypoint_name: str,
+) -> None:
+    """Validate that the FAO shapefile contains the required yield columns."""
+
+    missing_columns = [column for column in required_columns if column not in fao_crop_shp.columns]
+    if missing_columns:
+        required_display = ", ".join(required_columns)
+        missing_display = ", ".join(missing_columns)
+        raise ValueError(
+            f"{entrypoint_name} requires FAO columns [{required_display}] in fao_crop_shp; "
+            f"missing columns: [{missing_display}]"
+        )
+
+
 def create_crop_yield_raster(
     croplu_grid_raster: str,
     fao_crop_shp: gpd.GeoDataFrame,
@@ -999,12 +1016,22 @@ def create_crop_yield_raster(
     resampling_method: Resampling = Resampling.bilinear,
     ylds_src: str = "GAEZ"
 ) -> CropYieldRasterResult:
-    """Create a crop yield raster without irrigation scaling."""
+    """Create a crop yield raster without irrigation scaling.
+
+    Required ``fao_crop_shp`` columns are ``avg_yield``, ``yld_ratio``, and
+    ``sd_yield``.
+    """
+
+    _validate_fao_yield_columns(
+        fao_crop_shp,
+        ("avg_yield", "yld_ratio", "sd_yield"),
+        "create_crop_yield_raster",
+    )
 
     config = CropYieldRasterConfig(
-        fao_avg_yield_name="avg_yield_1423",
-        fao_yield_ratio_name="ratio_yield_20_toavg",
-        fao_sd_yield_name="sd_yields_1423",
+        fao_avg_yield_name="avg_yield",
+        fao_yield_ratio_name="yld_ratio",
+        fao_sd_yield_name="sd_yield",
         spam_band=spam_band,
         resampling_method=resampling_method,
         print_outputs=True,
@@ -1054,7 +1081,17 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     apply_ecoregion_fill:
         When ``True`` (the default), use ecoregion and biome averages to fill any
         remaining nodata pixels, matching the historical pipeline behaviour.
+
+    Required ``fao_crop_shp`` columns are ``fao_avg_yield_name``,
+    ``fao_yield_ratio_name``, and ``fao_sd_yield_name`` (defaults: ``avg_yield``,
+    ``yld_ratio``, ``sd_yield``).
     """
+
+    _validate_fao_yield_columns(
+        fao_crop_shp,
+        (fao_avg_yield_name, fao_yield_ratio_name, fao_sd_yield_name),
+        "create_crop_yield_raster_withIrrigationPracticeScaling",
+    )
 
     config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
@@ -2571,7 +2608,18 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     provenance_output_prefix: Optional[str] = None,
     spam_direct_min_share_warn: float = 0.05,
 ) -> CropYieldRasterResult:
-    """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
+    """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`.
+
+    Required ``fao_crop_shp`` columns are ``fao_avg_yield_name``,
+    ``fao_yield_ratio_name``, and ``fao_sd_yield_name`` (defaults: ``avg_yield``,
+    ``yld_ratio``, ``sd_yield``).
+    """
+
+    _validate_fao_yield_columns(
+        fao_crop_shp,
+        (fao_avg_yield_name, fao_yield_ratio_name, fao_sd_yield_name),
+        "create_crop_yield_raster_with_irrigation_scaling_pipeline",
+    )
 
     config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
@@ -2631,7 +2679,18 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     provenance_output_prefix: Optional[str] = None,
     spam_direct_min_share_warn: float = 0.05,
 ) -> CropYieldRasterResult:
-    """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
+    """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`.
+
+    Required ``fao_crop_shp`` columns are ``fao_avg_yield_name``,
+    ``fao_yield_ratio_name``, and ``fao_sd_yield_name`` (defaults: ``avg_yield``,
+    ``yld_ratio``, ``sd_yield``).
+    """
+
+    _validate_fao_yield_columns(
+        fao_crop_shp,
+        (fao_avg_yield_name, fao_yield_ratio_name, fao_sd_yield_name),
+        "calculate_crop_yield_array_with_irrigation_scaling",
+    )
 
     config = CropYieldRasterConfig(
         fao_avg_yield_name=fao_avg_yield_name,
