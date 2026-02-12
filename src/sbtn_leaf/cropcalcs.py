@@ -802,7 +802,7 @@ def _create_crop_yield_raster_core(
         valid_fao,
         global_fao_ratio,
         config.fao_yield_ratio_name,
-        all_fp_on_lu=spam_on_lu_filt,
+        all_fp_on_lu=spam_all_filt,
         avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
         scaling_mode=irrigation_scaling.scaling_mode,
         print_outputs=config.print_outputs,
