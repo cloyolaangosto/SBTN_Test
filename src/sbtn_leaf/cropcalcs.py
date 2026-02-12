@@ -672,7 +672,6 @@ def _pre_filter_yields_rasters(
 
             # If not, continue filtering
             if spam_outlier_strategy == "ratio_percentile":
-                print("Using pre-filtering yield ratio_percentile route")
                 if not np.isfinite(fao_yield_zone_avg) or fao_yield_zone_avg <= 0:
                     continue
                 ratios = yld_vals / fao_yield_zone_avg
@@ -680,14 +679,12 @@ def _pre_filter_yields_rasters(
                 min_val = low * fao_yield_zone_avg
                 max_val = high * fao_yield_zone_avg
             elif spam_outlier_strategy == "spam_sd":
-                print("Using pre-filtering yield spam_sd route")
                 spam_avg = np.nanmean(yld_vals)
                 spam_sd  = np.nanstd(yld_vals)
 
                 min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
                 max_val = spam_avg + spam_outlier_k * spam_sd
             elif spam_outlier_strategy == "local_ratio_mad":
-                print("Using pre-filtering yield local_ratio_mad route")
                 if not np.isfinite(fao_yield_zone_avg) or fao_yield_zone_avg <= 0:
                     continue
 
@@ -1000,7 +997,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     fao_sd_yield_name: str = "sd_yield",
     apply_ecoregion_fill: bool = True,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (0.5, 0.95),
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2
 ) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
