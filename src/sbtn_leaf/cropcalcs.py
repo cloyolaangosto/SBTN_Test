@@ -72,6 +72,12 @@ class CropYieldRasterConfig:
     spam_outlier_strategy: str = "spam_sd"
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0)
     spam_outlier_k: float = 2.0
+    # Local z-score window size (odd kernel width/height in pixels, e.g. 3 or 5).
+    local_window: int = 3
+    # Number of local standard deviations used to define clipping bounds.
+    local_k: float = 2.5
+    # Minimum valid neighbors required before applying local clipping to a pixel.
+    local_min_neighbors: int = 4
     ylds_src: str = "GAEZ"
     enable_fao_fill: bool = True
     enable_ecoregion_fill: bool = True
@@ -774,7 +780,47 @@ def _pre_filter_yields_rasters(
     spam_outlier_strategy: str,
     spam_outlier_percentile: Tuple[float, float],
     spam_outlier_k: float,
+    local_window: int,
+    local_k: float,
+    local_min_neighbors: int,
 ):
+    """Pre-filter SPAM rasters by zone-level clipping and optional local z-score clamping.
+
+    local_window controls the size of the local neighborhood (odd pixels).
+    local_k controls how many local standard deviations are allowed before clipping.
+    local_min_neighbors requires enough valid neighbors before local clipping is applied.
+    """
+    if local_window <= 0 or local_window % 2 == 0:
+        raise ValueError("local_window must be a positive odd integer")
+
+    def _local_zscore_clip(array: np.ndarray) -> np.ndarray:
+        valid = np.isfinite(array)
+        if not np.any(valid):
+            return array
+
+        val = np.where(valid, array, 0.0).astype("float32", copy=False)
+        val2 = np.where(valid, array * array, 0.0).astype("float32", copy=False)
+        valid_f = valid.astype("float32", copy=False)
+
+        size = (local_window, local_window)
+        neighbor_count = ndimage.uniform_filter(valid_f, size=size, mode="nearest") * (local_window * local_window)
+        sum_local = ndimage.uniform_filter(val, size=size, mode="nearest") * (local_window * local_window)
+        sumsq_local = ndimage.uniform_filter(val2, size=size, mode="nearest") * (local_window * local_window)
+
+        with np.errstate(invalid="ignore", divide="ignore"):
+            local_mean = np.divide(sum_local, neighbor_count, where=neighbor_count > 0)
+            local_var = np.divide(sumsq_local, neighbor_count, where=neighbor_count > 0) - (local_mean * local_mean)
+
+        local_std = np.sqrt(np.maximum(local_var, 0.0))
+        enough_neighbors = neighbor_count >= local_min_neighbors
+        lower = local_mean - local_k * local_std
+        upper = local_mean + local_k * local_std
+
+        result = array.copy()
+        clip_mask = valid & enough_neighbors
+        result[clip_mask] = np.clip(array[clip_mask], lower[clip_mask], upper[clip_mask])
+        return result
+
     #  Initialize out
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
 
@@ -807,12 +853,21 @@ def _pre_filter_yields_rasters(
 
                 min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
                 max_val = spam_avg + spam_outlier_k * spam_sd
+            elif spam_outlier_strategy == "local_zscore":
+                spam_avg = np.nanmean(yld_vals)
+                spam_sd = np.nanstd(yld_vals)
+
+                min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
+                max_val = spam_avg + spam_outlier_k * spam_sd
             else:
                 raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
 
             # Fills the array and append results
             clipped = np.clip(array, min_val, max_val)
             out_arrays[i][valid_zone] = clipped[valid_zone]
+
+    if spam_outlier_strategy == "local_zscore":
+        out_arrays = [_local_zscore_clip(arr) for arr in out_arrays]
 
     return out_arrays
 
@@ -926,6 +981,9 @@ def _create_crop_yield_raster_core(
         spam_outlier_strategy=config.spam_outlier_strategy,
         spam_outlier_percentile=config.spam_outlier_percentile,
         spam_outlier_k=config.spam_outlier_k,
+        local_window=config.local_window,
+        local_k=config.local_k,
+        local_min_neighbors=config.local_min_neighbors,
     )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
@@ -1090,6 +1148,12 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2,
+    # Odd local neighborhood size (pixels) for local_zscore strategy.
+    local_window: int = 3,
+    # Local z-score multiplier: clip outside mean ± local_k * std.
+    local_k: float = 2.5,
+    # Minimum valid neighbors needed to apply local clipping at a pixel.
+    local_min_neighbors: int = 4,
     enable_fao_fill: bool = True,
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
@@ -1124,6 +1188,9 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         spam_outlier_strategy=spam_outlier_strategy,
         spam_outlier_percentile=spam_outlier_percentile,
         spam_outlier_k=spam_outlier_k,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
         enable_fao_fill=enable_fao_fill,
         enable_ecoregion_fill=enable_ecoregion_fill,
         enable_nearest_fill=enable_nearest_fill,
@@ -2283,6 +2350,12 @@ def calculate_monthly_residues_array(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
+    # Odd local neighborhood size (pixels) for local_zscore strategy.
+    local_window: int = 3,
+    # Local z-score multiplier: clip outside mean ± local_k * std.
+    local_k: float = 2.5,
+    # Minimum valid neighbors needed to apply local clipping at a pixel.
+    local_min_neighbors: int = 4,
     ylds_src: str = "GAEZ"
 ):
     # print("    Calculating stochastic residue array...")
@@ -2307,6 +2380,9 @@ def calculate_monthly_residues_array(
         spam_outlier_strategy=spam_outlier_strategy,
         spam_outlier_percentile=spam_outlier_percentile,
         spam_outlier_k=spam_outlier_k,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
     )
 
     # Step 4 - Create plant residue raster
@@ -2617,6 +2693,12 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
+    # Odd local neighborhood size (pixels) for local_zscore strategy.
+    local_window: int = 3,
+    # Local z-score multiplier: clip outside mean ± local_k * std.
+    local_k: float = 2.5,
+    # Minimum valid neighbors needed to apply local clipping at a pixel.
+    local_min_neighbors: int = 4,
     enable_fao_fill: bool = True,
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
@@ -2642,6 +2724,9 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         spam_outlier_strategy=spam_outlier_strategy,
         spam_outlier_percentile=spam_outlier_percentile,
         spam_outlier_k=spam_outlier_k,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
         enable_fao_fill=enable_fao_fill,
         enable_ecoregion_fill=enable_ecoregion_fill,
         enable_nearest_fill=enable_nearest_fill,
@@ -2676,6 +2761,12 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
+    # Odd local neighborhood size (pixels) for local_zscore strategy.
+    local_window: int = 3,
+    # Local z-score multiplier: clip outside mean ± local_k * std.
+    local_k: float = 2.5,
+    # Minimum valid neighbors needed to apply local clipping at a pixel.
+    local_min_neighbors: int = 4,
     ylds_src: str = "GAEZ",
     enable_fao_fill: bool = True,
     enable_ecoregion_fill: bool = True,
@@ -2704,6 +2795,9 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         spam_outlier_strategy=spam_outlier_strategy,
         spam_outlier_percentile=spam_outlier_percentile,
         spam_outlier_k=spam_outlier_k,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
         ylds_src=ylds_src,
         enable_fao_fill=enable_fao_fill,
         enable_ecoregion_fill=enable_ecoregion_fill,

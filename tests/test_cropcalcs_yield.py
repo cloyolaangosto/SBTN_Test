@@ -170,3 +170,79 @@ def test_fill_with_ecoregions_prioritizes_ecoregion_then_biome_before_global(mon
 
     np.testing.assert_allclose(filled[0, 1], 2.5, rtol=1e-6, atol=1e-6)
     np.testing.assert_allclose(filled[0, 2], 7.0, rtol=1e-6, atol=1e-6)
+
+
+
+def test_pre_filter_local_zscore_removes_isolated_spike():
+    arr = np.ones((9, 9), dtype="float32")
+    arr[4, 4] = 100.0
+    arr[0, 0] = np.nan
+
+    zone_array = np.ones((9, 9), dtype=int)
+    zone_array[0, 8] = 0
+
+    fao_gdf = gpd.GeoDataFrame({"zone_id": [1], "avg_yield": [10.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        spam_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        spam_outlier_strategy="local_zscore",
+        spam_outlier_percentile=(1.0, 99.0),
+        spam_outlier_k=1000.0,
+        local_window=5,
+        local_k=1.0,
+        local_min_neighbors=8,
+    )
+
+    assert np.isnan(filtered[0, 0])
+    assert np.isnan(filtered[0, 8])
+    assert filtered[4, 4] < 30.0
+
+
+def test_pre_filter_local_zscore_preserves_local_gradient():
+    arr = np.tile(np.linspace(1, 20, 21, dtype="float32"), (21, 1))
+    zone_array = np.ones_like(arr, dtype=int)
+    fao_gdf = gpd.GeoDataFrame({"zone_id": [1], "avg_yield": [10.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        spam_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        spam_outlier_strategy="local_zscore",
+        spam_outlier_percentile=(1.0, 99.0),
+        spam_outlier_k=1000.0,
+        local_window=3,
+        local_k=3.0,
+        local_min_neighbors=3,
+    )
+
+    np.testing.assert_allclose(filtered, arr, rtol=1e-6, atol=1e-6)
+
+
+def test_pre_filter_local_zscore_runtime_sanity():
+    rng = np.random.default_rng(42)
+    arr = rng.normal(10.0, 2.0, size=(512, 512)).astype("float32")
+    arr[rng.random(arr.shape) < 0.1] = np.nan
+    zone_array = np.ones(arr.shape, dtype=int)
+    fao_gdf = gpd.GeoDataFrame({"zone_id": [1], "avg_yield": [10.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
+
+    import time
+    t0 = time.perf_counter()
+    cropcalcs._pre_filter_yields_rasters(
+        spam_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        spam_outlier_strategy="local_zscore",
+        spam_outlier_percentile=(1.0, 99.0),
+        spam_outlier_k=1000.0,
+        local_window=5,
+        local_k=2.5,
+        local_min_neighbors=8,
+    )
+    elapsed = time.perf_counter() - t0
+
+    assert elapsed < 5.0
