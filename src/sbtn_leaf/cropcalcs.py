@@ -558,7 +558,7 @@ def _compose_yield_result(
         if np.nanmean(all_fp_on_lu[mask_need_avg]) > 0:
             before_missing = np.isnan(result)
             mask_need_avg_haswater = mask_need_avg & ~np.isnan(watering_ratios)
-            result[mask_need_avg_haswater] = all_fp_on_lu[mask_need_avg_haswater] * watering_ratios
+            result[mask_need_avg_haswater] = all_fp_on_lu[mask_need_avg_haswater] * watering_ratios[mask_need_avg_haswater]
 
             mask_need_needwater = zid_mask & np.isnan(result)
             result[mask_need_needwater] = all_fp_on_lu[mask_need_needwater] * avg_wat_ratio
