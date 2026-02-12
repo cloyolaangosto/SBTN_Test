@@ -562,7 +562,7 @@ def _compose_yield_result(
     result_min = np.nanmin(result)
     
     if print_outputs:
-        print(f"Current mean and median yields are {result_mean} and {result_median}. Max is {result_max} and min is {result_min}")
+        print(f"Current mean and median yields are {result_mean:.2f} and {result_median:.2f}. Max is {result_max:.2f} and min is {result_min:.2f}")
 
     return result
 
