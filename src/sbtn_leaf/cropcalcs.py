@@ -104,7 +104,7 @@ class CropYieldRasterResult:
 @dataclass(frozen=True)
 class IrrigationScalingResult:
     """Result object for irrigation scaling."""
-
+    watering_ratios: np.ndarray
     fao_avg_yields_array: np.ndarray
     avg_wat_ratio: float
     scaling_mode: Optional[str]
@@ -473,7 +473,7 @@ def _apply_irrigation_scaling_toFAO_yields(
     if any(path is None for path in (spam_all, spam_irr, spam_rf)):
         raise ValueError("Need all_fp, irr_fp and rf_fp for irrigation scaling")
 
-    irr_ratios, rf_ratios = _calculate_SPAM_yield_modifiers(
+    irr_ratios, rf_ratios = _calculate_watering_yield_modifiers(
         all_yields=spam_all,
         irr_yields=spam_irr,
         rf_yields=spam_rf,
@@ -504,6 +504,7 @@ def _apply_irrigation_scaling_toFAO_yields(
     global_fao_yield = np.nanmean(fao_scaled)
 
     return IrrigationScalingResult(
+        watering_ratios=watering_ratio,
         fao_avg_yields_array=fao_scaled,
         avg_wat_ratio=avg_wat_ratio,
         scaling_mode=scaling_mode,
@@ -520,6 +521,7 @@ def _compose_yield_result(
     valid_fao: np.ndarray,
     global_fao_ratio: float,
     fao_yield_ratio_name: str,
+    watering_ratios: np.ndarray,
     avg_wat_ratio: float,
     *,
     all_fp_on_lu: np.ndarray,
@@ -555,7 +557,12 @@ def _compose_yield_result(
         mask_need_avg = zid_mask & np.isnan(result)
         if np.nanmean(all_fp_on_lu[mask_need_avg]) > 0:
             before_missing = np.isnan(result)
-            result[mask_need_avg] = all_fp_on_lu[mask_need_avg] * avg_wat_ratio
+            mask_need_avg_haswater = mask_need_avg & ~np.isnan(watering_ratios)
+            result[mask_need_avg_haswater] = all_fp_on_lu[mask_need_avg_haswater] * watering_ratios
+
+            mask_need_needwater = zid_mask & np.isnan(result)
+            result[mask_need_needwater] = all_fp_on_lu[mask_need_needwater] * avg_wat_ratio
+            
             filled_now = mask_need_avg & before_missing & ~np.isnan(result)
             masks["from_all_scaled"][filled_now] = True
 
@@ -563,7 +570,9 @@ def _compose_yield_result(
         mask_need_FAOavg = zid_mask & np.isnan(result)
         if enable_fao_fill and np.nanmean(fao_avg_yields_array[mask_need_FAOavg]) > 0:
             before_missing = np.isnan(result)
+            
             result[mask_need_FAOavg] = fao_avg_yields_array[mask_need_FAOavg]
+            
             filled_now = mask_need_FAOavg & before_missing & ~np.isnan(result)
             masks["from_fao_avg"][filled_now] = True
 
@@ -577,6 +586,7 @@ def _compose_yield_result(
                 print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
             before_missing = np.isnan(result)
             result[mask_missing] = all_fp_on_lu[mask_missing] * global_fao_ratio
+            
             filled_now = mask_missing & before_missing & ~np.isnan(result)
             masks["from_all_scaled"][filled_now] = True
 
@@ -892,6 +902,7 @@ def _create_crop_yield_raster_core(
 
     valid_fao = ~np.isnan(fao_avg_yields_array)
     irrigation_scaling = IrrigationScalingResult(
+        watering_ratios=np.full_like(fao_avg_yields_array, np.nan, dtype="float32"),
         fao_avg_yields_array=fao_avg_yields_array,
         avg_wat_ratio=np.nan,
         scaling_mode=None,
@@ -925,14 +936,15 @@ def _create_crop_yield_raster_core(
 
     # Prepare results
     result, provenance_masks = _compose_yield_result(
-        spam_on_lu_filt,
-        fao_gdf,
-        zone_array,
-        irrigation_scaling.fao_avg_yields_array,
-        lu_mask,
-        valid_fao,
-        global_fao_ratio,
-        config.fao_yield_ratio_name,
+        spam_on_lu = spam_on_lu_filt,
+        fao_gdf = fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yields_array= irrigation_scaling.fao_avg_yields_array,
+        lu_mask=lu_mask,
+        valid_fao=valid_fao,
+        global_fao_ratio=global_fao_ratio,
+        fao_yield_ratio_name= config.fao_yield_ratio_name,
+        watering_ratios = irrigation_scaling.watering_ratios,
         all_fp_on_lu=spam_all_filt,
         avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
         scaling_mode=irrigation_scaling.scaling_mode,
@@ -1122,7 +1134,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     )
 
 
-def _calculate_SPAM_yield_modifiers(
+def _calculate_watering_yield_modifiers(
     all_yields: np.ndarray,
     irr_yields: np.ndarray,
     rf_yields: np.ndarray,
