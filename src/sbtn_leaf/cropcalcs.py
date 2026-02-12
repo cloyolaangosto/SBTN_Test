@@ -624,6 +624,7 @@ def _pre_filter_yields_rasters(
     fao_gdf: gpd.GeoDataFrame,
     zone_array: np.ndarray,
     fao_avg_yield_name: str,
+    zone_bounds: Optional[Dict[int, Tuple[int, int, int, int]]] = None,
     *,
     filter_outlier_strategy: str,
     percentile_bounds: Tuple[float, float] = (1.0, 99.0),
@@ -642,14 +643,8 @@ def _pre_filter_yields_rasters(
     out_arrays = [a.astype("float32", copy=True) for a in yield_arrays]
 
     # Precompute zone bounds once to avoid repeated full-grid masking per zone.
-    zone_bounds: Dict[int, Tuple[int, int, int, int]] = {}
-    for zid in fao_gdf["zone_id"].astype(int).unique():
-        coords = np.argwhere(zone_array == zid)
-        if coords.size == 0:
-            continue
-        r0, c0 = coords.min(axis=0)
-        r1, c1 = coords.max(axis=0) + 1
-        zone_bounds[zid] = (r0, r1, c0, c1)
+    if zone_bounds is None:
+        zone_bounds = _compute_zone_bounds_from_zone_array(zone_array)
 
     # Goes through each FAO Zone (Country)
     for _, row in fao_gdf.iterrows():
@@ -743,6 +738,43 @@ def _pre_filter_yields_rasters(
             )
 
     return out_arrays
+
+
+def _compute_zone_bounds_from_zone_array(
+    zone_array: np.ndarray,
+) -> Dict[int, Tuple[int, int, int, int]]:
+    """Compute per-zone bounding boxes from a rasterized FAO zone array.
+
+    Returns a mapping ``zone_id -> (row_start, row_end, col_start, col_end)``
+    where upper bounds are exclusive.
+    """
+
+    rows, cols = np.indices(zone_array.shape)
+    z = zone_array.ravel()
+
+    valid = z >= 0
+    if not np.any(valid):
+        return {}
+
+    z_valid = z[valid].astype(np.int64, copy=False)
+    row_valid = rows.ravel()[valid]
+    col_valid = cols.ravel()[valid]
+
+    order = np.argsort(z_valid, kind="mergesort")
+    z_sorted = z_valid[order]
+    row_sorted = row_valid[order]
+    col_sorted = col_valid[order]
+
+    unique_zones, starts = np.unique(z_sorted, return_index=True)
+    min_rows = np.minimum.reduceat(row_sorted, starts)
+    max_rows = np.maximum.reduceat(row_sorted, starts) + 1
+    min_cols = np.minimum.reduceat(col_sorted, starts)
+    max_cols = np.maximum.reduceat(col_sorted, starts) + 1
+
+    return {
+        int(zid): (int(r0), int(r1), int(c0), int(c1))
+        for zid, r0, r1, c0, c1 in zip(unique_zones, min_rows, max_rows, min_cols, max_cols)
+    }
 
 
 def _compute_zone_bounds(
@@ -921,11 +953,13 @@ def _create_crop_yield_raster_core(
 
     #  Pre process SPAM yields
     spam_arrays = (spam_on_lu, spam_all, spam_irr, spam_rf)
-   
+    zone_bounds = _compute_zone_bounds_from_zone_array(zone_array)
+
     (spam_on_lu_filt, spam_all_filt, spam_irr_filt, spam_rf_filt) = _pre_filter_yields_rasters(
         yield_arrays=spam_arrays,
         fao_gdf=fao_gdf,
         zone_array=zone_array,
+        zone_bounds=zone_bounds,
         fao_avg_yield_name=config.fao_avg_yield_name,
         filter_outlier_strategy=config.spam_outlier_strategy,
         percentile_bounds=config.spam_outlier_percentile,
