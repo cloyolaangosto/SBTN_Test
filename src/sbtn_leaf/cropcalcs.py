@@ -537,7 +537,7 @@ def _compose_yield_result(
         # Then if there are still empty cells, fills with FAOSTAT average * avg_wat_ratio
         mask_need_FAOavg = zid_mask & np.isnan(result)
         if np.nanmean(fao_avg_yields_array[mask_need_FAOavg]) > 0:
-            result[mask_need_FAOavg] = fao_avg_yields_array[mask_need_FAOavg] * avg_wat_ratio
+            result[mask_need_FAOavg] = fao_avg_yields_array[mask_need_FAOavg]
 
     # Fill results where there are still missing pixels
     if all_fp_on_lu is not None and scaling_mode is not None:
