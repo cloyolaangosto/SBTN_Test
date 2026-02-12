@@ -72,7 +72,7 @@ class CropYieldRasterConfig:
     spam_outlier_strategy: str = "spam_sd"
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0)
     spam_outlier_k: float = 2.0
-    ylds_src = "GAEZ"
+    ylds_src: str = "GAEZ"
 
 
 @dataclass(frozen=True)
