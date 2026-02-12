@@ -664,8 +664,8 @@ def _pre_filter_yields_rasters(
         # For each array:
         for i, array in enumerate(spam_arrays):
             array_sub = array[r0:r1, c0:c1]
-            valid_zone = zid_mask & np.isfinite(array_sub)
-            yld_vals = array_sub[valid_zone]
+            valid_sub = zid_mask & np.isfinite(array_sub)
+            yld_vals = array_sub[valid_sub]
 
             # Check if there are any values
             if yld_vals.size == 0:
@@ -696,7 +696,7 @@ def _pre_filter_yields_rasters(
                     k_local = spam_local_k_rf
 
                 ratio_sub = np.full_like(array_sub, np.nan, dtype="float32")
-                ratio_sub[valid_zone] = array_sub[valid_zone] / fao_yield_zone_avg
+                ratio_sub[valid_sub] = array_sub[valid_sub] / fao_yield_zone_avg
 
                 def _nanmedian_with_min(values: np.ndarray) -> float:
                     finite = np.isfinite(values)
@@ -721,8 +721,8 @@ def _pre_filter_yields_rasters(
                 )
 
                 clipped_vals = yld_vals.copy()
-                local_median_zone = local_median[valid_zone]
-                local_mad_zone = local_mad[valid_zone]
+                local_median_zone = local_median[valid_sub]
+                local_mad_zone = local_mad[valid_sub]
                 finite_local = np.isfinite(local_median_zone) & np.isfinite(local_mad_zone)
 
                 if np.any(finite_local):
@@ -735,15 +735,15 @@ def _pre_filter_yields_rasters(
                         max_ratio * fao_yield_zone_avg,
                     )
 
-                target_mask = zid_mask & np.isfinite(array_sub)
-                out_arrays[i][r0:r1, c0:c1][target_mask] = clipped_vals
+                out_sub = out_arrays[i][r0:r1, c0:c1]
+                out_sub[valid_sub] = clipped_vals
                 continue
             else:
                 raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
 
             # Fills the array and append results
             clipped = np.clip(array_sub, min_val, max_val)
-            out_arrays[i][r0:r1, c0:c1][valid_zone] = clipped[valid_zone]
+            out_arrays[i][r0:r1, c0:c1][valid_sub] = clipped[valid_sub]
 
     return out_arrays
 
