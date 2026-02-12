@@ -3,6 +3,7 @@ import geopandas as gpd
 from shapely.geometry import box
 from rasterio.transform import from_origin
 import rasterio
+import sbtn_leaf.cropcalcs as cropcalcs
 
 from sbtn_leaf.cropcalcs import (
     create_crop_yield_raster,
@@ -120,3 +121,52 @@ def test_create_crop_yield_raster_with_irrigation_scaling(tmp_path):
     # by the average irrigation ratio, not the FAO yield ratio.
     assert fallback_value != 20.0 * 0.5
     np.testing.assert_allclose(data[0, 1], fallback_value, rtol=1e-6, atol=1e-6)
+
+
+def test_fill_with_ecoregions_uses_global_yield_fallback_scale(monkeypatch):
+    result = np.array([[np.nan, np.nan]], dtype=float)
+    lu_mask = np.array([[True, True]])
+
+    def fake_ecoregion_stats(_result, _croplu):
+        zone_array = np.array([[-1, -1]], dtype=int)
+        return {}, {}, zone_array, {}
+
+    monkeypatch.setattr(cropcalcs, "calculate_average_yield_by_ecoregion_and_biome", fake_ecoregion_stats)
+
+    filled, _ = cropcalcs._fill_with_ecoregions(
+        result.copy(),
+        "dummy.tif",
+        lu_mask,
+        global_fao_yield_fallback=3.75,
+        enable_ecoregion_fill=True,
+        enable_nearest_fill=False,
+    )
+
+    np.testing.assert_allclose(filled[lu_mask], 3.75, rtol=1e-6, atol=1e-6)
+    assert not np.any(np.isclose(filled[lu_mask], 1.0))
+
+
+def test_fill_with_ecoregions_prioritizes_ecoregion_then_biome_before_global(monkeypatch):
+    result = np.array([[5.0, np.nan, np.nan]], dtype=float)
+    lu_mask = np.array([[True, True, True]])
+
+    def fake_ecoregion_stats(_result, _croplu):
+        ecoregion_avg = {0: 5.0}
+        biome_avg = {"BiomeB": 2.5}
+        zone_array = np.array([[0, 1, 2]], dtype=int)
+        biome_name_map = {1: "BiomeB"}
+        return ecoregion_avg, biome_avg, zone_array, biome_name_map
+
+    monkeypatch.setattr(cropcalcs, "calculate_average_yield_by_ecoregion_and_biome", fake_ecoregion_stats)
+
+    filled, _ = cropcalcs._fill_with_ecoregions(
+        result.copy(),
+        "dummy.tif",
+        lu_mask,
+        global_fao_yield_fallback=7.0,
+        enable_ecoregion_fill=True,
+        enable_nearest_fill=False,
+    )
+
+    np.testing.assert_allclose(filled[0, 1], 2.5, rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(filled[0, 2], 7.0, rtol=1e-6, atol=1e-6)
