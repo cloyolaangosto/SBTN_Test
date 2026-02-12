@@ -910,7 +910,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     fao_sd_yield_name: str = "sd_yield",
     apply_ecoregion_fill: bool = True,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (0.5, 0.95),
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2
 ) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
@@ -2425,7 +2425,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     random_runs: int = 1,
     print_outputs: bool = False,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
