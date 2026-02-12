@@ -686,6 +686,28 @@ def _summarize_provenance(
     if total_pixels == 0:
         return {}, {}
 
+    known_mask_order = (
+        "from_spam_direct",
+        "from_all_scaled",
+        "from_fao_avg",
+        "from_ecoregion_or_biome",
+        "from_nearest_fill",
+    )
+    overlap_hits = np.zeros(lu_mask.shape, dtype=np.uint8)
+    for name in known_mask_order:
+        mask = provenance_masks.get(name)
+        if mask is not None:
+            overlap_hits += (mask & lu_mask).astype(np.uint8)
+
+    overlap_pixels = int(np.count_nonzero(overlap_hits > 1))
+    overlap_percent = 100.0 * overlap_pixels / total_pixels
+    if overlap_pixels > 0:
+        logging.warning(
+            "Provenance overlap detected: %d pixels (%.2f%% of lu_mask) are assigned to multiple sources.",
+            overlap_pixels,
+            overlap_percent,
+        )
+
     counts: Dict[str, int] = {}
     percentages: Dict[str, float] = {}
     for name, mask in provenance_masks.items():
@@ -703,13 +725,12 @@ def _summarize_provenance(
 
     if print_outputs:
         print("Provenance source mix:")
-        for name in (
-            "from_spam_direct",
-            "from_all_scaled",
-            "from_fao_avg",
-            "from_ecoregion_or_biome",
-            "from_nearest_fill",
-        ):
+        if overlap_pixels > 0:
+            print(
+                f"  - overlap detected: {overlap_pixels} pixels "
+                f"({overlap_percent:.2f}% of lu_mask)"
+            )
+        for name in known_mask_order:
             if name in counts:
                 print(f"  - {name}: {counts[name]} pixels ({percentages[name]:.2f}%)")
 
