@@ -621,7 +621,7 @@ def _fill_with_ecoregions(
     result: np.ndarray,
     croplu_grid_raster: str,
     lu_mask: np.ndarray,
-    global_fao_ratio: float,
+    global_fao_yield_fallback: float,
     *,
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
@@ -656,13 +656,13 @@ def _fill_with_ecoregions(
                     for zid in unique_zones[missing]:
                         biome = biome_name_map.get(int(zid))
                         if isinstance(biome, str):
-                            zone_lookup[zid] = biome_avg.get(biome, global_fao_ratio)
+                            zone_lookup[zid] = biome_avg.get(biome, global_fao_yield_fallback)
                         else:
-                            zone_lookup[zid] = global_fao_ratio
-            zone_lookup = np.where(np.isnan(zone_lookup), global_fao_ratio, zone_lookup)
+                            zone_lookup[zid] = global_fao_yield_fallback
+            zone_lookup = np.where(np.isnan(zone_lookup), global_fao_yield_fallback, zone_lookup)
 
             remaining_zones = zone_array[remaining]
-            fill_vals = np.full(remaining_zones.shape, global_fao_ratio, dtype=float)
+            fill_vals = np.full(remaining_zones.shape, global_fao_yield_fallback, dtype=float)
             valid_zones = remaining_zones >= 0
             if np.any(valid_zones):
                 fill_vals[valid_zones] = zone_lookup[remaining_zones[valid_zones]]
@@ -672,7 +672,7 @@ def _fill_with_ecoregions(
             masks["from_ecoregion_or_biome"][filled_now] = True
         else:
             before_missing = np.isnan(result)
-            result[remaining] = global_fao_ratio
+            result[remaining] = global_fao_yield_fallback
             filled_now = remaining & before_missing & ~np.isnan(result)
             masks["from_ecoregion_or_biome"][filled_now] = True
 
@@ -965,7 +965,7 @@ def _create_crop_yield_raster_core(
             result,
             croplu_grid_raster,
             lu_mask,
-            global_fao_ratio,
+            global_fao_yield_fallback=irrigation_scaling.fao_global_yield,
             enable_ecoregion_fill=config.enable_ecoregion_fill,
             enable_nearest_fill=config.enable_nearest_fill,
             provenance_masks=provenance_masks,
