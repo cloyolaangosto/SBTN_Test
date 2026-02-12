@@ -508,7 +508,7 @@ def _compose_yield_result(
     fao_yield_ratio_name: str,
     avg_wat_ratio: float,
     *,
-    all_fp_on_lu: Optional[np.ndarray],
+    all_fp_on_lu: np.ndarray,
     scaling_mode: Optional[str],
     print_outputs: bool,
     ylds_src: str = "GAEZ"
@@ -529,9 +529,15 @@ def _compose_yield_result(
         valid_mask = zid_mask & ~np.isnan(spam_scaled)
         result[valid_mask] = spam_scaled[valid_mask]
 
-        # Checks where there are not results for spam values
+        # Checks where there are not results for raster values and fills them with all irrigation scenarios multiplied by watering ratio
         mask_need_avg = zid_mask & np.isnan(result)
-        result[mask_need_avg] = fao_avg_yields_array[mask_need_avg] * avg_wat_ratio
+        if np.nanmean(all_fp_on_lu[mask_need_avg]) > 0:
+            result[mask_need_avg] = all_fp_on_lu[mask_need_avg] * avg_wat_ratio
+
+        # Then if there are still empty cells, fills with FAOSTAT average * avg_wat_ratio
+        mask_need_FAOavg = zid_mask & np.isnan(result)
+        if np.nanmean(fao_avg_yields_array[mask_need_FAOavg]) > 0:
+            result[mask_need_FAOavg] = fao_avg_yields_array[mask_need_FAOavg] * avg_wat_ratio
 
     # Fill results where there are still missing pixels
     if all_fp_on_lu is not None and scaling_mode is not None:
