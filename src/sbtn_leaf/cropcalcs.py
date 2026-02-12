@@ -576,7 +576,14 @@ def _compose_yield_result(
             if print_outputs:
                 print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
             before_missing = np.isnan(result)
-            result[mask_missing] = all_fp_on_lu[mask_missing] * global_fao_ratio
+            if np.isfinite(avg_wat_ratio) and avg_wat_ratio > 0:
+                result[mask_missing] = all_fp_on_lu[mask_missing] * avg_wat_ratio
+            else:
+                fallback_values = fao_avg_yields_array[mask_missing]
+                if np.all(np.isnan(fallback_values)):
+                    result[mask_missing] = global_fao_yield
+                else:
+                    result[mask_missing] = fallback_values
             filled_now = mask_missing & before_missing & ~np.isnan(result)
             masks["from_all_scaled"][filled_now] = True
 
