@@ -635,6 +635,7 @@ def _pre_filter_yields_rasters(
 ):
     #  Initialize out
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
+    zone_mean = dict(zip(fao_gdf["zone_id"], fao_gdf[fao_avg_yield_name]))
 
     # Pre-compute per-zone bounding boxes so local filters only process relevant windows.
     zone_bboxes: dict[int, tuple[int, int, int, int]] = {}
@@ -658,7 +659,7 @@ def _pre_filter_yields_rasters(
         r0, r1, c0, c1 = zone_bboxes[zid]
         zone_sub = zone_array[r0:r1, c0:c1]
         zid_mask = zone_sub == zid                      #  Mask of the country
-        fao_yield_zone_avg = row[fao_avg_yield_name]    #  Country yield average (10-year)
+        fao_yield_zone_avg = zone_mean[zid]             #  Country yield average (10-year)
 
         # For each array:
         for i, array in enumerate(spam_arrays):
