@@ -554,14 +554,18 @@ def _compose_yield_result(
         # Checks where there are not results for raster values and fills them with all irrigation scenarios multiplied by watering ratio
         mask_need_avg = zid_mask & np.isnan(result)
         if np.nanmean(all_fp_on_lu[mask_need_avg]) > 0:
+            before_missing = np.isnan(result)
             result[mask_need_avg] = all_fp_on_lu[mask_need_avg] * avg_wat_ratio
-            masks["from_all_scaled"][mask_need_avg] = True
+            filled_now = mask_need_avg & before_missing & ~np.isnan(result)
+            masks["from_all_scaled"][filled_now] = True
 
         # Then if there are still empty cells, fills with FAOSTAT average * avg_wat_ratio
         mask_need_FAOavg = zid_mask & np.isnan(result)
         if enable_fao_fill and np.nanmean(fao_avg_yields_array[mask_need_FAOavg]) > 0:
+            before_missing = np.isnan(result)
             result[mask_need_FAOavg] = fao_avg_yields_array[mask_need_FAOavg]
-            masks["from_fao_avg"][mask_need_FAOavg] = True
+            filled_now = mask_need_FAOavg & before_missing & ~np.isnan(result)
+            masks["from_fao_avg"][filled_now] = True
 
     # Fill results where there are still missing pixels
     if all_fp_on_lu is not None and scaling_mode is not None:
@@ -571,16 +575,20 @@ def _compose_yield_result(
         if np.any(mask_missing):
             if print_outputs:
                 print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
+            before_missing = np.isnan(result)
             result[mask_missing] = all_fp_on_lu[mask_missing] * global_fao_ratio
-            masks["from_all_scaled"][mask_missing] = True
+            filled_now = mask_missing & before_missing & ~np.isnan(result)
+            masks["from_all_scaled"][filled_now] = True
 
     # If there are still missing pixels, fills them with global fao yields
     mask_fao = lu_mask & np.isnan(result) & valid_fao
     if enable_fao_fill and np.any(mask_fao):
         if print_outputs:
             print(f"Pixels still missing values... Applying FAO scaled yields")
+        before_missing = np.isnan(result)
         result[mask_fao] = fao_avg_yields_array[mask_fao]
-        masks["from_fao_avg"][mask_fao] = True
+        filled_now = mask_fao & before_missing & ~np.isnan(result)
+        masks["from_fao_avg"][filled_now] = True
 
     result_mean = np.nanmean(result)
     result_median = np.nanmedian(result)
@@ -642,11 +650,15 @@ def _fill_with_ecoregions(
             valid_zones = remaining_zones >= 0
             if np.any(valid_zones):
                 fill_vals[valid_zones] = zone_lookup[remaining_zones[valid_zones]]
+            before_missing = np.isnan(result)
             result[remaining] = fill_vals
-            masks["from_ecoregion_or_biome"][remaining] = True
+            filled_now = remaining & before_missing & ~np.isnan(result)
+            masks["from_ecoregion_or_biome"][filled_now] = True
         else:
+            before_missing = np.isnan(result)
             result[remaining] = global_fao_ratio
-            masks["from_ecoregion_or_biome"][remaining] = True
+            filled_now = remaining & before_missing & ~np.isnan(result)
+            masks["from_ecoregion_or_biome"][filled_now] = True
 
     remaining = lu_mask & np.isnan(result)
     if enable_nearest_fill and np.any(remaining):
@@ -655,8 +667,10 @@ def _fill_with_ecoregions(
             ~valid, return_distances=True, return_indices=True
         )
         filled = result[iy, ix]
+        before_missing = np.isnan(result)
         result[remaining] = filled[remaining]
-        masks["from_nearest_fill"][remaining] = True
+        filled_now = remaining & before_missing & ~np.isnan(result)
+        masks["from_nearest_fill"][filled_now] = True
 
     return result, masks
 
@@ -671,6 +685,28 @@ def _summarize_provenance(
     total_pixels = int(np.count_nonzero(lu_mask))
     if total_pixels == 0:
         return {}, {}
+
+    known_mask_order = (
+        "from_spam_direct",
+        "from_all_scaled",
+        "from_fao_avg",
+        "from_ecoregion_or_biome",
+        "from_nearest_fill",
+    )
+    overlap_hits = np.zeros(lu_mask.shape, dtype=np.uint8)
+    for name in known_mask_order:
+        mask = provenance_masks.get(name)
+        if mask is not None:
+            overlap_hits += (mask & lu_mask).astype(np.uint8)
+
+    overlap_pixels = int(np.count_nonzero(overlap_hits > 1))
+    overlap_percent = 100.0 * overlap_pixels / total_pixels
+    if overlap_pixels > 0:
+        logging.warning(
+            "Provenance overlap detected: %d pixels (%.2f%% of lu_mask) are assigned to multiple sources.",
+            overlap_pixels,
+            overlap_percent,
+        )
 
     counts: Dict[str, int] = {}
     percentages: Dict[str, float] = {}
@@ -689,13 +725,12 @@ def _summarize_provenance(
 
     if print_outputs:
         print("Provenance source mix:")
-        for name in (
-            "from_spam_direct",
-            "from_all_scaled",
-            "from_fao_avg",
-            "from_ecoregion_or_biome",
-            "from_nearest_fill",
-        ):
+        if overlap_pixels > 0:
+            print(
+                f"  - overlap detected: {overlap_pixels} pixels "
+                f"({overlap_percent:.2f}% of lu_mask)"
+            )
+        for name in known_mask_order:
             if name in counts:
                 print(f"  - {name}: {counts[name]} pixels ({percentages[name]:.2f}%)")
 
