@@ -4,6 +4,7 @@
 #### MODULES ####
 from pathlib import Path
 import logging
+from time import perf_counter
 from functools import lru_cache
 import hashlib
 from collections import defaultdict
@@ -635,21 +636,38 @@ def _pre_filter_yields_rasters(
     p2_window: int = 3,     # 3 pixels
     p2_stat: str = "median",
     p2_fallback: str = "clip",  # "clip" or "neighborhood_fill"
+    zone_timing_debug: bool = False,
 ):
-    #  Initialize out
-    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in yield_arrays]
+    # Initialize out by preserving original values; only zone-local valid pixels are updated.
+    out_arrays = [a.astype("float32", copy=True) for a in yield_arrays]
+
+    # Precompute zone bounds once to avoid repeated full-grid masking per zone.
+    zone_bounds: Dict[int, Tuple[int, int, int, int]] = {}
+    for zid in fao_gdf["zone_id"].astype(int).unique():
+        coords = np.argwhere(zone_array == zid)
+        if coords.size == 0:
+            continue
+        r0, c0 = coords.min(axis=0)
+        r1, c1 = coords.max(axis=0) + 1
+        zone_bounds[zid] = (r0, r1, c0, c1)
 
     # Goes through each FAO Zone (Country)
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])                       #  Gets the zone id
-        zid_mask = zone_array == zid                    #  Mask of the country
+        if zid not in zone_bounds:
+            continue
+        r0, r1, c0, c1 = zone_bounds[zid]
+        zone_local = zone_array[r0:r1, c0:c1]
+        zid_mask_local = zone_local == zid
         fao_zone_avg = row[fao_avg_yield_name]          #  Country yield average (10-year)
+        zone_start = perf_counter() if zone_timing_debug else None
 
         # For each array:
         for i, array in enumerate(yield_arrays):
-            # --- start zone subset ---
-            valid_zone = zid_mask & np.isfinite(array)
-            yld_vals = array[valid_zone]
+            # Work only on the local bounding-box subset for this zone.
+            local_array = array[r0:r1, c0:c1]
+            valid_zone_local = zid_mask_local & np.isfinite(local_array)
+            yld_vals = local_array[valid_zone_local]
 
             # Check if there are any values
             if yld_vals.size == 0:
@@ -666,24 +684,24 @@ def _pre_filter_yields_rasters(
             if not (np.isfinite(min1) and np.isfinite(max1)):
                 continue
 
-            out1 = array.astype("float32", copy=True)
-            outlier1 = valid_zone & ((out1 < min1) | (out1 > max1))
+            out1 = local_array.astype("float32", copy=True)
+            outlier1 = valid_zone_local & ((out1 < min1) | (out1 > max1))
 
             if np.any(outlier1):
                 out1 = _replace_masked_with_neighborhood(
                     out1,
                     replace_mask=outlier1,
-                    valid_mask=valid_zone,
+                    valid_mask=valid_zone_local,
                     window=p1_window,
                     replace_with=p1_stat,
                 )
             # guarantee bounds after fill (prevents a few corner cases)
-            out1 = np.where(valid_zone, np.clip(out1, min1, max1), out1)
+            out1 = np.where(valid_zone_local, np.clip(out1, min1, max1), out1)
 
             # ========== PASS 2 (optional) ==========
             if p2_enable:
                 # recompute on pass1 output (still per-zone)
-                vals2 = out1[valid_zone]
+                vals2 = out1[valid_zone_local]
                 min2, max2 = _compute_zone_bounds(
                     vals2,
                     strategy=filter_outlier_strategy,
@@ -693,24 +711,36 @@ def _pre_filter_yields_rasters(
                 )
 
                 if np.isfinite(min2) and np.isfinite(max2):
-                    outlier2 = valid_zone & ((out1 < min2) | (out1 > max2))
+                    outlier2 = valid_zone_local & ((out1 < min2) | (out1 > max2))
                     if np.any(outlier2):
                         if p2_fallback == "neighborhood_fill":
                             out1 = _replace_masked_with_neighborhood(
                                 out1,
                                 replace_mask=outlier2,
-                                valid_mask=valid_zone,
+                                valid_mask=valid_zone_local,
                                 window=p2_window,
                                 replace_with=p2_stat,
                             )
-                            out1 = np.where(valid_zone, np.clip(out1, min2, max2), out1)
+                            out1 = np.where(valid_zone_local, np.clip(out1, min2, max2), out1)
                         elif p2_fallback == "clip":
                             out1 = np.where(outlier2, np.clip(out1, min2, max2), out1)
                         else:
                             raise ValueError("p2_fallback must be 'clip' or 'neighborhood_fill'")
 
             # write only inside valid_zone for this FAO zone
-            out_arrays[i][valid_zone] = out1[valid_zone]
+            out_local = out_arrays[i][r0:r1, c0:c1]
+            out_local[valid_zone_local] = out1[valid_zone_local]
+
+        if zone_timing_debug and zone_start is not None:
+            logging.debug(
+                "_pre_filter_yields_rasters zone_id=%s bbox=(%s:%s,%s:%s) elapsed=%.4fs",
+                zid,
+                r0,
+                r1,
+                c0,
+                c1,
+                perf_counter() - zone_start,
+            )
 
     return out_arrays
 
