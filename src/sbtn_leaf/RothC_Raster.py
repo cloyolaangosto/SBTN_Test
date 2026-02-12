@@ -1084,7 +1084,7 @@ def run_RothC_crops(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
     spam_outlier_k: float = 2.0,
-    ylds_src: str = GAEZ,
+    ylds_src: str = "GAEZ",
 ):
     def _crop_loader(
         *,
