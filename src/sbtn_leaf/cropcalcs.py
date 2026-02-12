@@ -586,6 +586,7 @@ def _fill_with_ecoregions(
 
     remaining = lu_mask & np.isnan(result)
     if np.any(remaining):
+        print("Applying ecoregion fill")
         zone_max = int(zone_array.max())
         if zone_max >= 0:
             zone_lookup = np.full(zone_max + 1, np.nan, dtype=float)
