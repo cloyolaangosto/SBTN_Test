@@ -100,6 +100,7 @@ class IrrigationScalingResult:
     fao_avg_yields_array: np.ndarray
     avg_wat_ratio: float
     scaling_mode: Optional[str]
+    fao_global_yield: float
 
 
 ##### DATA ####
@@ -458,6 +459,7 @@ def _apply_irrigation_scaling_toFAO_yields(
     print_outputs: bool,
 ) -> IrrigationScalingResult:
     scaling_mode = irr_yield_scaling.lower()
+    
     if scaling_mode not in {"irr", "rf"}:
         raise ValueError("irr_yield_scaling must be either 'irr' or 'rf'")
     if any(path is None for path in (spam_all, spam_irr, spam_rf)):
@@ -490,10 +492,14 @@ def _apply_irrigation_scaling_toFAO_yields(
         fao_scaled,
     )
 
+    # Calculate global fao yields
+    global_fao_yield = np.nanmean(fao_scaled)
+
     return IrrigationScalingResult(
         fao_avg_yields_array=fao_scaled,
         avg_wat_ratio=avg_wat_ratio,
         scaling_mode=scaling_mode,
+        fao_global_yield=global_fao_yield
     )
 
 
@@ -511,6 +517,7 @@ def _compose_yield_result(
     all_fp_on_lu: np.ndarray,
     scaling_mode: Optional[str],
     print_outputs: bool,
+    global_fao_yield: float,
     ylds_src: str = "GAEZ"
 ) -> np.ndarray:
     """Compose the yield raster while clipping SPAM outliers per FAO zone."""
@@ -547,9 +554,9 @@ def _compose_yield_result(
         if np.any(mask_missing):
             if print_outputs:
                 print(f"Pixels still missing values...  → Applying {label} scaling to all‐SPAM yields…")
-            result[mask_missing] = spam_on_lu[mask_missing] * global_fao_ratio
+            result[mask_missing] = all_fp_on_lu[mask_missing] * global_fao_ratio
 
-    # If there are still missing pixels, fills them with fao yields
+    # If there are still missing pixels, fills them with global fao yields
     mask_fao = lu_mask & np.isnan(result) & valid_fao
     if np.any(mask_fao):
         if print_outputs:
@@ -765,6 +772,7 @@ def _create_crop_yield_raster_core(
         fao_avg_yields_array=fao_avg_yields_array,
         avg_wat_ratio=np.nan,
         scaling_mode=None,
+        fao_global_yield=np.nan
     )
 
     #  Pre process SPAM yields
@@ -806,7 +814,8 @@ def _create_crop_yield_raster_core(
         avg_wat_ratio=irrigation_scaling.avg_wat_ratio,
         scaling_mode=irrigation_scaling.scaling_mode,
         print_outputs=config.print_outputs,
-        ylds_src = config.ylds_src
+        ylds_src = config.ylds_src,
+        global_fao_yield = irrigation_scaling.fao_global_yield
     )
 
     if config.apply_ecoregion_fill:
