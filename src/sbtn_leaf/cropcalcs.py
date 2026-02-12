@@ -8,9 +8,6 @@ from functools import lru_cache
 import hashlib
 from collections import defaultdict
 import numpy as np
-import polars as pl
-import rasterio
-import numpy as np
 import pandas as pd
 import polars as pl
 import xarray as xr
@@ -23,6 +20,7 @@ from rasterio.crs import CRS
 from rasterio.features import rasterize
 from rasterio.warp import reproject
 import rioxarray as rxr
+from scipy import ndimage
 
 from sbtn_leaf.PET import calculate_crop_based_PET_raster_vPipeline
 from sbtn_leaf.data_loader import (
@@ -72,7 +70,14 @@ class CropYieldRasterConfig:
     spam_outlier_strategy: str = "spam_sd"
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0)
     spam_outlier_k: float = 2.0
-    ylds_src = "GAEZ"
+    ylds_src: str = "GAEZ"
+    p1_window: int = 5     # 5 pixels
+    p1_stat: str = "median"
+    # pass 2
+    p2_enable: bool = True
+    p2_window: int = 3     # 3 pixels
+    p2_stat: str = "median"
+    p2_fallback: str = "clip"  # "clip" or "neighborhood_fill"
 
 
 @dataclass(frozen=True)
@@ -614,56 +619,179 @@ def _fill_with_ecoregions(
     return result
 
 def _pre_filter_yields_rasters(
-    spam_arrays: tuple[np.ndarray, ...],
+    yield_arrays: tuple[np.ndarray, ...],
     fao_gdf: gpd.GeoDataFrame,
     zone_array: np.ndarray,
     fao_avg_yield_name: str,
     *,
-    spam_outlier_strategy: str,
-    spam_outlier_percentile: Tuple[float, float],
-    spam_outlier_k: float,
+    filter_outlier_strategy: str,
+    percentile_bounds: Tuple[float, float] = (1.0, 99.0),
+    k_sd: float,
+    # pass 1
+    p1_window: int = 5,     # 5 pixels
+    p1_stat: str = "median",
+    # pass 2
+    p2_enable: bool = True,
+    p2_window: int = 3,     # 3 pixels
+    p2_stat: str = "median",
+    p2_fallback: str = "clip",  # "clip" or "neighborhood_fill"
 ):
     #  Initialize out
-    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
+    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in yield_arrays]
 
     # Goes through each FAO Zone (Country)
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])                       #  Gets the zone id
         zid_mask = zone_array == zid                    #  Mask of the country
-        fao_yield_zone_avg = row[fao_avg_yield_name]    #  Country yield average (10-year)
+        fao_zone_avg = row[fao_avg_yield_name]          #  Country yield average (10-year)
 
         # For each array:
-        for i, array in enumerate(spam_arrays):
-            valid_zone = zid_mask & ~np.isnan(array)
+        for i, array in enumerate(yield_arrays):
+            # --- start zone subset ---
+            valid_zone = zid_mask & np.isfinite(array)
             yld_vals = array[valid_zone]
 
             # Check if there are any values
             if yld_vals.size == 0:
                 continue
 
-            # If not, continue filtering
-            if spam_outlier_strategy == "ratio_percentile":
-                if not np.isfinite(fao_yield_zone_avg) or fao_yield_zone_avg <= 0:
-                    continue
-                ratios = yld_vals / fao_yield_zone_avg
-                low, high = np.nanpercentile(ratios, [spam_outlier_percentile[0], spam_outlier_percentile[1]])
-                min_val = low * fao_yield_zone_avg
-                max_val = high * fao_yield_zone_avg
-            elif spam_outlier_strategy == "spam_sd":
-                spam_avg = np.nanmean(yld_vals)
-                spam_sd  = np.nanstd(yld_vals)
+            # ========== PASS 1 ==========
+            min1, max1 = _compute_zone_bounds(
+                yld_vals,
+                strategy=filter_outlier_strategy,
+                fao_zone_avg=fao_zone_avg,
+                pct=percentile_bounds,
+                k_sd=k_sd,
+            )
+            if not (np.isfinite(min1) and np.isfinite(max1)):
+                continue
 
-                min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
-                max_val = spam_avg + spam_outlier_k * spam_sd
-            else:
-                raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
+            out1 = array.astype("float32", copy=True)
+            outlier1 = valid_zone & ((out1 < min1) | (out1 > max1))
 
-            # Fills the array and append results
-            clipped = np.clip(array, min_val, max_val)
-            out_arrays[i][valid_zone] = clipped[valid_zone]
+            if np.any(outlier1):
+                out1 = _replace_masked_with_neighborhood(
+                    out1,
+                    replace_mask=outlier1,
+                    valid_mask=valid_zone,
+                    window=p1_window,
+                    replace_with=p1_stat,
+                )
+            # guarantee bounds after fill (prevents a few corner cases)
+            out1 = np.where(valid_zone, np.clip(out1, min1, max1), out1)
+
+            # ========== PASS 2 (optional) ==========
+            if p2_enable:
+                # recompute on pass1 output (still per-zone)
+                vals2 = out1[valid_zone]
+                min2, max2 = _compute_zone_bounds(
+                    vals2,
+                    strategy=filter_outlier_strategy,
+                    fao_zone_avg=fao_zone_avg,
+                    pct=percentile_bounds,
+                    k_sd=k_sd,
+                )
+
+                if np.isfinite(min2) and np.isfinite(max2):
+                    outlier2 = valid_zone & ((out1 < min2) | (out1 > max2))
+                    if np.any(outlier2):
+                        if p2_fallback == "neighborhood_fill":
+                            out1 = _replace_masked_with_neighborhood(
+                                out1,
+                                replace_mask=outlier2,
+                                valid_mask=valid_zone,
+                                window=p2_window,
+                                replace_with=p2_stat,
+                            )
+                            out1 = np.where(valid_zone, np.clip(out1, min2, max2), out1)
+                        elif p2_fallback == "clip":
+                            out1 = np.where(outlier2, np.clip(out1, min2, max2), out1)
+                        else:
+                            raise ValueError("p2_fallback must be 'clip' or 'neighborhood_fill'")
+
+            # write only inside valid_zone for this FAO zone
+            out_arrays[i][valid_zone] = out1[valid_zone]
 
     return out_arrays
 
+
+def _compute_zone_bounds(
+    yld_vals: np.ndarray,
+    *,
+    strategy: str,
+    fao_zone_avg: float,
+    pct: tuple[float, float],
+    k_sd: float,
+) -> tuple[float, float]:
+    if strategy == "ratio_percentile":
+        if not np.isfinite(fao_zone_avg) or fao_zone_avg <= 0:
+            return (np.nan, np.nan)
+        ratios = yld_vals / fao_zone_avg
+        lo_r, hi_r = np.nanpercentile(ratios, [pct[0], pct[1]])
+        return (lo_r * fao_zone_avg, hi_r * fao_zone_avg)
+
+    if strategy == "spam_sd":
+        mu = np.nanmean(yld_vals)
+        sd = np.nanstd(yld_vals)
+        return (max(0, mu - k_sd * sd), (mu + k_sd * sd))
+
+    raise ValueError(f"Unknown strategy: {strategy}")
+
+
+def _fill_remaining_with_nearest_in_zone(arr, replace_mask, valid_mask):
+    """Fill replace_mask pixels using nearest valid pixel *within valid_mask*."""
+    out = arr.astype("float32", copy=True)
+
+    # valid donors are pixels that are valid_mask and NOT being replaced and finite
+    donors = valid_mask & ~replace_mask & np.isfinite(out)
+
+    if not np.any(donors):
+        return out  # nothing we can do
+
+    # distance transform: for pixels where donors==False, returns indices of nearest True in donors
+    dist, (iy, ix) = ndimage.distance_transform_edt(~donors, return_indices=True)
+
+    # fill only where requested and donor exists
+    out[replace_mask] = out[iy[replace_mask], ix[replace_mask]]
+    return out
+
+def _replace_masked_with_neighborhood(
+    arr: np.ndarray,
+    replace_mask: np.ndarray,
+    valid_mask: np.ndarray,
+    *,
+    window: int = 5,
+    replace_with: str = "median",
+    mode: str = "nearest",
+    fallback_nearest: bool = True,
+) -> np.ndarray:
+    if window < 3 or window % 2 == 0:
+        raise ValueError("window must be odd and >= 3")
+
+    work = arr.astype("float32", copy=True)
+    work[~valid_mask] = np.nan
+    work[replace_mask] = np.nan
+
+    footprint = np.ones((window, window), dtype=bool)
+
+    if replace_with == "median":
+        neigh = ndimage.generic_filter(work, np.nanmedian, footprint=footprint, mode=mode)
+    elif replace_with == "mean":
+        neigh = ndimage.generic_filter(work, np.nanmean, footprint=footprint, mode=mode)
+    else:
+        raise ValueError("replace_with must be 'median' or 'mean'")
+
+    out = arr.astype("float32", copy=True)
+
+    can_replace = replace_mask & np.isfinite(neigh)
+    out[can_replace] = neigh[can_replace]
+
+    # fallback: if neighborhood stat couldn't find any donors (NaN), use nearest in-country donor
+    remaining = replace_mask & ~np.isfinite(neigh)
+    if fallback_nearest and np.any(remaining):
+        out = _fill_remaining_with_nearest_in_zone(out, remaining, valid_mask)
+
+    return out
 
 def _create_crop_yield_raster_core(
     croplu_grid_raster: str,
@@ -765,13 +893,21 @@ def _create_crop_yield_raster_core(
     spam_arrays = (spam_on_lu, spam_all, spam_irr, spam_rf)
    
     (spam_on_lu_filt, spam_all_filt, spam_irr_filt, spam_rf_filt) = _pre_filter_yields_rasters(
-        spam_arrays=spam_arrays,
+        yield_arrays=spam_arrays,
         fao_gdf=fao_gdf,
         zone_array=zone_array,
         fao_avg_yield_name=config.fao_avg_yield_name,
-        spam_outlier_strategy=config.spam_outlier_strategy,
-        spam_outlier_percentile=config.spam_outlier_percentile,
-        spam_outlier_k=config.spam_outlier_k,
+        filter_outlier_strategy=config.spam_outlier_strategy,
+        percentile_bounds=config.spam_outlier_percentile,
+        k_sd=config.spam_outlier_k,
+        # pass 1
+        p1_window = config.p1_window,     # 5 pixels
+        p1_stat = config.p1_stat,
+        # pass 2
+        p2_enable = config.p2_enable,
+        p2_window = config.p2_window,
+        p2_stat= config.p2_stat,
+        p2_fallback= config.p2_fallback,  # "clip" or "neighborhood_fill"
     )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
@@ -911,7 +1047,14 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     apply_ecoregion_fill: bool = True,
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (0.5, 0.95),
-    spam_outlier_k: float = 2
+    spam_outlier_k: float = 2,
+    p1_window: int = 5,     # 5 pixels
+    p1_stat: str = "median",
+    # pass 2
+    p2_enable: bool = True,
+    p2_window: int = 3,     # 3 pixels
+    p2_stat: str = "median",
+    p2_fallback: str = "clip"  # "clip" or "neighborhood_fill"
 ) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
 
@@ -939,7 +1082,14 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         print_outputs=True,
         spam_outlier_strategy = spam_outlier_strategy,
         spam_outlier_percentile = spam_outlier_percentile,
-        spam_outlier_k = spam_outlier_k
+        spam_outlier_k = spam_outlier_k,
+        p1_window =p1_window,
+        p1_stat = p1_stat,
+        # pass 2
+        p2_enable = p2_enable,
+        p2_window = p2_window,
+        p2_stat = p2_stat,
+        p2_fallback = p2_fallback,
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
@@ -2424,9 +2574,17 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     apply_ecoregion_fill: bool = True,
     random_runs: int = 1,
     print_outputs: bool = False,
+    ylds_src = "GAEZ",
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
-    spam_outlier_k: float = 2.0
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
+    spam_outlier_k: float = 2.0,
+    p1_window: int = 5,     # 5 pixels
+    p1_stat: str = "median",
+    # pass 2
+    p2_enable: bool = True,
+    p2_window: int = 3,     # 3 pixels
+    p2_stat: str = "median",
+    p2_fallback: str = "clip"  # "clip" or "neighborhood_fill"
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2443,6 +2601,17 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         apply_ecoregion_fill=apply_ecoregion_fill,
         random_runs=random_runs,
         print_outputs=print_outputs,
+        ylds_src = ylds_src,
+        spam_outlier_strategy = spam_outlier_strategy,
+        spam_outlier_percentile = spam_outlier_percentile,
+        spam_outlier_k = spam_outlier_k,
+        p1_window =p1_window,
+        p1_stat = p1_stat,
+        # pass 2
+        p2_enable = p2_enable,
+        p2_window = p2_window,
+        p2_stat = p2_stat,
+        p2_fallback = p2_fallback,
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
@@ -2471,7 +2640,14 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     spam_outlier_strategy: str = "spam_sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
-    ylds_src: str = "GAEZ"
+    ylds_src: str = "GAEZ",
+    p1_window: int = 5,     # 5 pixels
+    p1_stat: str = "median",
+    # pass 2
+    p2_enable: bool = True,
+    p2_window: int = 3,     # 3 pixels
+    p2_stat: str = "median",
+    p2_fallback: str = "clip"  # "clip" or "neighborhood_fill"
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2493,7 +2669,14 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         spam_outlier_strategy = spam_outlier_strategy,
         spam_outlier_percentile = spam_outlier_percentile,
         spam_outlier_k = spam_outlier_k,
-        ylds_src = ylds_src
+        ylds_src = ylds_src,
+        p1_window =p1_window,
+        p1_stat = p1_stat,
+        # pass 2
+        p2_enable = p2_enable,
+        p2_window = p2_window,
+        p2_stat = p2_stat,
+        p2_fallback = p2_fallback,
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster= croplu_grid_raster_fp,
