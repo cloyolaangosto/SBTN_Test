@@ -140,7 +140,7 @@ from .cropcalcs import (
     apply_residues_to_raster_flexible,
     _binarize_raster_pipeline,
     _calculate_watering_yield_modifiers,
-    calculate_average_yield_by_ecoregion_and_biome,
+    _calculate_average_yield_by_ecoregion_and_biome,
     calculate_carbon_dung,
     calculate_crop_residues,
     calculate_irrigation_fromArray,

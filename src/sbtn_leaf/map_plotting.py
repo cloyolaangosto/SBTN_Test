@@ -912,8 +912,9 @@ def plot_raster_over_gdf(raster_path: str,
     plt.show()
 
 def plot_raster_over_gdf_showpolygonvalues(
-    raster_path: str,
     gdf: gpd.GeoDataFrame,
+    raster_path: str | None = None,
+    da: xr.DataArray | None = None,
     band: int = 1,
     title: str = "Raster over GeoDataFrame",
     cmap: str = "viridis",
@@ -943,22 +944,39 @@ def plot_raster_over_gdf_showpolygonvalues(
     (continuous or quantile bins), so colors mean the same across layers.
     """
     # Load raster & CRS
-    raster = rioxarray.open_rasterio(raster_path)
-    if raster.rio.crs is None:
-        raise ValueError("Raster must have a CRS.")
+    if raster_path is not None and da is None:
+        raster = rioxarray.open_rasterio(raster_path)
+        if raster.rio.crs is None:
+            raise ValueError("Raster must have a CRS.")
+    elif da is not None and raster_path is None:
+        raster = da
+    else:
+        raise ValueError('Please input either a raster path or xr.DataArray, not both')
     gdf_proj = gdf.to_crs(raster.rio.crs)
 
     # Clip and extract band
     clipped = raster.rio.clip(gdf_proj.geometry, drop=True)
-    try:
-        da = clipped.sel(band=band)
-    except ValueError:
-        da = clipped.isel(band=band - 1)
+
+    # Select band if present
+    if "band" in clipped.dims:
+        # Prefer label-based if band coord matches 1..N, else fallback to isel
+        if "band" in clipped.coords and band in set(clipped["band"].values.tolist()):
+            da = clipped.sel(band=band)
+        else:
+            da = clipped.isel(band=band - 1)
+    else:
+        da = clipped
 
     data = da.values
-    nodata_val = clipped.rio.nodata
+
+    # Nodata handling (read from same array you're plotting)
+    nodata_val = da.rio.nodata
     if nodata_val is not None:
-        data = np.where(data == nodata_val, np.nan, data)
+        # If nodata itself is NaN, equality check won't work
+        if isinstance(nodata_val, float) and np.isnan(nodata_val):
+            data = np.where(np.isnan(data), np.nan, data)
+        else:
+            data = np.where(data == nodata_val, np.nan, data)
 
     # Base cmap with NaNs transparent
     base_cmap = cm.get_cmap(cmap).copy()
