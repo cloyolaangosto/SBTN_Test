@@ -567,7 +567,7 @@ def _compose_yield_result_2(
 
     results_final = np.where(lu_valid, results_er, np.nan)
 
-    return results_final, results_s0, results_s1, results_s2, results_s3, results_er
+    return results_final
 
 def _compose_yield_result(
     spam_on_lu: np.ndarray,
@@ -811,14 +811,11 @@ def _pre_filter_yields_rasters(
                 min_val = low * faostat_zone_avg
                 max_val = high * faostat_zone_avg
             elif filter_outlier_strategy == "sd":
+                if (k_sd == 0) or k_sd is None:
+                    raise ValueError("You need to assign a k value")
+                
                 spam_avg = np.nanmean(yld_vals)
                 spam_sd  = np.nanstd(yld_vals)
-
-                min_val = max(0, (spam_avg - k_sd * spam_sd))
-                max_val = spam_avg + k_sd * spam_sd
-            elif filter_outlier_strategy == "local_zscore":
-                spam_avg = np.nanmean(yld_vals)
-                spam_sd = np.nanstd(yld_vals)
 
                 min_val = max(0, (spam_avg - k_sd * spam_sd))
                 max_val = spam_avg + k_sd * spam_sd
@@ -1971,7 +1968,7 @@ def _distribute_residue_monthly(
     crop_coeff_table = _resolve_crop_coefficient_table(crop_coeff_table)
     abs_day_table = _get_absolute_day_table()
 
-    out = np.full((12, *residue.shape[-2:]), fill_value=output_nodata, dtype="float32")
+    out = np.full((12, *residue.shape), fill_value=output_nodata, dtype="float32")
 
     if climate_nodata is None or np.isnan(climate_nodata):
         valid_mask = ~np.isnan(climate_ids)
@@ -2861,7 +2858,7 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     apply_ecoregion_fill: bool = True,
     random_runs: int = 1,
     print_outputs: bool = False,
-    spam_outlier_strategy: str = "spam_sd",
+    spam_outlier_strategy: str = "sd",
     spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
     # Odd local neighborhood size (pixels) for local_zscore strategy.
@@ -3000,20 +2997,20 @@ def create_monthly_residue_vPipeline(
     if branch == "regression":
         ABG = slope * yld_arr + intercept
         BG  = RS    * ABG
-        Res = (ABG + BG) * dry_C_content
+        Residues_annual = (ABG + BG) * dry_C_content
 
     elif branch == "ratio":
         ABG = R_AG * yld_arr
         BG  = RS   * ABG
-        Res = (ABG + BG) * dry_C_content
+        Residues_annual = (ABG + BG) * dry_C_content
 
     else:  # total‐residues branch
-        Res = R_T * yld_arr * dry_C_content
-        ABG = np.full_like(Res, np.nan, dtype="float32")
-        BG  = np.full_like(Res, np.nan, dtype="float32")
+        Residues_annual = R_T * yld_arr * dry_C_content
+        ABG = np.full_like(Residues_annual, np.nan, dtype="float32")
+        BG  = np.full_like(Residues_annual, np.nan, dtype="float32")
 
     # restore nodata
-    Res[~valid] = np.nan  # Assigns nan where there's no valid data
+    Residues_annual[~valid] = np.nan  # Assigns nan where there's no valid data
     if branch in ("regression", "ratio"):
         ABG[~valid] = np.nan
         BG [~valid] = np.nan
@@ -3032,7 +3029,7 @@ def create_monthly_residue_vPipeline(
         crop,
         crop_type,
         ids,
-        Res,
+        Residues_annual,
         output_nodata=output_nodata,
         climate_zone_lookup=climate_zone_lookup,
         climate_nodata=climate_nodata,

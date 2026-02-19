@@ -1402,7 +1402,7 @@ def plot_raster_histogram(
     plt.tight_layout()
     plt.show()
 
-def plot_overlapping_histograms(raster1_path, raster2_path, title, x_label, label1, label2, bins=50, std_dev_filter=0, filter_quantiles=0.0, quantiles_tails = 'both'):
+def plot_overlapping_histograms(raster1_path, raster2_path, title:str = "Histogram for 2 rasters", x_label: str= "amount", label1: str="raster 1 values", label2: str="raster 2 values", bins=50, std_dev_filter=0, filter_quantiles=0.0, quantiles_tails = 'both', raster1_band:int = 1, raster2_band: int = 1):
     """
     Plot overlapping histograms of two rasters, filtering values beyond a specified number of standard deviations from the mean.
     
@@ -1432,8 +1432,8 @@ def plot_overlapping_histograms(raster1_path, raster2_path, title, x_label, labe
         raise ValueError("Quantile tails filtering must be either both, left, or right")
 
     with rasterio.open(raster1_path) as src1, rasterio.open(raster2_path) as src2:
-        arr1 = src1.read(1, masked=True)
-        arr2 = src2.read(1, masked=True)
+        arr1 = src1.read(raster1_band, masked=True)
+        arr2 = src2.read(raster2_band, masked=True)
 
     # Also mask any NaN/Inf explicitly
     a1 = np.ma.masked_invalid(arr1)
