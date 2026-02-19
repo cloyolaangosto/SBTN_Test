@@ -184,13 +184,13 @@ def test_pre_filter_local_zscore_removes_isolated_spike():
     fao_gdf = gpd.GeoDataFrame({"zone_id": [1], "avg_yield": [10.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
 
     (filtered,) = cropcalcs._pre_filter_yields_rasters(
-        spam_arrays=(arr,),
+        yld_arrays=(arr,),
         fao_gdf=fao_gdf,
         zone_array=zone_array,
         fao_avg_yield_name="avg_yield",
-        spam_outlier_strategy="local_zscore",
-        spam_outlier_percentile=(1.0, 99.0),
-        spam_outlier_k=1000.0,
+        filter_outlier_strategy="local_zscore",
+        percentile_bounds=(1.0, 99.0),
+        k_sd=1000.0,
         local_window=5,
         local_k=1.0,
         local_min_neighbors=8,
@@ -207,13 +207,13 @@ def test_pre_filter_local_zscore_preserves_local_gradient():
     fao_gdf = gpd.GeoDataFrame({"zone_id": [1], "avg_yield": [10.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326")
 
     (filtered,) = cropcalcs._pre_filter_yields_rasters(
-        spam_arrays=(arr,),
+        yld_arrays=(arr,),
         fao_gdf=fao_gdf,
         zone_array=zone_array,
         fao_avg_yield_name="avg_yield",
-        spam_outlier_strategy="local_zscore",
-        spam_outlier_percentile=(1.0, 99.0),
-        spam_outlier_k=1000.0,
+        filter_outlier_strategy="local_zscore",
+        percentile_bounds=(1.0, 99.0),
+        k_sd=1000.0,
         local_window=3,
         local_k=3.0,
         local_min_neighbors=3,
@@ -232,13 +232,13 @@ def test_pre_filter_local_zscore_runtime_sanity():
     import time
     t0 = time.perf_counter()
     cropcalcs._pre_filter_yields_rasters(
-        spam_arrays=(arr,),
+        yld_arrays=(arr,),
         fao_gdf=fao_gdf,
         zone_array=zone_array,
         fao_avg_yield_name="avg_yield",
-        spam_outlier_strategy="local_zscore",
-        spam_outlier_percentile=(1.0, 99.0),
-        spam_outlier_k=1000.0,
+        filter_outlier_strategy="local_zscore",
+        percentile_bounds=(1.0, 99.0),
+        k_sd=1000.0,
         local_window=5,
         local_k=2.5,
         local_min_neighbors=8,

@@ -340,7 +340,6 @@ def _raster_rothc_annual_results(
     spam_outlier_strategy = str | None,
     spam_outlier_percentile = Tuple[float, float] | None,
     spam_outlier_k = float | None,
-    ylds_src: str = "GAEZ"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -387,7 +386,6 @@ def _raster_rothc_annual_results(
                     spam_outlier_strategy = spam_outlier_strategy,
                     spam_outlier_percentile = spam_outlier_percentile,
                     spam_outlier_k = spam_outlier_k,
-                    ylds_src = ylds_src
                 )
             if c_inp is None:
                 if practices_string_id is not None and "roff" in practices_string_id:
@@ -408,7 +406,6 @@ def _raster_rothc_annual_results(
                         spam_outlier_strategy = spam_outlier_strategy,
                         spam_outlier_percentile = spam_outlier_percentile,
                         spam_outlier_k = spam_outlier_k,
-                        ylds_src = ylds_src
                     )
             c_inp = np.squeeze(np.asarray(c_inp))
         
@@ -431,7 +428,6 @@ def _raster_rothc_annual_results(
             spam_outlier_strategy = spam_outlier_strategy,
             spam_outlier_percentile = spam_outlier_percentile,
             spam_outlier_k = spam_outlier_k,
-            ylds_src = ylds_src
         )
         c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -599,7 +595,6 @@ def _raster_rothc_annual_results(
                         spam_outlier_strategy = spam_outlier_strategy,
                         spam_outlier_percentile = spam_outlier_percentile,
                         spam_outlier_k = spam_outlier_k,
-                        ylds_src = ylds_src
                     )
                 c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -1082,9 +1077,8 @@ def run_RothC_crops(
     save_CO2: bool = False,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
     spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (5.0, 95.0),
+    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
     spam_outlier_k: float = 2.0,
-    ylds_src: str = "GAEZ",
 ):
     def _crop_loader(
         *,
@@ -1127,7 +1121,6 @@ def run_RothC_crops(
         spam_outlier_strategy: str | None,
         spam_outlier_percentile: Tuple[float, float] | None,
         spam_outlier_k: float | None,
-        ylds_src = str
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1159,7 +1152,6 @@ def run_RothC_crops(
             spam_outlier_strategy = spam_outlier_strategy,
             spam_outlier_percentile = spam_outlier_percentile,
             spam_outlier_k = spam_outlier_k,
-            ylds_src = ylds_src
         )
 
         if irr_a is not None:
@@ -1204,7 +1196,6 @@ def run_RothC_crops(
             "spam_outlier_strategy": spam_outlier_strategy,
             "spam_outlier_percentile": spam_outlier_percentile,
             "spam_outlier_k": spam_outlier_k,
-            "ylds_src": ylds_src
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,

@@ -48,6 +48,19 @@ from scipy import ndimage
 
 
 @dataclass(frozen=True)
+class FilterParametersYieldsCalculations:
+    """
+    Inputs for filtering yields calculations
+    """
+    filter_strategy: str = "sd"
+    percentile_bounds: Tuple[float, float] = (1.0, 99.0)
+    k_sd: float = 2.0
+    local_window: int = 3           #  Local z-score window size (odd kernel width/height in pixels, e.g. 3 or 5).
+    local_k: float = 2.5            #  Number of local standard deviations used to define clipping bounds.
+    local_min_neighbors: int = 4    #  Minimum valid neighbors required before applying local clipping to a pixel.
+
+
+@dataclass(frozen=True)
 class CropYieldRasterConfig:
     """Configuration for crop yield raster generation.
 
@@ -357,7 +370,7 @@ def _read_cropland_raster(
         lu_transform = crop_lu.transform
         lu_height = crop_lu.height
         lu_width = crop_lu.width
-        lu_data = crop_lu.read(1)
+        lu_data = crop_lu.read(1, masked = True)
         lu_nodata = crop_lu.nodata
 
     lu_mask = (lu_data == 1) & (lu_data != lu_nodata) & (~np.isnan(lu_data))
@@ -401,7 +414,7 @@ def _rasterize_fao_yields(
     fao_yield_ratio_name: str,
     fao_sd_yield_name: str,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, gpd.GeoDataFrame]:
-    """Transform FAO yields from ton/ha to kg/ha and rasterize the shapefile into a raster aligned with the LU raster. 
+    """Transform FAO yields from kg/ha to ton/ha and rasterize the shapefile into a raster aligned with the LU raster. 
     Returns fao_average_yields_array, fao_sd_yields_array, zone_array, global_fao_ratio, and fao_gdf_on_lu reprojected to LU raster.
 
     Args:
@@ -487,16 +500,17 @@ def _apply_irrigation_scaling_toFAO_yields(
     valid_wat = ~np.isnan(watering_ratio)
     avg_wat_ratio = np.nanmean(watering_ratio)
 
-    # Creates an irrigations scale yield raster applying watering ratios 
-    fao_scaled = np.where(valid_wat, fao_avg_yields_array * watering_ratio, np.nan)
+    fao_scaled = fao_avg_yields_array * avg_wat_ratio
 
+    # Creates an irrigations scale yield raster applying watering ratios 
+    # fao_scaled = np.where(valid_wat, fao_avg_yields_array * watering_ratio, np.nan)
 
     # Applies a global watering ratio to pixels where fao_scaled is nan but fao yields are valid
-    fao_scaled = np.where(
-        np.isnan(fao_scaled) & valid_fao,
-        fao_avg_yields_array * avg_wat_ratio,
-        fao_scaled
-    )
+    # fao_scaled = np.where(
+    #   np.isnan(fao_scaled) & valid_fao,
+    #    fao_avg_yields_array * avg_wat_ratio,
+    #    fao_scaled
+    #)
 
     # Calculate global fao yields
     global_fao_yield = np.nanmean(fao_scaled)
@@ -511,9 +525,9 @@ def _apply_irrigation_scaling_toFAO_yields(
 
 
 def _compose_yield_result_2(
-    lu_raster: np.ndarray,
+    lu_data: np.ndarray,
     lu_raster_fp: str,
-    fao_avg_yields_array: np.ndarray,
+    fao_scaled_yields_array: np.ndarray,
     all_yields: np.ndarray,
     watered_yields: np.ndarray,
     global_fao_yield: float,
@@ -522,22 +536,26 @@ def _compose_yield_result_2(
     ):
 
     # Initializing results
-    results = np.full_like(lu_raster, np.nan, dtype="float32")
+    results = np.full_like(lu_data, np.nan, dtype="float32")
+    results_s0 = results
 
     # Step 1 - Filling with correct watered array
     irrigation_valid =  ~np.isnan(watered_yields)
     needs_filling = lu_valid & irrigation_valid
     results[needs_filling] = watered_yields[needs_filling]
+    results_s1 = results
 
     # Step 2 - Fill it with local  all yields multiplied by global watering ratios
-    all_valid =  ~np.isnan(all_yields)
-    need_filling = lu_valid & np.isnan(results) & all_valid
-    results[need_filling] =all_valid[need_filling]*global_watering_ratio
+    ylds_all_valid =  ~np.isnan(all_yields)
+    need_filling = lu_valid & np.isnan(results) & ylds_all_valid
+    results[need_filling] = all_yields[need_filling]*global_watering_ratio
+    results_s2 = results
 
     # Step 3 - Filling with scaled FAOSTAT
-    fao_valid =  ~np.isnan(fao_avg_yields_array)
+    fao_valid =  ~np.isnan(fao_scaled_yields_array)
     need_filling = lu_valid & np.isnan(results) & fao_valid
-    results[need_filling] = fao_avg_yields_array[need_filling]
+    results[need_filling] = fao_scaled_yields_array[need_filling]
+    results_s3 = results
 
     # Step 4 - Filling with ecoregion averages
     results_er = _fill_with_ecoregions(
@@ -547,10 +565,9 @@ def _compose_yield_result_2(
     global_fao_yield_fallback=global_fao_yield
     )
 
-    results = results_er
-    results[~lu_valid] = np.nan
+    results_final = np.where(lu_valid, results_er, np.nan)
 
-    return results
+    return results_final, results_s0, results_s1, results_s2, results_s3, results_er
 
 def _compose_yield_result(
     spam_on_lu: np.ndarray,
@@ -713,14 +730,14 @@ def _fill_with_ecoregions(
     return result
 
 def _pre_filter_yields_rasters(
-    spam_arrays: tuple[np.ndarray, ...],
+    yld_arrays: tuple[np.ndarray, ...],
     fao_gdf: gpd.GeoDataFrame,
     zone_array: np.ndarray,
     fao_avg_yield_name: str,
     *,
-    spam_outlier_strategy: str,
-    spam_outlier_percentile: Tuple[float, float] | None = None,
-    spam_outlier_k: float | None = None,
+    filter_outlier_strategy: str,
+    percentile_bounds: Tuple[float, float] | None = None,
+    k_sd: float | None = None,
     local_window: int | None = None,
     local_k: float | None = None,
     local_min_neighbors: int | None = None,
@@ -764,17 +781,17 @@ def _pre_filter_yields_rasters(
         return result
 
     #  Initialize out
-    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in spam_arrays]
+    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in yld_arrays]
 
     # Goes through each FAO Zone (Country)
     for _, row in fao_gdf.iterrows():
         zid = int(row["zone_id"])                       #  Gets the zone id
         zid_mask = zone_array == zid                    #  Mask of the country
         faostat_zone_avg = row[fao_avg_yield_name]      #  Country yield average (10-year)
-        fao_gaez_yields = spam_arrays[1][zid_mask]
+        fao_gaez_yields = yld_arrays[1][zid_mask]
 
         # For each array:
-        for i, array in enumerate(spam_arrays):
+        for i, array in enumerate(yld_arrays):
             valid_zone = zid_mask & ~np.isnan(array)
             yld_vals = array[valid_zone]
 
@@ -783,52 +800,188 @@ def _pre_filter_yields_rasters(
                 continue
 
             # If not, continue filtering
-            if spam_outlier_strategy == "ratio_percentile":
-                if spam_outlier_percentile is None:
+            if filter_outlier_strategy == "ratio_percentile":
+                if percentile_bounds is None:
                     raise ValueError('For ratio_percentile strategy, outliers need to be defined')
                 
                 if not np.isfinite(faostat_zone_avg) or faostat_zone_avg <= 0:
                     continue
                 ratios = yld_vals / faostat_zone_avg
-                low, high = np.nanpercentile(ratios, [spam_outlier_percentile[0], spam_outlier_percentile[1]])
+                low, high = np.nanpercentile(ratios, [percentile_bounds[0], percentile_bounds[1]])
                 min_val = low * faostat_zone_avg
                 max_val = high * faostat_zone_avg
-            elif spam_outlier_strategy == "fao_ratios":
-                # Get's both the FAO GAEZ "all" averages 
-                if fao_gaez_yields.size > 0:
-                    all_avg = np.nanmean(fao_gaez_yields)
-
-                # SPAM/GAEZ averages
+            elif filter_outlier_strategy == "sd":
                 spam_avg = np.nanmean(yld_vals)
                 spam_sd  = np.nanstd(yld_vals)
 
-            elif spam_outlier_strategy == "spam_sd":
-                spam_avg = np.nanmean(yld_vals)
-                spam_sd  = np.nanstd(yld_vals)
-
-                min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
-                max_val = spam_avg + spam_outlier_k * spam_sd
-            elif spam_outlier_strategy == "local_zscore":
+                min_val = max(0, (spam_avg - k_sd * spam_sd))
+                max_val = spam_avg + k_sd * spam_sd
+            elif filter_outlier_strategy == "local_zscore":
                 spam_avg = np.nanmean(yld_vals)
                 spam_sd = np.nanstd(yld_vals)
 
-                min_val = max(0, (spam_avg - spam_outlier_k * spam_sd))
-                max_val = spam_avg + spam_outlier_k * spam_sd
+                min_val = max(0, (spam_avg - k_sd * spam_sd))
+                max_val = spam_avg + k_sd * spam_sd
             else:
-                raise ValueError(f"Unknown strategy: {spam_outlier_strategy}")
+                raise ValueError(f"Unknown strategy: {filter_outlier_strategy}")
 
             # Fills the array and append results
             clipped = np.clip(array, min_val, max_val)
             out_arrays[i][valid_zone] = clipped[valid_zone]
 
-    if spam_outlier_strategy == "local_zscore":
+    if filter_outlier_strategy == "local_zscore":
         out_arrays = [_local_zscore_clip(arr) for arr in out_arrays]
 
     return out_arrays
 
 
-def _create_crop_yield_raster_core_2():
-    return
+def _create_crop_yield_raster_core_2(
+        croplu_grid_raster: str,
+        fao_crop_shp: gpd.GeoDataFrame,
+        ylds_all_fp: str,
+        ylds_irr_fp: str,
+        ylds_rain_fp: str,
+        irrigation_method: str,
+        filter_parameters: FilterParametersYieldsCalculations,
+        write_output: bool = False,
+        output_path: str | None = None,
+        yields_resampling_method = Resampling.bilinear,
+        faostat_avg_yld_col_name: str = "avg_yield",
+        faostat_ratio_col_name: str = "yld_ratio",
+        faostat_sd_yld_col_name: str = "sd_yield",
+        random_runs: int = 1,
+        rng: Optional[np.random.Generator] = None
+    ):
+    
+    # Step 1 - Read cropland raster
+    (
+        lu_meta,
+        lu_mask,
+        lu_transform,
+        lu_crs,
+        lu_height,
+        lu_width,
+        lu_data
+    ) = _read_cropland_raster(croplu_grid_raster)
+
+
+    # Step 2 - Reprojects all yields rasters
+    ylds_all_on_lu = _reproject_spam_to_lu(
+        spam_crop_raster=ylds_all_fp,
+        spam_band=1,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=yields_resampling_method,
+    )
+
+    ylds_irr_on_lu =_reproject_spam_to_lu(
+        spam_crop_raster=ylds_irr_fp,
+        spam_band=1,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=yields_resampling_method,
+    )
+
+    ylds_rain_on_lu = _reproject_spam_to_lu(
+        spam_crop_raster=ylds_rain_fp,
+        spam_band=1,
+        lu_height=lu_height,
+        lu_width=lu_width,
+        lu_transform=lu_transform,
+        lu_crs=lu_crs,
+        resampling_method=yields_resampling_method,
+    )
+
+    # Step 3 - Rasterize fao yields
+    (
+        fao_avg_yields_array,
+        fao_sd_yields_array,
+        fao_zones_array,
+        global_fao_ratio,
+        fao_gdf_on_lu,
+    ) = _rasterize_fao_yields(
+        fao_crop_shp,
+        lu_crs,
+        lu_height,
+        lu_width,
+        lu_transform,
+        faostat_avg_yld_col_name,
+        faostat_ratio_col_name,
+        faostat_sd_yld_col_name
+    )
+
+    # Step 4 - Prefilter FAOGAEZ Yields
+    #  Pre process SPAM yields
+    yld_arrays = (ylds_all_on_lu, ylds_irr_on_lu, ylds_rain_on_lu)
+
+    (yld_all_filt, yld_irr_filt, yld_rf_filt) = _pre_filter_yields_rasters(
+        yld_arrays=yld_arrays,
+        fao_gdf=fao_gdf_on_lu,
+        zone_array=fao_zones_array,
+        fao_avg_yield_name=faostat_avg_yld_col_name,
+        filter_outlier_strategy=filter_parameters.filter_strategy,
+        percentile_bounds=filter_parameters.percentile_bounds,
+        k_sd = filter_parameters.k_sd,
+        local_window = filter_parameters.local_window,
+        local_k =filter_parameters.local_k,
+        local_min_neighbors = filter_parameters.local_min_neighbors
+    )
+
+    filtered_yields = (yld_all_filt, yld_irr_filt, yld_rf_filt)
+
+    # Step 5 - Calculate Watering Ratios and scale FAO Yields
+    # Apply yields scaling based on irrigation technique and SPAM yields
+    valid_fao_mask = ~np.isnan(fao_avg_yields_array)
+
+    irrigation_scaling = _apply_irrigation_scaling_toFAO_yields(
+        fao_avg_yields_array,
+        valid_fao_mask,
+        irrigation_method,
+        spam_all=yld_all_filt,
+        spam_irr=yld_irr_filt,
+        spam_rf=yld_rf_filt,
+        print_outputs=True,
+    )
+
+    watered_yields = yld_irr_filt if irrigation_method == "irr" else yld_rf_filt
+
+    # Step 6 - Compose Yields Results
+    results_prerandom = _compose_yield_result_2(
+        lu_data = lu_data,
+        lu_raster_fp = croplu_grid_raster,
+        fao_scaled_yields_array = irrigation_scaling.fao_scaled_yields_array,
+        all_yields = yld_all_filt,
+        watered_yields = watered_yields,
+        global_fao_yield = irrigation_scaling.fao_global_yield,
+        global_watering_ratio = irrigation_scaling.avg_wat_ratio,
+        lu_valid=lu_mask
+    )
+
+    results = results_prerandom[0]
+
+    randomized_result = _apply_uncertainty_to_yields(
+        results,
+        fao_avg_yields_array,
+        fao_sd_yields_array,
+        lu_mask,
+        random_runs=random_runs,
+        rng=rng
+    )
+
+    mean = np.nanmean(randomized_result)
+    median = np.nanmedian(randomized_result)
+
+    print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
+
+    # Output block
+    if write_output:
+        _write_yield_raster(output_path, lu_meta, randomized_result)
+
+    return randomized_result, results_prerandom, filtered_yields, irrigation_scaling.fao_scaled_yields_array, fao_avg_yields_array
 
 
 
@@ -925,13 +1078,13 @@ def _create_crop_yield_raster_core(
     yield_arrays = (yields_all, yields_irr, yields_rf)
    
     (yields_all_filt, yields_irr_filt, yields_rf_filt) = _pre_filter_yields_rasters(
-        spam_arrays=yield_arrays,
+        yld_arrays=yield_arrays,
         fao_gdf=fao_gdf,
         zone_array=zone_array,
         fao_avg_yield_name=config.fao_avg_yield_name,
-        spam_outlier_strategy=config.spam_outlier_strategy,
-        spam_outlier_percentile=config.spam_outlier_percentile,
-        spam_outlier_k=config.spam_outlier_k,
+        filter_outlier_strategy=config.spam_outlier_strategy,
+        percentile_bounds=config.spam_outlier_percentile,
+        k_sd=config.spam_outlier_k,
         local_window=config.local_window,
         local_k=config.local_k,
         local_min_neighbors=config.local_min_neighbors,
@@ -952,9 +1105,9 @@ def _create_crop_yield_raster_core(
     # Prepare results
     watered_yields = yields_irr_filt if config.irr_yield_scaling == "irr" else yields_rf_filt
     result = _compose_yield_result_2(
-        lu_raster=lu_data,
+        lu_data=lu_data,
         lu_raster_fp=croplu_grid_raster,
-        fao_avg_yields_array = irrigation_scaling.fao_scaled_yields_array,
+        fao_scaled_yields_array = irrigation_scaling.fao_scaled_yields_array,
         all_yields=yields_all_filt,
         watered_yields=watered_yields,
         global_fao_yield=irrigation_scaling.fao_global_yield,
@@ -1043,9 +1196,60 @@ def create_crop_yield_raster(
     )
 
 
+def create_crop_yield_raster_withIrrigationPracticeScaling_2(
+    croplu_grid_raster: str,
+    fao_crop_shp: gpd.GeoDataFrame,
+    irr_yield_scaling: str,
+    output_path: str,
+    all_fp: str,
+    irr_fp: str,
+    rf_fp: str,
+    yield_resampling_method: Resampling = Resampling.bilinear,
+    fao_avg_yield_name: str = "avg_yield",
+    fao_yield_ratio_name: str = "yld_ratio",
+    fao_sd_yield_name: str = "sd_yield",
+    random_runs = 100,
+    rng: Optional[np.random.Generator] = None,
+    filter_outlier_strategy: str = "sd",
+    percentile_bounds: Tuple[float, float] = (1.0, 99.0),
+    k_sd: float = 2,
+    local_window: int = 3,
+    local_k: float = 2.5,
+    local_min_neighbors: int = 4,
+):
+    filter_parameters = FilterParametersYieldsCalculations(
+        filter_strategy=filter_outlier_strategy,
+        percentile_bounds=percentile_bounds,
+        k_sd=k_sd,
+        local_window = local_window,
+        local_k = local_k,
+        local_min_neighbors = local_min_neighbors
+    )
+
+    yields_results = _create_crop_yield_raster_core_2(
+        croplu_grid_raster = croplu_grid_raster,
+        fao_crop_shp = fao_crop_shp,
+        ylds_all_fp = all_fp,
+        ylds_irr_fp = irr_fp,
+        ylds_rain_fp = rf_fp,
+        irrigation_method = irr_yield_scaling,
+        filter_parameters = filter_parameters,
+        write_output = True,
+        output_path = output_path,
+        yields_resampling_method = yield_resampling_method,
+        faostat_avg_yld_col_name = fao_avg_yield_name,
+        faostat_ratio_col_name = fao_yield_ratio_name,
+        faostat_sd_yld_col_name = fao_sd_yield_name,
+        random_runs = random_runs,
+        rng= rng
+    )
+
+    return yields_results
+
+
 def create_crop_yield_raster_withIrrigationPracticeScaling(
     croplu_grid_raster: str,
-    fao_crop_shp: "gpd.GeoDataFrame",
+    fao_crop_shp: gpd.GeoDataFrame,
     spam_crop_raster: str,
     output_rst_path: str,
     spam_band: int = 1,
@@ -1763,17 +1967,11 @@ def _distribute_residue_monthly(
 ) -> np.ndarray:
     """Return a (12, y, x) monthly residue cube using climate-specific Kc curves."""
 
-    if climate_ids.shape != residue.shape:
-        raise ValueError(
-            "Climate-ID raster and residue raster must share the same shape; "
-            f"got {climate_ids.shape} and {residue.shape}."
-        )
-
     climate_lookup = _resolve_climate_lookup(climate_zone_lookup)
     crop_coeff_table = _resolve_crop_coefficient_table(crop_coeff_table)
     abs_day_table = _get_absolute_day_table()
 
-    out = np.full((12, *residue.shape), fill_value=output_nodata, dtype="float32")
+    out = np.full((12, *residue.shape[-2:]), fill_value=output_nodata, dtype="float32")
 
     if climate_nodata is None or np.isnan(climate_nodata):
         valid_mask = ~np.isnan(climate_ids)
@@ -1816,13 +2014,13 @@ def _distribute_residue_monthly(
         if crop_type == "annual":
             res_months = np.arange(hm_0index - 3, hm_0index, 1) % 12  # %12 is to standardize into 0-11 months
             
-            # now assigining fractions into months:
+            # now assigning fractions into months:
             month_frac[hm_0index] = 0.5
             month_frac[res_months] = 0.5/3
         else:  # Permanent crops
             res_months = np.arange(hm_0index - 4, hm_0index, 1) % 12  # %12 is to standardize into 0-11 months
 
-            # now assigining fractions into months:
+            # now assigning fractions into months:
             month_frac[hm_0index] = 0.7
             month_frac[res_months] = 0.3/4
 
