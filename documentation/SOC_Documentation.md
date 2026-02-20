@@ -60,12 +60,12 @@ The following procedure was use to assign yields into each UHTH:
 This has been implemented in the script cropcalcs under the function create_crop_yield_raster_withIrrigationPracticeScaling
 
 #### 8)  Monthly input of plant residues (t C/ha)
-Calculated for each crop depending on their yield for a given location. Commodity yields are transformed into dry matter content using table 1. A carbon content of 50% was used as average. PET's crop coefficient $(K_c)$ curves is then used to distribute annual plant residues into each month by multiplying by $K_{c,t}/\sum_{t=1}^{12} K_{c,t}$
+Calculated for each crop depending on their yield for a given location. Commodity yields are transformed into dry matter content using table 1. A carbon content of 50% was used as average. Residue is distributed monthly according to Morais, Teixeria & Domingos (2019).
 
 Morais, Teixeria & Domingos (2019) calculated plant residues using IPCC's methods described in 1997 and 2006 guidelines. More recent guidelines from 2017 provides updated guidelines on this [link](https://www.ipcc-nggip.iges.or.jp/public/2019rf/pdf/4_Volume4/19R_V4_Ch11_Soils_N2O_CO2.pdf) and is found starting on Equation 11.6
 
 Basically, residues are calcualted as residues above ground (AG) plus residues below ground (BG):
-    Res = AG + BG
+$Res = AG + BG$
 
 #### Above ground residues
 This is calculated as:
@@ -78,7 +78,7 @@ $AG(T) = Crop(T) • Slope(T) + Intercept(T)$
 
 #### Below ground residues (BG)
 They're calculated as:
-$BG(T) = (Crop(T) + AG(T)) * RS(T)$
+$BG(T) = [Crop(T) + AG(T)] * RS(T)$
 
 Where RS(T) is ratio of below-ground root biomass to above-ground shoot biomass for crop T, kg d.m.ha-1 (kg d.m. ha-1 ) -1 
 
