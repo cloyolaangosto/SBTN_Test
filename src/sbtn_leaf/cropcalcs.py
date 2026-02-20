@@ -58,6 +58,7 @@ class FilterParametersYieldsCalculations:
     local_window: int = 3           #  Local z-score window size (odd kernel width/height in pixels, e.g. 3 or 5).
     local_k: float = 2.5            #  Number of local standard deviations used to define clipping bounds.
     local_min_neighbors: int = 4    #  Minimum valid neighbors required before applying local clipping to a pixel.
+    apply_local_zscore: bool = False
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,7 @@ class CropYieldRasterConfig:
     enable_ecoregion_fill: bool = True
     enable_nearest_fill: bool = True
     spam_direct_min_share_warn: float = 0.05
+    apply_local_zscore: bool = False
 
 
 @dataclass(frozen=True)
@@ -738,20 +740,24 @@ def _pre_filter_yields_rasters(
     filter_outlier_strategy: str,
     percentile_bounds: Tuple[float, float] | None = None,
     k_sd: float | None = None,
+    # NEW: optional second-stage spatial cleanup
+    apply_local_zscore: bool = False,
     local_window: int | None = None,
     local_k: float | None = None,
     local_min_neighbors: int | None = None,
 ):
-    """Pre-filter SPAM rasters by zone-level clipping and optional local z-score clamping.
+    """Pre-filter SPAM rasters by zone-level clipping with optional local z-score clamping.
 
-    local_window controls the size of the local neighborhood (odd pixels).
-    local_k controls how many local standard deviations are allowed before clipping.
-    local_min_neighbors requires enough valid neighbors before local clipping is applied.
+    Zone strategies (choose one via filter_outlier_strategy):
+      - "ratio_percentile": clip by percentile bounds of (yield / FAO_avg) within each zone
+      - "sd": clip by zone mean ± k_sd * sd within each zone
+      - "log_winsor": winsorize in log1p space within each zone (then invert)
+
+    Optional second stage:
+      - apply_local_zscore=True applies spatial local z-score clipping after zone clipping.
     """
-    if local_window and local_k and local_min_neighbors:
-        if local_window <= 0 or local_window % 2 == 0:
-            raise ValueError("local_window must be a positive odd integer")
 
+    # --- local z-score helper (only used if apply_local_zscore=True) ---
     def _local_zscore_clip(array: np.ndarray) -> np.ndarray:
         valid = np.isfinite(array)
         if not np.any(valid):
@@ -762,9 +768,11 @@ def _pre_filter_yields_rasters(
         valid_f = valid.astype("float32", copy=False)
 
         size = (local_window, local_window)
-        neighbor_count = ndimage.uniform_filter(valid_f, size=size, mode="nearest") * (local_window * local_window)
-        sum_local = ndimage.uniform_filter(val, size=size, mode="nearest") * (local_window * local_window)
-        sumsq_local = ndimage.uniform_filter(val2, size=size, mode="nearest") * (local_window * local_window)
+        win_area = local_window * local_window
+
+        neighbor_count = ndimage.uniform_filter(valid_f, size=size, mode="nearest") * win_area
+        sum_local = ndimage.uniform_filter(val, size=size, mode="nearest") * win_area
+        sumsq_local = ndimage.uniform_filter(val2, size=size, mode="nearest") * win_area
 
         with np.errstate(invalid="ignore", divide="ignore"):
             local_mean = np.divide(sum_local, neighbor_count, where=neighbor_count > 0)
@@ -772,6 +780,7 @@ def _pre_filter_yields_rasters(
 
         local_std = np.sqrt(np.maximum(local_var, 0.0))
         enough_neighbors = neighbor_count >= local_min_neighbors
+
         lower = local_mean - local_k * local_std
         upper = local_mean + local_k * local_std
 
@@ -780,53 +789,89 @@ def _pre_filter_yields_rasters(
         result[clip_mask] = np.clip(array[clip_mask], lower[clip_mask], upper[clip_mask])
         return result
 
-    #  Initialize out
+    # --- validate local params if needed ---
+    if apply_local_zscore:
+        if local_window is None or local_k is None or local_min_neighbors is None:
+            raise ValueError("local_window, local_k, and local_min_neighbors must be provided when apply_local_zscore=True")
+        if local_window <= 0 or local_window % 2 == 0:
+            raise ValueError("local_window must be a positive odd integer")
+
+    # Backwards-compat: allow old usage filter_outlier_strategy="local_zscore"
+    # Meaning: no zone clipping, only local z-score
+    if filter_outlier_strategy == "local_zscore":
+        apply_local_zscore = True
+        filter_outlier_strategy = "none"
+
+    # --- validate zone strategy ---
+    if filter_outlier_strategy == "ratio_percentile":
+        if percentile_bounds is None:
+            raise ValueError("percentile_bounds must be provided for ratio_percentile")
+    elif filter_outlier_strategy == "log_winsor":
+        if percentile_bounds is None:
+            raise ValueError("percentile_bounds must be provided for log_winsor (e.g., (0.5, 99.5))")
+        q_lo, q_hi = percentile_bounds
+        if not (0 <= q_lo < q_hi <= 100):
+            raise ValueError("percentile_bounds must be in [0,100] with low < high")
+    elif filter_outlier_strategy == "sd":
+        if k_sd is None:
+            raise ValueError("k_sd must be provided for sd strategy")
+    elif filter_outlier_strategy == "none":
+        pass
+    else:
+        raise ValueError(f"Unknown strategy: {filter_outlier_strategy}")
+
+    # --- initialize output ---
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in yld_arrays]
 
-    # Goes through each FAO Zone (Country)
-    for _, row in fao_gdf.iterrows():
-        zid = int(row["zone_id"])                       #  Gets the zone id
-        zid_mask = zone_array == zid                    #  Mask of the country
-        faostat_zone_avg = row[fao_avg_yield_name]      #  Country yield average (10-year)
-        fao_gaez_yields = yld_arrays[1][zid_mask]
+    # --- zone-based clipping (if requested) ---
+    if filter_outlier_strategy != "none":
+        for _, row in fao_gdf.iterrows():
+            zid = int(row["zone_id"])
+            zid_mask = zone_array == zid
+            faostat_zone_avg = row[fao_avg_yield_name]
 
-        # For each array:
-        for i, array in enumerate(yld_arrays):
-            valid_zone = zid_mask & ~np.isnan(array)
-            yld_vals = array[valid_zone]
-
-            # Check if there are any values
-            if yld_vals.size == 0:
-                continue
-
-            # If not, continue filtering
-            if filter_outlier_strategy == "ratio_percentile":
-                if percentile_bounds is None:
-                    raise ValueError('For ratio_percentile strategy, outliers need to be defined')
-                
-                if not np.isfinite(faostat_zone_avg) or faostat_zone_avg <= 0:
+            for i, array in enumerate(yld_arrays):
+                valid_zone = zid_mask & np.isfinite(array)
+                yld_vals = array[valid_zone]
+                if yld_vals.size == 0:
                     continue
-                ratios = yld_vals / faostat_zone_avg
-                low, high = np.nanpercentile(ratios, [percentile_bounds[0], percentile_bounds[1]])
-                min_val = low * faostat_zone_avg
-                max_val = high * faostat_zone_avg
-            elif filter_outlier_strategy == "sd":
-                if (k_sd == 0) or k_sd is None:
-                    raise ValueError("You need to assign a k value")
-                
-                spam_avg = np.nanmean(yld_vals)
-                spam_sd  = np.nanstd(yld_vals)
 
-                min_val = max(0, (spam_avg - k_sd * spam_sd))
-                max_val = spam_avg + k_sd * spam_sd
-            else:
-                raise ValueError(f"Unknown strategy: {filter_outlier_strategy}")
+                if filter_outlier_strategy == "ratio_percentile":
+                    if not np.isfinite(faostat_zone_avg) or faostat_zone_avg <= 0:
+                        continue
+                    ratios = yld_vals / faostat_zone_avg
+                    low_r, high_r = np.nanpercentile(ratios, [percentile_bounds[0], percentile_bounds[1]])
+                    min_val = low_r * faostat_zone_avg
+                    max_val = high_r * faostat_zone_avg
 
-            # Fills the array and append results
-            clipped = np.clip(array, min_val, max_val)
-            out_arrays[i][valid_zone] = clipped[valid_zone]
+                elif filter_outlier_strategy == "sd":
+                    spam_avg = np.nanmean(yld_vals)
+                    spam_sd = np.nanstd(yld_vals)
+                    min_val = max(0.0, spam_avg - k_sd * spam_sd)
+                    max_val = spam_avg + k_sd * spam_sd
 
-    if filter_outlier_strategy == "local_zscore":
+                elif filter_outlier_strategy == "log_winsor":
+                    # winsorize bounds in log1p space, then invert to get bounds in original scale
+                    if np.nanmin(yld_vals) <= -1.0:
+                        raise ValueError(
+                            f"log_winsor requires values > -1 for log1p; found min={np.nanmin(yld_vals)} in zone {zid}"
+                        )
+                    log_vals = np.log1p(yld_vals.astype("float64", copy=False))
+                    lo, hi = np.percentile(log_vals, [percentile_bounds[0], percentile_bounds[1]])
+                    min_val = np.expm1(lo)
+                    max_val = np.expm1(hi)
+
+                clipped = np.clip(array, min_val, max_val).astype("float32", copy=False)
+                out_arrays[i][valid_zone] = clipped[valid_zone]
+
+    else:
+        # No zone clipping: just copy finite values through before local pass
+        for i, array in enumerate(yld_arrays):
+            m = np.isfinite(array)
+            out_arrays[i][m] = array[m].astype("float32", copy=False)
+
+    # --- optional second-stage local z-score ---
+    if apply_local_zscore:
         out_arrays = [_local_zscore_clip(arr) for arr in out_arrays]
 
     return out_arrays
@@ -847,7 +892,7 @@ def _create_crop_yield_raster_core_2(
         faostat_ratio_col_name: str = "yld_ratio",
         faostat_sd_yld_col_name: str = "sd_yield",
         random_runs: int = 1,
-        rng: Optional[np.random.Generator] = None
+        rng: Optional[np.random.Generator] = None,
     ):
     
     # Step 1 - Read cropland raster
@@ -925,7 +970,8 @@ def _create_crop_yield_raster_core_2(
         k_sd = filter_parameters.k_sd,
         local_window = filter_parameters.local_window,
         local_k =filter_parameters.local_k,
-        local_min_neighbors = filter_parameters.local_min_neighbors
+        local_min_neighbors = filter_parameters.local_min_neighbors,
+        apply_local_zscore = filter_parameters.apply_local_zscore
     )
 
     filtered_yields = (yld_all_filt, yld_irr_filt, yld_rf_filt)
@@ -958,10 +1004,8 @@ def _create_crop_yield_raster_core_2(
         lu_valid=lu_mask
     )
 
-    results = results_prerandom[0]
-
     randomized_result = _apply_uncertainty_to_yields(
-        results,
+        results_prerandom,
         fao_avg_yields_array,
         fao_sd_yields_array,
         lu_mask,
@@ -1085,6 +1129,7 @@ def _create_crop_yield_raster_core(
         local_window=config.local_window,
         local_k=config.local_k,
         local_min_neighbors=config.local_min_neighbors,
+        apply_local_zscore = config.apply_local_zscore
     )
 
     # Apply yields scaling based on irrigation technique and SPAM yields
@@ -1213,6 +1258,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling_2(
     local_window: int = 3,
     local_k: float = 2.5,
     local_min_neighbors: int = 4,
+    apply_local_zscore: bool = False
 ):
     filter_parameters = FilterParametersYieldsCalculations(
         filter_strategy=filter_outlier_strategy,
@@ -1220,7 +1266,8 @@ def create_crop_yield_raster_withIrrigationPracticeScaling_2(
         k_sd=k_sd,
         local_window = local_window,
         local_k = local_k,
-        local_min_neighbors = local_min_neighbors
+        local_min_neighbors = local_min_neighbors,
+        apply_local_zscore=apply_local_zscore
     )
 
     yields_results = _create_crop_yield_raster_core_2(
@@ -1272,6 +1319,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
     spam_direct_min_share_warn: float = 0.05,
+    apply_local_zscore: bool = False
 ) -> CropYieldRasterResult:
     """Create a crop yield raster with optional irrigation/rainfed scaling.
 
@@ -1307,6 +1355,7 @@ def create_crop_yield_raster_withIrrigationPracticeScaling(
         enable_ecoregion_fill=enable_ecoregion_fill,
         enable_nearest_fill=enable_nearest_fill,
         spam_direct_min_share_warn=spam_direct_min_share_warn,
+        apply_local_zscore=apply_local_zscore
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
@@ -2807,6 +2856,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
     spam_direct_min_share_warn: float = 0.05,
+    apply_local_zscore: bool = False
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2833,6 +2883,7 @@ def create_crop_yield_raster_with_irrigation_scaling_pipeline(
         enable_ecoregion_fill=enable_ecoregion_fill,
         enable_nearest_fill=enable_nearest_fill,
         spam_direct_min_share_warn=spam_direct_min_share_warn,
+        apply_local_zscore = apply_local_zscore
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster,
@@ -2872,6 +2923,7 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
     spam_direct_min_share_warn: float = 0.05,
+    apply_local_zscore: bool = False
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2901,6 +2953,7 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         enable_ecoregion_fill=enable_ecoregion_fill,
         enable_nearest_fill=enable_nearest_fill,
         spam_direct_min_share_warn=spam_direct_min_share_warn,
+        apply_local_zscore = apply_local_zscore
     )
     return _create_crop_yield_raster_core(
         croplu_grid_raster= croplu_grid_raster_fp,
@@ -3079,6 +3132,8 @@ except FileNotFoundError:  # pragma: no cover - optional input tables
             "NE_TP": [20.0],
         }
     )
+
+
 def get_forest_litter_rate(da_fp: str, forest_type: str, weather_type: str, TP_IPCC_bool = False, year_offset: int = 0, base_year_offset = 6):
     # Opens the raster and loads the data 
     with rasterio.open(da_fp) as src:
@@ -3164,6 +3219,8 @@ def get_forest_litter_monthlyrate_fromda(da: np.ndarray, forest_type: str, weath
 #### GRASSLAND CALCULATIONS #####
 #################################
 @lru_cache(maxsize=1)
+
+
 def _load_grassland_residue_table() -> pl.DataFrame:
     """Load the IPCC grassland residue table from disk."""
 
