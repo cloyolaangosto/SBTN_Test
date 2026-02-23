@@ -320,12 +320,12 @@ def _raster_rothc_annual_results(
     commodity_type: str,
     soc0_nodatavalue: float,
     crop_name: Optional[str] = None,
-    spam_crop_raster: Optional[str] = None,
+    ylds_crop_raster: Optional[str] = None,
     practices_string_id: Optional[str] = None,
     irr_yield_scaling: Optional[str] = None,
-    spam_all_fp: Optional[str] = None,
-    spam_irr_fp: Optional[str] = None,
-    spam_rf_fp: Optional[str] = None,
+    ylds_all_fp: Optional[str] = None,
+    ylds_irr_fp: Optional[str] = None,
+    ylds_rf_fp: Optional[str] = None,
     commodity_lu_fp: Optional[PathLike] = None,    # For grassland, crops residues calculations
     sand: Optional[np.ndarray] = None,
     forest_age:  Optional[np.ndarray] = None,
@@ -337,9 +337,10 @@ def _raster_rothc_annual_results(
     trm_handler: Optional[TRMHandler],
     progress_desc: str = "RothC months",
     progress_position: Optional[int] = None,
-    spam_outlier_strategy = str | None,
-    spam_outlier_percentile = Tuple[float, float] | None,
-    spam_outlier_k = float | None,
+    outlier_strategy = str | None,
+    percentile_bound = Tuple[float, float] | None,
+    k_sd = float | None,
+    ylds_src: str = "GAEZ"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -376,16 +377,17 @@ def _raster_rothc_annual_results(
                     lu_fp=commodity_lu_fp,
                     crop_name=crop_name,
                     crop_type=crop_type,
-                    ylds_crop_raster = spam_crop_raster,
+                    ylds_crop_raster = ylds_crop_raster,
                     irr_yield_scaling = irr_yield_scaling,
-                    ylds_all_fp = spam_all_fp,
-                    ylds_irr_fp = spam_irr_fp,
-                    ylds_rf_fp = spam_rf_fp,
+                    ylds_all_fp = ylds_all_fp,
+                    ylds_irr_fp = ylds_irr_fp,
+                    ylds_rf_fp = ylds_rf_fp,
                     random_runs=residue_runs,
                     print_outputs= False,
-                    outlier_strategy = spam_outlier_strategy,
-                    percentile_bounds = spam_outlier_percentile,
-                    k_sd = spam_outlier_k,
+                    outlier_strategy = outlier_strategy,
+                    percentile_bounds = percentile_bound,
+                    k_sd = k_sd,
+                    ylds_src = ylds_src
                 )
             if c_inp is None:
                 if practices_string_id is not None and "roff" in practices_string_id:
@@ -397,15 +399,16 @@ def _raster_rothc_annual_results(
                         lu_fp=commodity_lu_fp,
                         crop_name=crop_name,
                         crop_type=crop_type,
-                        ylds_crop_raster = spam_crop_raster,
+                        ylds_crop_raster = ylds_crop_raster,
                         irr_yield_scaling = irr_yield_scaling,
-                        ylds_all_fp = spam_all_fp,
-                        ylds_irr_fp = spam_irr_fp,
-                        ylds_rf_fp = spam_rf_fp,
+                        ylds_all_fp = ylds_all_fp,
+                        ylds_irr_fp = ylds_irr_fp,
+                        ylds_rf_fp = ylds_rf_fp,
                         random_runs=residue_runs,
-                        outlier_strategy = spam_outlier_strategy,
-                        percentile_bounds = spam_outlier_percentile,
-                        k_sd = spam_outlier_k,
+                        outlier_strategy = outlier_strategy,
+                        percentile_bounds = percentile_bound,
+                        k_sd = k_sd,
+                        ylds_src = ylds_src
                     )
             c_inp = np.squeeze(np.asarray(c_inp))
         
@@ -419,15 +422,16 @@ def _raster_rothc_annual_results(
             lu_fp=commodity_lu_fp,
             crop_name=crop_name,
             crop_type=crop_type,
-            ylds_crop_raster=spam_crop_raster,
+            ylds_crop_raster=ylds_crop_raster,
             irr_yield_scaling=irr_yield_scaling,
-            ylds_all_fp=spam_all_fp,
-            ylds_irr_fp=spam_irr_fp,
-            ylds_rf_fp=spam_rf_fp,
+            ylds_all_fp=ylds_all_fp,
+            ylds_irr_fp=ylds_irr_fp,
+            ylds_rf_fp=ylds_rf_fp,
             random_runs=residue_runs,
-            outlier_strategy = spam_outlier_strategy,
-            percentile_bounds = spam_outlier_percentile,
-            k_sd = spam_outlier_k,
+            outlier_strategy = outlier_strategy,
+            percentile_bounds = percentile_bound,
+            k_sd = k_sd,
+            ylds_src = ylds_src
         )
         c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -585,16 +589,17 @@ def _raster_rothc_annual_results(
                         lu_fp=commodity_lu_fp,
                         crop_name=crop_name,
                         crop_type=crop_type,
-                        ylds_crop_raster = spam_crop_raster,
+                        ylds_crop_raster = ylds_crop_raster,
                         irr_yield_scaling = irr_yield_scaling,
-                        ylds_all_fp = spam_all_fp,
-                        ylds_irr_fp = spam_irr_fp,
-                        ylds_rf_fp = spam_rf_fp,
+                        ylds_all_fp = ylds_all_fp,
+                        ylds_irr_fp = ylds_irr_fp,
+                        ylds_rf_fp = ylds_rf_fp,
                         random_runs=residue_runs,
                         print_outputs= True,
-                        outlier_strategy = spam_outlier_strategy,
-                        percentile_bounds = spam_outlier_percentile,
-                        k_sd = spam_outlier_k,
+                        outlier_strategy = outlier_strategy,
+                        percentile_bounds = percentile_bound,
+                        k_sd = k_sd,
+                        ylds_src = ylds_src
                     )
                 c_inp = np.squeeze(np.asarray(c_inp))
 
@@ -614,12 +619,12 @@ def raster_rothc_annual_results(
     c_inp: Optional[np.ndarray] = None,
     fym: Optional[np.ndarray] = None,
     crop_name: Optional[str] = None,
-    spam_crop_raster: Optional[str] = None,
+    ylds_crop_raster: Optional[str] = None,
     practices_string_id: Optional[str] = None,
     irr_yield_scaling: Optional[str] = None,
-    spam_all_fp: Optional[str] = None,
-    spam_irr_fp: Optional[str] = None,
-    spam_rf_fp: Optional[str] = None,
+    ylds_all_fp: Optional[str] = None,
+    ylds_irr_fp: Optional[str] = None,
+    ylds_rf_fp: Optional[str] = None,
     forest_age: Optional[np.ndarray] = None,
     forest_type: Optional[str] = None,
     commodity_lu_fp: Optional[PathLike] = None,
@@ -631,9 +636,10 @@ def raster_rothc_annual_results(
     soc0_nodatavalue: float = -32768.0,
     red_till: bool = False,
     sand: Optional[np.ndarray] = None,
-    spam_outlier_strategy = str | None,
-    spam_outlier_percentile = Tuple[float, float] | None,
-    spam_outlier_k = float | None
+    outlier_strategy = str | None,
+    percentile_bound = Tuple[float, float] | None,
+    k_sd = float | None,
+    ylds_srz: str | None = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -684,15 +690,16 @@ def raster_rothc_annual_results(
         TP_IPCC_bool=TP_IPCC_bool,
         forest_age=forest_age,
         crop_name=crop_name,
-        spam_crop_raster=spam_crop_raster,
+        ylds_crop_raster=ylds_crop_raster,
         practices_string_id=practices_string_id,
         irr_yield_scaling=irr_yield_scaling,
-        spam_all_fp=spam_all_fp,
-        spam_irr_fp=spam_irr_fp,
-        spam_rf_fp=spam_rf_fp,
-        spam_outlier_strategy = spam_outlier_strategy,
-        spam_outlier_percentile = spam_outlier_percentile,
-        spam_outlier_k = spam_outlier_k
+        ylds_all_fp=ylds_all_fp,
+        ylds_irr_fp=ylds_irr_fp,
+        ylds_rf_fp=ylds_rf_fp,
+        outlier_strategy = outlier_strategy,
+        percentile_bound = percentile_bound,
+        k_sd = k_sd,
+        ylds_src=ylds_src
     )
 
 
@@ -1068,17 +1075,18 @@ def run_RothC_crops(
     pr_fp: Optional[PathLike] = None,
     fym_fp: Optional[PathLike] = None,
     residue_runs: int = 1,
-    spam_crop_raster:  Optional[PathLike] = None,
+    ylds_crop_raster:  Optional[PathLike] = None,
     irr_yield_scaling: Optional[str] = None,
-    spam_all_fp: Optional[PathLike] = None,
-    spam_irr_fp: Optional[PathLike] = None,
-    spam_rf_fp: Optional[PathLike] = None,
+    ylds_all_fp: Optional[PathLike] = None,
+    ylds_irr_fp: Optional[PathLike] = None,
+    ylds_rf_fp: Optional[PathLike] = None,
     red_till: bool = False,
     save_CO2: bool = False,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
-    spam_outlier_strategy: str = "spam_sd",
-    spam_outlier_percentile: Tuple[float, float] = (1.0, 99.0),
-    spam_outlier_k: float = 2.0,
+    outlier_strategy: str = "sd",
+    percentile_bound: Tuple[float, float] = (1.0, 99.0),
+    k_sd: float = 2.0,
+    ylds_src: str = "GAEZ"
 ):
     def _crop_loader(
         *,
@@ -1114,13 +1122,14 @@ def run_RothC_crops(
         red_till: bool,
         practices_string_id: Optional[str],
         irr_yield_scaling: Optional[str],
-        spam_crop_raster: Optional[str],
-        spam_all_fp: Optional[str],
-        spam_irr_fp: Optional[str],
-        spam_rf_fp: Optional[str],
-        spam_outlier_strategy: str | None,
-        spam_outlier_percentile: Tuple[float, float] | None,
-        spam_outlier_k: float | None,
+        ylds_crop_raster: Optional[str],
+        ylds_all_fp: Optional[str],
+        ylds_irr_fp: Optional[str],
+        ylds_rf_fp: Optional[str],
+        outlier_strategy: str | None,
+        percentile_bound: Tuple[float, float] | None,
+        k_sd: float | None,
+        ylds_src: str = "GAEZ"
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1143,15 +1152,16 @@ def run_RothC_crops(
             residue_runs = residue_runs,
             commodity_lu_fp=lu_fp,
             crop_name=crop_name,
-            spam_crop_raster = spam_crop_raster,
+            ylds_crop_raster = ylds_crop_raster,
             practices_string_id = practices_string_id,
             irr_yield_scaling = irr_yield_scaling,
-            spam_all_fp = spam_all_fp,
-            spam_irr_fp = spam_irr_fp,
-            spam_rf_fp = spam_rf_fp,
-            spam_outlier_strategy = spam_outlier_strategy,
-            spam_outlier_percentile = spam_outlier_percentile,
-            spam_outlier_k = spam_outlier_k,
+            ylds_all_fp = ylds_all_fp,
+            ylds_irr_fp = ylds_irr_fp,
+            ylds_rf_fp = ylds_rf_fp,
+            outlier_strategy = outlier_strategy,
+            percentile_bound = percentile_bound,
+            k_sd = k_sd,
+            ylds_src = ylds_src
         )
 
         if irr_a is not None:
@@ -1189,13 +1199,14 @@ def run_RothC_crops(
             "red_till": red_till,
             "irr_yield_scaling": irr_yield_scaling,
             "practices_string_id": practices_string_id,
-            "spam_crop_raster": spam_crop_raster,
-            "spam_all_fp": spam_all_fp,
-            "spam_irr_fp": spam_irr_fp,
-            "spam_rf_fp": spam_rf_fp,
-            "spam_outlier_strategy": spam_outlier_strategy,
-            "spam_outlier_percentile": spam_outlier_percentile,
-            "spam_outlier_k": spam_outlier_k,
+            "ylds_crop_raster": ylds_crop_raster,
+            "ylds_all_fp": ylds_all_fp,
+            "ylds_irr_fp": ylds_irr_fp,
+            "ylds_rf_fp": ylds_rf_fp,
+            "outlier_strategy": outlier_strategy,
+            "percentile_bound": percentile_bound,
+            "k_sd": k_sd,
+            "ylds_src": ylds_src
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
