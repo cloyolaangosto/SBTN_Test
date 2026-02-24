@@ -1975,10 +1975,7 @@ def _distribute_residue_monthly(
             # now assigning fractions into months:
             month_frac[hm_0index] = 0.7
             month_frac[res_months] = 0.3/4
-
-
-        print(f"Crop type {crop_type} monthly ratios are {month_frac}")
-        
+      
         rows, cols = np.where((climate_ids == clim_id) & valid_mask)
         if rows.size == 0:
             continue
