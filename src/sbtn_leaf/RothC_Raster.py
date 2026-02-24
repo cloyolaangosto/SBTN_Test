@@ -15,19 +15,40 @@ import polars as pl
 from tqdm.auto import trange, tqdm
 from pathlib import Path
 import json
-import os
 
 from sbtn_leaf.RothC_Core import RMF_Tmp, RMF_Moist, RMF_PC, RMF_TRM, _partition_to_bio_hum
 import sbtn_leaf.cropcalcs as cropcalcs
-from sbtn_leaf.paths import data_path
+from sbtn_leaf.paths import data_path, project_path
 
 PathLike = Union[str, Path]
 
 
 def _as_path(value: PathLike) -> Path:
     """Return ``value`` as a :class:`~pathlib.Path` instance."""
+    if isinstance(value, Path):
+        return value
+    if isinstance(value, str):
+        return Path(value.replace("\\", "/"))
+    return Path(value)
 
-    return value if isinstance(value, Path) else Path(value)
+
+def _resolve_project_path(path: PathLike) -> Path:
+    """Resolve paths independent of current working directory.
+
+    Relative paths are interpreted against the repository root when they do
+    not exist from the current process directory.
+    """
+
+    candidate = _as_path(path)
+
+    if candidate.is_absolute() or candidate.exists():
+        return candidate
+
+    project_candidate = project_path(candidate)
+    if project_candidate.exists():
+        return project_candidate
+
+    return project_candidate
 
 
 def _resolve_optional_path(
@@ -54,7 +75,7 @@ def _resolve_optional_path(
 def _resolve_data_path(path: PathLike) -> Path:
     """Resolve a data path, falling back to :func:`data_path` when needed."""
 
-    candidate = _as_path(path)
+    candidate = _resolve_project_path(path)
     if candidate.exists():
         return candidate
 
@@ -63,6 +84,18 @@ def _resolve_data_path(path: PathLike) -> Path:
         return data_candidate
 
     return candidate
+
+
+def _normalize_scenario_paths(scenario: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize path-like values in scenario dictionaries."""
+
+    for key, value in list(scenario.items()):
+        if not isinstance(value, str):
+            continue
+        if key == "save_folder" or key.endswith("_fp") or key.endswith("_folder"):
+            scenario[key] = str(_resolve_project_path(value))
+
+    return scenario
 
 # -----------------------------------------------------------------------------
 # FUNCTIONS
@@ -1029,7 +1062,8 @@ def _run_rothc_scenario(
     else:
         SOC_results, CO2_results = results, None
 
-    save_path = _as_path(save_folder) / result_basename
+    save_path = _resolve_project_path(save_folder) / result_basename
+    save_path.parent.mkdir(parents=True, exist_ok=True)
 
     save_annual_results(
         SOC_results,
@@ -1460,6 +1494,7 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
     # 3) Iterate with tqdm
     for scenario in scenario_list:
+        scenario = _normalize_scenario_paths(scenario)
         file_fnw = None
         file_fnw = scenario.get("force_new_file")
 
@@ -1479,9 +1514,9 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
             scenario["n_years"] = 5
 
         # Checks if output filepath exist
-        output_folder = scenario["save_folder"]
+        output_folder = _resolve_project_path(scenario["save_folder"])
         output_string = f"{scenario['crop_name']}_{scenario_description}_{2016 + scenario['n_years']}y_SOC.tif"
-        output_path = f"{output_folder}/{output_string}"
+        output_path = output_folder / output_string
 
         # Remove 'force_new_file' so it's not forwarded to run_RothC_crops
         scenario.pop("force_new_file", None)
@@ -1493,7 +1528,7 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
             print(f"Running {scn_string_text}")
             run_RothC_crops(**scenario)
         else:
-            if os.path.exists(output_path):
+            if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
@@ -1521,21 +1556,24 @@ def run_rothc_grassland_scenarios_from_excel(excel_filepath: PathLike, force_new
 
     # 3) Iterate with tqdm
     for scenario in scenario_list:
+        scenario = _normalize_scenario_paths(scenario)
         scn_string_text = f"Grassland - {scenario['grassland_type']} - {scenario['string_id']}"
 
         # Checks if output filepath exist
-        output_folder = scenario["save_folder"]
+        output_folder = _resolve_project_path(scenario["save_folder"])
         output_string = f"{scenario['grassland_type']}_grassland_{scenario['string_id']}_{2016 + scenario['n_years']}y_SOC.tif"
-        output_path = f"{output_folder}/{output_string}"
+        output_path = output_folder / output_string
 
         # Loads fym_fp
-        scenario['fym_fp_list'] = json.loads(scenario["fym_fp_list"])
+        scenario['fym_fp_list'] = [
+            str(_resolve_project_path(fp)) for fp in json.loads(scenario["fym_fp_list"])
+        ]
 
         if force_new_files:
             print(f"Running {scn_string_text}")
             run_RothC_grassland(**scenario)
         else:
-            if os.path.exists(output_path):
+            if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
@@ -1562,18 +1600,19 @@ def run_rothC_forest_scenarios_from_excel(excel_filepath: PathLike, force_new_fi
 
     # 3) Iterate with tqdm
     for scenario in scenario_list:
+        scenario = _normalize_scenario_paths(scenario)
         scn_string_text = f"Forest - {scenario['forest_type']} - {scenario['weather_type']}"
 
         # Checks if output filepath exist
-        output_folder = scenario["save_folder"]
+        output_folder = _resolve_project_path(scenario["save_folder"])
         output_string = f"{scenario['forest_type']}_{scenario['weather_type']}_{2016 + scenario['n_years']}y_SOC.tif"
-        output_path = f"{output_folder}/{output_string}"
+        output_path = output_folder / output_string
 
         if force_new_files:
             print(f"Running {scn_string_text}")
             run_RothC_forest(**scenario)
         else:
-            if os.path.exists(output_path):
+            if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
