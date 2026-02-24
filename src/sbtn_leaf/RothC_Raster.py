@@ -639,7 +639,7 @@ def raster_rothc_annual_results(
     outlier_strategy = str | None,
     percentile_bound = Tuple[float, float] | None,
     k_sd = float | None,
-    ylds_srz: str | None = None
+    ylds_src: str | None = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
