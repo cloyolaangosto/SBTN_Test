@@ -364,6 +364,49 @@ def _apply_uncertainty_to_yields(
     return averaged.astype("float32", copy=False)
 
 
+def _apply_uncertainty_to_monthly_residues(
+    monthly_residues: np.ndarray,
+    fao_avg_yields_array: np.ndarray,
+    fao_sd_yields_array: np.ndarray,
+    lu_mask: np.ndarray,
+    *,
+    random_runs: int,
+    rng: Optional[np.random.Generator] = None,
+) -> np.ndarray:
+    """Apply uncertainty month-by-month to a ``(month, y, x)`` residues cube.
+
+    Only land-use pixels are perturbed; all other pixels keep their original
+    values. Exact zeros in the monthly baseline are preserved to avoid
+    introducing artefacts in sparse residue schedules.
+    """
+
+    baseline = np.asarray(monthly_residues, dtype="float32")
+    if baseline.ndim != 3:
+        raise ValueError("monthly_residues must have shape (month, y, x)")
+
+    lu_mask = np.asarray(lu_mask, dtype=bool)
+    if lu_mask.ndim != 2:
+        raise ValueError("lu_mask must have shape (y, x)")
+    if baseline.shape[1:] != lu_mask.shape:
+        raise ValueError("monthly_residues spatial shape must match lu_mask")
+
+    randomized = baseline.copy()
+
+    for month_idx in range(baseline.shape[0]):
+        month_result = _apply_uncertainty_to_yields(
+            result=baseline[month_idx],
+            fao_avg_yields_array=fao_avg_yields_array,
+            fao_sd_yields_array=fao_sd_yields_array,
+            lu_mask=lu_mask,
+            random_runs=random_runs,
+            rng=rng,
+        )
+        randomized[month_idx, lu_mask] = month_result[lu_mask]
+        randomized[month_idx, baseline[month_idx] == 0] = 0.0
+
+    return randomized.astype("float32", copy=False)
+
+
 def _read_cropland_raster(
     croplu_grid_raster: str,
 ) -> tuple[dict, np.ndarray, Affine, CRS, int, int, np.ndarray]:
