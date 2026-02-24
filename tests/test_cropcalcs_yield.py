@@ -246,3 +246,25 @@ def test_pre_filter_local_zscore_runtime_sanity():
     elapsed = time.perf_counter() - t0
 
     assert elapsed < 5.0
+
+
+def test_apply_uncertainty_to_monthly_residues_preserves_sparse_zero_months():
+    monthly = np.zeros((12, 2, 2), dtype="float32")
+    monthly[2] = np.array([[1.0, 0.0], [2.0, 0.0]], dtype="float32")
+    monthly[7] = np.array([[0.5, 0.0], [1.5, 0.0]], dtype="float32")
+
+    lu_mask = np.array([[True, False], [True, False]])
+    fao_avg = np.array([[3.0, 0.0], [4.0, 0.0]], dtype="float32")
+    fao_sd = np.array([[0.3, 0.0], [0.4, 0.0]], dtype="float32")
+
+    randomized = cropcalcs._apply_uncertainty_to_monthly_residues(
+        monthly_residues=monthly,
+        fao_avg_yields_array=fao_avg,
+        fao_sd_yields_array=fao_sd,
+        lu_mask=lu_mask,
+        random_runs=20,
+        rng=np.random.default_rng(0),
+    )
+
+    assert randomized.shape == monthly.shape
+    np.testing.assert_allclose(randomized[monthly == 0.0], 0.0, rtol=0.0, atol=0.0)

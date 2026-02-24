@@ -641,13 +641,13 @@ def _raster_rothc_annual_results(
                     c_inp = np.zeros_like(rain)
                 else:
                     print(f"        Calculating residue inputs for {crop_type} {crop_name}")
-                    c_inp = cropcalcs._apply_uncertainty_to_yields(
-                        result = c_inp,
-                        fao_avg_yields_array = yields_results.fao_avg_yields_array_nonscaled,
-                        fao_sd_yields_array = yields_results.fao_sd_yields_array,
-                        lu_mask =yields_results.lu_mask,
-                        random_runs = residue_runs,
-                        )
+                    c_inp = cropcalcs._apply_uncertainty_to_monthly_residues(
+                        monthly_residues=c_inp,
+                        fao_avg_yields_array=yields_results.fao_avg_yields_array_nonscaled,
+                        fao_sd_yields_array=yields_results.fao_sd_yields_array,
+                        lu_mask=yields_results.lu_mask,
+                        random_runs=residue_runs,
+                    )
                     
                     # c_inp = cropcalcs.calculate_monthly_residues_array(
                     #    lu_fp=commodity_lu_fp,
