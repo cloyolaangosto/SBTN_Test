@@ -35,8 +35,13 @@ def _as_path(value: PathLike) -> Path:
 def _resolve_project_path(path: PathLike) -> Path:
     """Resolve paths independent of current working directory.
 
-    Relative paths are interpreted against the repository root when they do
-    not exist from the current process directory.
+    Resolution order for relative paths:
+      1) current working directory (``candidate``)
+      2) repository root + candidate
+      3) repository root + candidate with one-or-more leading ``..`` removed
+
+    Step (3) supports notebook-authored paths such as ``../data/...`` and
+    ``../LEAFs/...`` when executed from a different working directory.
     """
 
     candidate = _as_path(path)
@@ -47,6 +52,15 @@ def _resolve_project_path(path: PathLike) -> Path:
     project_candidate = project_path(candidate)
     if project_candidate.exists():
         return project_candidate
+
+    if not candidate.is_absolute():
+        parts = list(candidate.parts)
+        while parts and parts[0] == '..':
+            parts = parts[1:]
+            trimmed = Path(*parts) if parts else Path('.')
+            trimmed_candidate = project_path(trimmed)
+            if trimmed_candidate.exists():
+                return trimmed_candidate
 
     return project_candidate
 
