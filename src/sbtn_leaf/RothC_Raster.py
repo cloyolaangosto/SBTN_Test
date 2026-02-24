@@ -12,9 +12,10 @@ from rasterio.enums import Resampling
 import numpy as np
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import polars as pl
-from tqdm.auto import trange, tqdm
+from tqdm.auto import trange
 from pathlib import Path
 import json
+import ast
 
 from sbtn_leaf.RothC_Core import RMF_Tmp, RMF_Moist, RMF_PC, RMF_TRM, _partition_to_bio_hum
 import sbtn_leaf.cropcalcs as cropcalcs
@@ -420,7 +421,7 @@ def _raster_rothc_annual_results(
             else:
                 print(f"        Calculating baseline residue inputs for {crop_type} {crop_name} using {residue_runs} stochastic runs")
 
-                c_inp = cropcalcs.calculate_monthly_residues_array(
+                c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
                     lu_fp=commodity_lu_fp,
                     crop_name=crop_name,
                     crop_type=crop_type,
@@ -436,13 +437,15 @@ def _raster_rothc_annual_results(
                     k_sd = k_sd,
                     ylds_src = ylds_src
                 )
+                c_inp = c_inp_inputs[0]
+                yields_results = c_inp_inputs[1]
             if c_inp is None:
                 if practices_string_id is not None and "roff" in practices_string_id:
                     print(f"        C_inputs are 0's")
                     c_inp = np.zeros_like(rain)
                 else:
                     print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
-                    c_inp = cropcalcs.calculate_monthly_residues_array(
+                    c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
                         lu_fp=commodity_lu_fp,
                         crop_name=crop_name,
                         crop_type=crop_type,
@@ -457,15 +460,17 @@ def _raster_rothc_annual_results(
                         k_sd = k_sd,
                         ylds_src = ylds_src
                     )
+                    c_inp = c_inp_inputs[0]
+                    yields_results = c_inp_inputs[1]
+
             c_inp = np.squeeze(np.asarray(c_inp))
-        
     elif commodity_type == "permanent_crop":
         dpm_rpm = 1
         crop_type = "permanent"
 
         # initialize c_inp
         print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
-        c_inp = cropcalcs.calculate_monthly_residues_array(
+        c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
             lu_fp=commodity_lu_fp,
             crop_name=crop_name,
             crop_type=crop_type,
@@ -480,8 +485,9 @@ def _raster_rothc_annual_results(
             k_sd = k_sd,
             ylds_src = ylds_src
         )
+        c_inp = c_inp_inputs[0]
+        yields_results = c_inp_inputs[1]
         c_inp = np.squeeze(np.asarray(c_inp))
-
     else: # forest type
         dpm_rpm = 0.25
         
@@ -509,7 +515,7 @@ def _raster_rothc_annual_results(
             c_inp = np.broadcast_to(c_inp, tmp.shape)
         if c_inp.ndim != 3:
             raise ValueError("C input must be 3-D after squeezing/broadcasting")
-    
+
     fym = fym if fym is not None else np.zeros_like(tmp)
     fym = np.asarray(fym)
     if fym.ndim > 3:
@@ -605,6 +611,9 @@ def _raster_rothc_annual_results(
             fym = fym.squeeze()  # Forces fym to have only spatial dimensions
         fym_slice = fym if fym.ndim == 2 else fym[t]
 
+        # Delete this after test
+        print(f"Residues month {t_abs}, equivalent to annual month {t}, average is {np.nanmean(c_inp_month):,.2f}")
+
         # Update pools
         DPM = D1 + (dpm_rpm / (dpm_rpm + 1.0)) * c_inp_month + 0.49 * fym_slice
         RPM = R1 + (1.0 / (dpm_rpm + 1.0)) * c_inp_month + 0.49 * fym_slice
@@ -632,22 +641,30 @@ def _raster_rothc_annual_results(
                     c_inp = np.zeros_like(rain)
                 else:
                     print(f"        Calculating residue inputs for {crop_type} {crop_name}")
-                    c_inp = cropcalcs.calculate_monthly_residues_array(
-                        lu_fp=commodity_lu_fp,
-                        crop_name=crop_name,
-                        crop_type=crop_type,
-                        ylds_crop_raster = ylds_crop_raster,
-                        irr_yield_scaling = irr_yield_scaling,
-                        ylds_all_fp = ylds_all_fp,
-                        ylds_irr_fp = ylds_irr_fp,
-                        ylds_rf_fp = ylds_rf_fp,
-                        random_runs=residue_runs,
-                        print_outputs= True,
-                        outlier_strategy = outlier_strategy,
-                        percentile_bounds = percentile_bound,
-                        k_sd = k_sd,
-                        ylds_src = ylds_src
-                    )
+                    c_inp = cropcalcs._apply_uncertainty_to_yields(
+                        result = c_inp,
+                        fao_avg_yields_array = yields_results.fao_avg_yields_array_nonscaled,
+                        fao_sd_yields_array = yields_results.fao_sd_yields_array,
+                        lu_mask =yields_results.lu_mask,
+                        random_runs = residue_runs,
+                        )
+                    
+                    # c_inp = cropcalcs.calculate_monthly_residues_array(
+                    #    lu_fp=commodity_lu_fp,
+                    #    crop_name=crop_name,
+                    #    crop_type=crop_type,
+                    #    ylds_crop_raster = ylds_crop_raster,
+                    #    irr_yield_scaling = irr_yield_scaling,
+                    #    ylds_all_fp = ylds_all_fp,
+                    #    ylds_irr_fp = ylds_irr_fp,
+                    #    ylds_rf_fp = ylds_rf_fp,
+                    #    random_runs=residue_runs,
+                    #    print_outputs= True,
+                    #    outlier_strategy = outlier_strategy,
+                    #    percentile_bounds = percentile_bound,
+                    #    k_sd = k_sd,
+                    #    ylds_src = ylds_src
+                    #)
                 c_inp = np.squeeze(np.asarray(c_inp))
 
     return soc_annual, co2_annual
@@ -1512,6 +1529,7 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
         file_fnw = None
         file_fnw = scenario.get("force_new_file")
 
+        # Checks if it's annual or permanent crop
         if scenario["commodity_type"] == "permanent_crop":
             crop_type_string = "Permanent"
         else:
@@ -1523,6 +1541,11 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
             scenario_description = scenario.get("practices_string_id")
         scn_string_text = f"{crop_type_string} crop - {scenario['crop_name']} - {scenario_description}"
 
+        # Checks if percentile bound exist and loads it correctly:
+        if "percentile_bound" in scenario and scenario["percentile_bound"] is not None:
+            scenario["percentile_bound"] = ast.literal_eval(scenario["percentile_bound"])
+
+        # Override certain parameters when running a test
         if run_test:
             scenario["residue_runs"] = 2
             scenario["n_years"] = 5

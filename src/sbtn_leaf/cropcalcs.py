@@ -106,7 +106,8 @@ class CropYieldRasterResult:
 
     averaged_result: np.ndarray
     yield_result: np.ndarray
-    fao_avg_yields_array: np.ndarray
+    fao_avg_yields_array_scaled: np.ndarray
+    fao_avg_yields_array_nonscaled: np.ndarray
     fao_sd_yields_array: np.ndarray
     ylds_on_lu: np.ndarray
     zone_array: np.ndarray
@@ -590,7 +591,6 @@ def _fill_with_ecoregions(
 
     remaining = lu_mask & np.isnan(result)
     if np.any(remaining):
-        print("Applying ecoregion fill")
         zone_max = int(zone_array.max())
         if zone_max >= 0:
             zone_lookup = np.full(zone_max + 1, np.nan, dtype=float)
@@ -698,12 +698,6 @@ def _pre_filter_yields_rasters(
             raise ValueError("local_window, local_k, and local_min_neighbors must be provided when apply_local_zscore=True")
         if local_window <= 0 or local_window % 2 == 0:
             raise ValueError("local_window must be a positive odd integer")
-
-    # Backwards-compat: allow old usage filter_outlier_strategy="local_zscore"
-    # Meaning: no zone clipping, only local z-score
-    if filter_outlier_strategy == "local_zscore":
-        apply_local_zscore = True
-        filter_outlier_strategy = "none"
 
     # --- validate zone strategy ---
     if filter_outlier_strategy == "ratio_percentile":
@@ -921,6 +915,7 @@ def _create_crop_yield_raster_core_2(
     mean = np.nanmean(randomized_result)
     median = np.nanmedian(randomized_result)
 
+    
     print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
 
     # Output block
@@ -1077,7 +1072,8 @@ def _create_crop_yield_raster_core(
     mean = np.nanmean(randomized_result)
     median = np.nanmedian(randomized_result)
 
-    print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
+    if config.print_outputs:
+        print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
 
     # Output block
     if write_output:
@@ -1086,7 +1082,8 @@ def _create_crop_yield_raster_core(
     return CropYieldRasterResult(
         averaged_result=randomized_result,
         yield_result=result,
-        fao_avg_yields_array=irrigation_scaling.fao_scaled_yields_array,
+        fao_avg_yields_array_scaled=irrigation_scaling.fao_scaled_yields_array,
+        fao_avg_yields_array_nonscaled=fao_avg_yields_array,
         fao_sd_yields_array=fao_sd_yields_array,
         ylds_on_lu=watered_yields,
         zone_array=zone_array,
@@ -1979,6 +1976,9 @@ def _distribute_residue_monthly(
             month_frac[hm_0index] = 0.7
             month_frac[res_months] = 0.3/4
 
+
+        print(f"Crop type {crop_type} monthly ratios are {month_frac}")
+        
         rows, cols = np.where((climate_ids == clim_id) & valid_mask)
         if rows.size == 0:
             continue
@@ -2418,6 +2418,7 @@ def calculate_monthly_residues_array(
     local_k: float = 2.5,
     # Minimum valid neighbors needed to apply local clipping at a pixel.
     local_min_neighbors: int = 4,
+    apply_local_zscore: bool = True,
     ylds_src: str = "GAEZ"
 ):
     # print("    Calculating stochastic residue array...")
@@ -2429,6 +2430,7 @@ def calculate_monthly_residues_array(
     # print(f"Creating {fao_crop_name} helper shapefile...")
     fao_yield_shp = create_crop_yield_shapefile(fao_crop_name)
 
+    # Step 2 - Calculate yields map
     yield_result = calculate_crop_yield_array_with_irrigation_scaling(
         croplu_grid_raster_fp=   lu_fp,
         fao_crop_shp=fao_yield_shp,
@@ -2445,10 +2447,11 @@ def calculate_monthly_residues_array(
         local_window=local_window,
         local_k=local_k,
         local_min_neighbors=local_min_neighbors,
-        ylds_src = ylds_src
+        ylds_src = ylds_src,
+        apply_local_zscore= apply_local_zscore
     )
 
-    # Step 4 - Create plant residue raster
+    # Step 3 - Create plant residue raster
     plant_residues = create_monthly_residue_vPipeline(
         crop_name,
         crop_type,
@@ -2457,7 +2460,7 @@ def calculate_monthly_residues_array(
         return_array=True
     )
 
-    return plant_residues
+    return plant_residues, yield_result
 
 def prepare_crop_scenarios(csv_filepath: str, override_params: dict | None = None):
     # Load scenarios
