@@ -632,6 +632,78 @@ def plot_da_on_world_extremes_cutoff(
     return result
 
 
+def plot_n_rasters_on_world_extremes_cutoff(
+    rasters: Sequence[Union[str, Path, xr.DataArray]],
+    titles: Optional[Sequence[str]] = None,
+    label_title: str = 'Raster Values',
+    raster_band: int = 1,
+    band: Optional[int] = None,
+    perc_cutoff: Optional[float] = 1,
+    p_min: Optional[float] = None,
+    p_max: Optional[float] = None,
+    quantiles: Optional[Union[int, Sequence[float]]] = None,
+    region: Optional[str] = None,
+    cmap: str = 'viridis',
+    divergence_center: Optional[float] = None,
+    n_categories: int = 20,
+    base_shp: Optional[gpd.GeoDataFrame] = None,
+    plt_show: bool = True,
+    min_val: Optional[float] = None,
+    max_val: Optional[float] = None,
+    eliminate_zeros: bool = False,
+    diverg0: Optional[bool] = None,
+    truncate_one_sided: bool = False,
+) -> Sequence[Tuple[plt.Figure, plt.Axes]]:
+    """Plot an arbitrary number of rasters with the same styling workflow.
+
+    This is a convenience wrapper around :func:`plot_raster_on_world_extremes_cutoff`
+    for batch plotting. It accepts either file paths or ``xarray.DataArray``
+    objects and creates one figure per raster.
+    """
+
+    rasters = list(rasters)
+    if not rasters:
+        raise ValueError("'rasters' must contain at least one item.")
+
+    if titles is None:
+        resolved_titles = [f"Raster {idx + 1}" for idx in range(len(rasters))]
+    else:
+        resolved_titles = list(titles)
+        if len(resolved_titles) != len(rasters):
+            raise ValueError("'titles' length must match the number of rasters.")
+
+    results = []
+    for raster, title in zip(rasters, resolved_titles):
+        fig_ax = plot_raster_on_world_extremes_cutoff(
+            raster=raster,
+            title=title,
+            label_title=label_title,
+            raster_band=raster_band,
+            band=band,
+            perc_cutoff=perc_cutoff,
+            p_min=p_min,
+            p_max=p_max,
+            quantiles=quantiles,
+            region=region,
+            cmap=cmap,
+            divergence_center=divergence_center,
+            n_categories=n_categories,
+            base_shp=base_shp,
+            plt_show=False,
+            min_val=min_val,
+            max_val=max_val,
+            eliminate_zeros=eliminate_zeros,
+            diverg0=diverg0,
+            truncate_one_sided=truncate_one_sided,
+        )
+        results.append(fig_ax)
+
+    if plt_show:
+        plt.show()
+
+    return results
+
+
 def plot_all_raster_bands(
     tif_path: str,
     title_prefix: str = "",
