@@ -611,8 +611,6 @@ def _raster_rothc_annual_results(
             fym = fym.squeeze()  # Forces fym to have only spatial dimensions
         fym_slice = fym if fym.ndim == 2 else fym[t]
 
-        # Delete this after test
-        print(f"Residues month {t_abs}, equivalent to annual month {t}, average is {np.nanmean(c_inp_month):,.2f}")
 
         # Update pools
         DPM = D1 + (dpm_rpm / (dpm_rpm + 1.0)) * c_inp_month + 0.49 * fym_slice
