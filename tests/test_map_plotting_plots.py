@@ -148,21 +148,42 @@ def test_plot_raster_divergence_guard(tmp_path):
         )
 
 
-def test_plot_n_rasters_returns_figures(tmp_path):
+def test_plot_n_rasters_returns_grid_figure(tmp_path):
     raster_path, _, _ = _create_test_raster(tmp_path)
 
-    outputs = plot_n_rasters_on_world_extremes_cutoff(
+    fig, axes = plot_n_rasters_on_world_extremes_cutoff(
         [raster_path, raster_path],
         titles=["A", "B"],
+        n_cols=2,
+        n_rows=1,
         perc_cutoff=0,
         base_shp=gpd.GeoDataFrame(),
         plt_show=False,
     )
 
-    assert len(outputs) == 2
-    for fig, ax in outputs:
-        assert fig is not None and ax is not None
-        plt.close(fig)
+    assert fig is not None
+    assert axes.shape == (1, 2)
+    plt.close(fig)
+
+
+def test_plot_n_rasters_shared_scale_uses_common_norm(tmp_path):
+    raster_path, _, _ = _create_test_raster(tmp_path)
+
+    fig, axes = plot_n_rasters_on_world_extremes_cutoff(
+        [raster_path, raster_path],
+        n_cols=2,
+        n_rows=1,
+        perc_cutoff=0,
+        share_color_scale=True,
+        base_shp=gpd.GeoDataFrame(),
+        plt_show=False,
+    )
+
+    left_image = axes[0, 0].images[0]
+    right_image = axes[0, 1].images[0]
+    assert left_image.norm.vmin == pytest.approx(right_image.norm.vmin)
+    assert left_image.norm.vmax == pytest.approx(right_image.norm.vmax)
+    plt.close(fig)
 
 
 def test_plot_n_rasters_title_length_guard(tmp_path):
@@ -172,6 +193,20 @@ def test_plot_n_rasters_title_length_guard(tmp_path):
         plot_n_rasters_on_world_extremes_cutoff(
             [raster_path, raster_path],
             titles=["Only one"],
+            perc_cutoff=0,
+            base_shp=gpd.GeoDataFrame(),
+            plt_show=False,
+        )
+
+
+def test_plot_n_rasters_grid_guard(tmp_path):
+    raster_path, _, _ = _create_test_raster(tmp_path)
+
+    with pytest.raises(ValueError):
+        plot_n_rasters_on_world_extremes_cutoff(
+            [raster_path, raster_path],
+            n_cols=1,
+            n_rows=1,
             perc_cutoff=0,
             base_shp=gpd.GeoDataFrame(),
             plt_show=False,

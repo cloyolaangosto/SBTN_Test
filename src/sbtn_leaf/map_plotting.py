@@ -653,17 +653,33 @@ def plot_n_rasters_on_world_extremes_cutoff(
     eliminate_zeros: bool = False,
     diverg0: Optional[bool] = None,
     truncate_one_sided: bool = False,
-) -> Sequence[Tuple[plt.Figure, plt.Axes]]:
-    """Plot an arbitrary number of rasters with the same styling workflow.
+    n_cols: int = 2,
+    n_rows: Optional[int] = None,
+    share_color_scale: bool = False,
+    x_size: float = 6,
+    y_size: float = 4,
+) -> Tuple[plt.Figure, np.ndarray]:
+    """Plot multiple rasters in a subplot grid.
 
-    This is a convenience wrapper around :func:`plot_raster_on_world_extremes_cutoff`
-    for batch plotting. It accepts either file paths or ``xarray.DataArray``
-    objects and creates one figure per raster.
+    Parameters mirror :func:`plot_raster_on_world_extremes_cutoff` and add
+    ``n_cols``/``n_rows`` for layout plus ``share_color_scale`` to force a
+    common continuous scale across subplots.
     """
 
     rasters = list(rasters)
     if not rasters:
         raise ValueError("'rasters' must contain at least one item.")
+
+    if n_cols <= 0:
+        raise ValueError("'n_cols' must be a positive integer.")
+
+    if n_rows is None:
+        n_rows = int(np.ceil(len(rasters) / n_cols))
+    elif n_rows <= 0:
+        raise ValueError("'n_rows' must be a positive integer when provided.")
+
+    if n_rows * n_cols < len(rasters):
+        raise ValueError("Grid (n_rows * n_cols) is smaller than number of rasters.")
 
     if titles is None:
         resolved_titles = [f"Raster {idx + 1}" for idx in range(len(rasters))]
@@ -672,36 +688,131 @@ def plot_n_rasters_on_world_extremes_cutoff(
         if len(resolved_titles) != len(rasters):
             raise ValueError("'titles' length must match the number of rasters.")
 
-    results = []
-    for raster, title in zip(rasters, resolved_titles):
-        fig_ax = plot_raster_on_world_extremes_cutoff(
-            raster=raster,
-            title=title,
-            label_title=label_title,
+    if base_shp is None:
+        base_shp = _get_world_map()
+
+    resolved_divergence = divergence_center
+    if diverg0 is not None:
+        if divergence_center is not None and diverg0:
+            raise ValueError("Specify either 'divergence_center' or 'diverg0', not both.")
+        if diverg0:
+            resolved_divergence = 0.0
+        elif divergence_center is None:
+            resolved_divergence = None
+
+    prepared = []
+    all_values = []
+    for raster in rasters:
+        raster_data, bounds, _, raster_crs, _ = _prepare_raster_plot_input(
+            raster,
             raster_band=raster_band,
             band=band,
             perc_cutoff=perc_cutoff,
             p_min=p_min,
             p_max=p_max,
-            quantiles=quantiles,
-            region=region,
-            cmap=cmap,
-            divergence_center=divergence_center,
-            n_categories=n_categories,
-            base_shp=base_shp,
-            plt_show=False,
-            min_val=min_val,
-            max_val=max_val,
+            hard_min=min_val,
+            hard_max=max_val,
             eliminate_zeros=eliminate_zeros,
-            diverg0=diverg0,
-            truncate_one_sided=truncate_one_sided,
         )
-        results.append(fig_ax)
+        vals = raster_data[np.isfinite(raster_data)]
+        if vals.size == 0:
+            raise ValueError("One of the rasters is empty or fully NaN after preprocessing.")
+        prepared.append((raster_data, bounds, raster_crs, vals))
+        all_values.append(vals)
 
+    shared_norm = None
+    shared_cmap = plt.get_cmap(cmap)
+    if share_color_scale:
+        combined = np.concatenate(all_values)
+        global_min = float(np.min(combined)) if min_val is None else float(min_val)
+        global_max = float(np.max(combined)) if max_val is None else float(max_val)
+
+        if quantiles is not None:
+            if isinstance(quantiles, (int, np.integer)):
+                edges = np.linspace(global_min, global_max, int(quantiles) + 1)
+            else:
+                q = np.asarray(quantiles, dtype=float)
+                if np.all((q >= 0) & (q <= 100)):
+                    edges = np.percentile(combined, q)
+                else:
+                    edges = q
+            shared_norm = BoundaryNorm(edges, ncolors=shared_cmap.N)
+        elif resolved_divergence is not None:
+            shared_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=global_min, vmax=global_max)
+        else:
+            shared_norm = Normalize(vmin=global_min, vmax=global_max)
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * x_size, n_rows * y_size), squeeze=False)
+    axes_flat = axes.flatten()
+
+    for idx, (raster_data, bounds, raster_crs, vals) in enumerate(prepared):
+        ax = axes_flat[idx]
+        extent = [bounds.left, bounds.right, bounds.bottom, bounds.top]
+
+        local_cmap = shared_cmap
+        local_norm = shared_norm
+
+        if not share_color_scale:
+            unique_vals = np.unique(vals)
+            is_categorical = len(unique_vals) <= n_categories
+            if is_categorical:
+                if len(unique_vals) > 1:
+                    diffs = np.diff(unique_vals)
+                    boundaries = np.concatenate([
+                        [unique_vals[0] - diffs[0] / 2],
+                        (unique_vals[:-1] + unique_vals[1:]) / 2,
+                        [unique_vals[-1] + diffs[-1] / 2],
+                    ])
+                else:
+                    boundaries = np.array([unique_vals[0] - 0.5, unique_vals[0] + 0.5])
+                local_cmap = ListedColormap(plt.get_cmap(cmap)(np.linspace(0, 1, len(unique_vals))))
+                local_norm = BoundaryNorm(boundaries, ncolors=local_cmap.N, clip=True)
+            else:
+                local_min = float(np.min(vals)) if min_val is None else float(min_val)
+                local_max = float(np.max(vals)) if max_val is None else float(max_val)
+
+                if quantiles is not None:
+                    if isinstance(quantiles, (int, np.integer)):
+                        edges = np.linspace(local_min, local_max, int(quantiles) + 1)
+                    else:
+                        q = np.asarray(quantiles, dtype=float)
+                        if np.all((q >= 0) & (q <= 100)):
+                            edges = np.percentile(vals, q)
+                        else:
+                            edges = q
+                    local_norm = BoundaryNorm(edges, ncolors=local_cmap.N)
+                elif resolved_divergence is not None:
+                    local_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=local_min, vmax=local_max)
+                else:
+                    local_norm = Normalize(vmin=local_min, vmax=local_max)
+
+        img = ax.imshow(raster_data, extent=extent, origin='upper', cmap=local_cmap, norm=local_norm)
+        ax.set_title(resolved_titles[idx])
+
+        shp_to_plot = base_shp
+        if region:
+            mask = (
+                shp_to_plot['NAME'].str.contains(region, case=False, na=False)
+                | shp_to_plot['CONTINENT'].str.contains(region, case=False, na=False)
+            )
+            shp_to_plot = shp_to_plot[mask]
+        if not shp_to_plot.empty and raster_crs is not None:
+            try:
+                shp_to_plot.to_crs(raster_crs).boundary.plot(ax=ax, edgecolor='grey', linewidth=0.4)
+            except Exception:
+                pass
+
+        cbar = fig.colorbar(img, ax=ax, fraction=0.04, pad=0.02)
+        cbar.set_label(label_title)
+
+    for j in range(len(prepared), len(axes_flat)):
+        axes_flat[j].axis('off')
+
+    fig.tight_layout()
     if plt_show:
         plt.show()
 
-    return results
+    return fig, axes
 
 
 def plot_all_raster_bands(
