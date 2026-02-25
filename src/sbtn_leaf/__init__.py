@@ -78,6 +78,7 @@ surface area.  The curated groups are:
   - :func:`extract_coordinates_values_from_raster`
 * Plotting helpers (:mod:`sbtn_leaf.map_plotting`)
   - :func:`plot_raster_on_world_extremes_cutoff`
+  - :func:`plot_n_rasters_on_world_extremes_cutoff`
   - :func:`plot_da_on_world_extremes_cutoff`
   - :func:`plot_all_raster_bands`
   - :func:`plot_raster_on_world_no_min`
@@ -217,6 +218,7 @@ from .map_plotting import (
     plot_raster_data_histogram,
     plot_raster_histogram,
     plot_raster_on_world_extremes_cutoff,
+    plot_n_rasters_on_world_extremes_cutoff,
     plot_raster_on_world_no_min,
     plot_raster_over_gdf,
     plot_raster_over_gdf_showpolygonvalues,
@@ -345,6 +347,7 @@ _MAP_PLOTTING_EXPORTS = [
     "plot_raster_data_histogram",
     "plot_raster_histogram",
     "plot_raster_on_world_extremes_cutoff",
+    "plot_n_rasters_on_world_extremes_cutoff",
     "plot_raster_on_world_no_min",
     "plot_raster_over_gdf",
     "plot_raster_over_gdf_showpolygonvalues",
