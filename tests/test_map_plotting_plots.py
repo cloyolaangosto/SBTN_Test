@@ -11,6 +11,7 @@ from sbtn_leaf.map_plotting import (
     _prepare_raster_plot_input,
     plot_raster_on_world_extremes_cutoff,
     plot_da_on_world_extremes_cutoff,
+    plot_n_rasters_on_world_extremes_cutoff,
 )
 
 
@@ -144,4 +145,34 @@ def test_plot_raster_divergence_guard(tmp_path):
             base_shp=gpd.GeoDataFrame(),
             divergence_center=0,
             diverg0=True,
+        )
+
+
+def test_plot_n_rasters_returns_figures(tmp_path):
+    raster_path, _, _ = _create_test_raster(tmp_path)
+
+    outputs = plot_n_rasters_on_world_extremes_cutoff(
+        [raster_path, raster_path],
+        titles=["A", "B"],
+        perc_cutoff=0,
+        base_shp=gpd.GeoDataFrame(),
+        plt_show=False,
+    )
+
+    assert len(outputs) == 2
+    for fig, ax in outputs:
+        assert fig is not None and ax is not None
+        plt.close(fig)
+
+
+def test_plot_n_rasters_title_length_guard(tmp_path):
+    raster_path, _, _ = _create_test_raster(tmp_path)
+
+    with pytest.raises(ValueError):
+        plot_n_rasters_on_world_extremes_cutoff(
+            [raster_path, raster_path],
+            titles=["Only one"],
+            perc_cutoff=0,
+            base_shp=gpd.GeoDataFrame(),
+            plt_show=False,
         )
