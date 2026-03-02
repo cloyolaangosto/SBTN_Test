@@ -541,6 +541,10 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     q_low: float = 0.01,
     q_high: float = 0.99,
     std_thresh: float = 3.0,
+    apply_local_zscore: bool = False,
+    local_window: int = 5,
+    local_k: float = 3.0,
+    local_min_neighbors: int = 5,
     # Globals for shapes expected as in your original function:
     er_gdf: Optional[gpd.GeoDataFrame] = None,
     country_gdf: Optional[gpd.GeoDataFrame] = None,
@@ -559,6 +563,8 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         'exact'       -> precise per-pixel polygon intersection
     - Outlier filtering can be applied before computing statistics:
         outlier_method in {None, 'quantile', 'std', 'log1p_cap', 'log1p_win'}
+    - Optional second-stage local z-score clipping can be enabled with
+      ``apply_local_zscore=True``.
     - Set ``suppress_logging`` to ``True`` to silence informational/debug messages when the function is used as a
       building block inside larger batch operations.
     """
@@ -732,10 +738,18 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             weights = (frac[keep] * base_pixel_area).astype(np.float64, copy=False)
 
             # Outlier filtering (optional)
-            values, weights = _apply_outlier_filter(values, weights,
-                                                    method=outlier_method,
-                                                    q_low=q_low, q_high=q_high,
-                                                    std_thresh=std_thresh)
+            values, weights = _apply_outlier_filter(
+                values,
+                weights,
+                method=outlier_method,
+                q_low=q_low,
+                q_high=q_high,
+                std_thresh=std_thresh,
+                apply_local_zscore=apply_local_zscore,
+                local_window=local_window,
+                local_k=local_k,
+                local_min_neighbors=local_min_neighbors,
+            )
 
             if values.size == 0:
                 if log:
@@ -1162,20 +1176,44 @@ def _weighted_median(values, weights):
     
     return sorted_values[median_index]
 
-def _apply_outlier_filter(values, weights, method=None, q_low=0.01, q_high=0.99, std_thresh=3.0):
+def _apply_outlier_filter(
+    values,
+    weights,
+    method=None,
+    q_low=0.01,
+    q_high=0.99,
+    std_thresh=3.0,
+    apply_local_zscore=False,
+    local_window=5,
+    local_k=3.0,
+    local_min_neighbors=5,
+):
     """
-    Filter outliers and return filtered values/weights.
+    Filter outliers and return filtered/clipped values with weights.
     - method: None | 'quantile' | 'std' | 'log1p_cap' | 'log1p_win'
-    - q_low/q_high only used for 'quantile'
-    - std_thresh used for 'std' and 'log1p_std'
+    - q_low/q_high used for quantile bounds (and log1p winsor bounds)
+    - std_thresh used for 'std' and 'log1p_cap'
+    - apply_local_zscore performs a second optional clipping pass.
     """
-    if method is None or values.size == 0:
+    if values.size == 0:
         return values, weights
 
-    val = values
-    wghts = weights
+    val = np.asarray(values, dtype=np.float64)
+    wghts = np.asarray(weights, dtype=np.float64)
 
-    if method == "quantile":
+    valid = np.isfinite(val) & np.isfinite(wghts) & (wghts > 0)
+    if not np.all(valid):
+        val = val[valid]
+        wghts = wghts[valid]
+    if val.size == 0:
+        return val, wghts
+
+    if method is None:
+        keep = np.ones_like(val, dtype=bool)
+
+    elif method == "quantile":
+        if not (0 <= q_low < q_high <= 1):
+            raise ValueError("q_low and q_high must satisfy 0 <= q_low < q_high <= 1")
         if val.size == 0:
             return val, wghts
         sorted_indices = np.argsort(val)
@@ -1189,13 +1227,17 @@ def _apply_outlier_filter(values, weights, method=None, q_low=0.01, q_high=0.99,
         upper_index = np.searchsorted(cumulative_weights, upper_cut, side="left")
         lower_bound = sorted_values[min(lower_index, sorted_values.size - 1)]
         upper_bound = sorted_values[min(upper_index, sorted_values.size - 1)]
-        keep = (val >= lower_bound) & (val <= upper_bound)
+        val = np.clip(val, lower_bound, upper_bound)
+        keep = np.ones_like(val, dtype=bool)
 
     elif method == "std":
         avg = np.average(val, weights=wghts)
         var = np.average((val - avg) ** 2, weights=wghts)
         sd = np.sqrt(var)
-        keep = np.abs(val - avg) <= std_thresh * sd
+        lower_bound = avg - std_thresh * sd
+        upper_bound = avg + std_thresh * sd
+        val = np.clip(val, lower_bound, upper_bound)
+        keep = np.ones_like(val, dtype=bool)
 
     elif method in ['log1p_cap','log1p_win']:
         valid_mask = val > -1
@@ -1204,24 +1246,51 @@ def _apply_outlier_filter(values, weights, method=None, q_low=0.01, q_high=0.99,
             wghts = wghts[valid_mask]
             if val.size == 0:
                 return val, wghts
-        val_trans = np.log1p(val)
-        mu = np.average(val_trans, weights=wghts)
-        var = np.average((val_trans - mu) ** 2, weights=wghts)
-        sd = np.sqrt(var)
-        val_cut = mu + std_thresh * sd
 
-        if method =='log1p_cap':
-            # Keep values before long right tail
-            keep = val_trans <= val_cut
-        else:  # Winsorize (replace all values above the threshold by the threshold)
-            x_cut = np.expm1(val_cut)
-            val_cap = np.minimum(val, x_cut)
-            keep = np.ones_like(val, dtype='bool')
-            val = val_cap
+        log_vals = np.log1p(val)
+
+        if method == 'log1p_cap':
+            mu = np.average(log_vals, weights=wghts)
+            var = np.average((log_vals - mu) ** 2, weights=wghts)
+            sd = np.sqrt(var)
+            log_cut = mu + std_thresh * sd
+            x_cut = np.expm1(log_cut)
+            val = np.minimum(val, x_cut)
+            keep = np.ones_like(val, dtype=bool)
+        else:
+            if not (0 <= q_low < q_high <= 1):
+                raise ValueError("q_low and q_high must satisfy 0 <= q_low < q_high <= 1")
+            lo, hi = np.percentile(log_vals, [q_low * 100.0, q_high * 100.0])
+            min_val = np.expm1(lo)
+            max_val = np.expm1(hi)
+            val = np.clip(val, min_val, max_val)
+            keep = np.ones_like(val, dtype=bool)
 
     else:
         # Unknown method; do nothing
         return val, wghts
+
+    if apply_local_zscore and val.size:
+        if local_window <= 0 or local_window % 2 == 0:
+            raise ValueError("local_window must be a positive odd integer")
+        if local_min_neighbors <= 0:
+            raise ValueError("local_min_neighbors must be > 0")
+
+        kernel = np.ones(local_window, dtype=np.float64)
+        counts = np.convolve(np.ones_like(val, dtype=np.float64), kernel, mode='same')
+        sums = np.convolve(val, kernel, mode='same')
+        sums_sq = np.convolve(val * val, kernel, mode='same')
+
+        with np.errstate(invalid='ignore', divide='ignore'):
+            local_mean = np.divide(sums, counts, where=counts > 0)
+            local_var = np.divide(sums_sq, counts, where=counts > 0) - (local_mean * local_mean)
+
+        local_std = np.sqrt(np.maximum(local_var, 0.0))
+        enough_neighbors = counts >= local_min_neighbors
+        lower = local_mean - local_k * local_std
+        upper = local_mean + local_k * local_std
+
+        val[enough_neighbors] = np.clip(val[enough_neighbors], lower[enough_neighbors], upper[enough_neighbors])
 
     return val[keep], wghts[keep]
 
