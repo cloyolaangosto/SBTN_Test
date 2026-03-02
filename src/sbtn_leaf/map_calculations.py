@@ -21,6 +21,7 @@ from shapely.prepared import prep as prep_geom
 from tqdm.auto import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from pathlib import Path
+import xarray as xr
 
 import os
 
@@ -837,7 +838,7 @@ def build_cfs_gpkg_from_rasters(
     output_folder: str,
     *,
     layer_name: str,
-    master_gdf: gpd.GeoDataFrame | None,
+    master_gdf: gpd.GeoDataFrame,
     master_key: str,                 # e.g., 'ADM0_NAME', 'ISO_A3', 'ADM1_NAME', 'ECO_NAME'
     result_key: str,                 # column in calculator's gdf that matches master_key
     equal_area_crs: str= "EPSG:6933",
@@ -964,7 +965,7 @@ def build_cfs_gpkg_from_rasters(
             if input_raster_key_startswith:
                 flow_name = flow_name.replace(input_raster_key_startswith, "")
             if input_raster_key_endswith:
-                flow_name = flow_name.replace(input_raster_key_startswith, "")
+                flow_name = flow_name.replace(input_raster_key_endswith, "")
 
             if logger:
                 logger.info(f"Calculating {cf_name} for {flow_name}...")
