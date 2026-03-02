@@ -15,12 +15,13 @@ from rasterio.windows import Window
 import rioxarray
 import tempfile
 from contextlib import nullcontext
-from typing import Optional, Callable, Iterable, Tuple, Dict, List, Union, Sequence
+from typing import Optional, Tuple, Dict, List, Union, Sequence
 from shapely.geometry import box
 from shapely.prepared import prep as prep_geom
 from tqdm.auto import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from pathlib import Path
+import xarray as xr
 
 import os
 
@@ -33,7 +34,6 @@ import numpy as np
 import pandas as pd
 
 # My modules
-import sbtn_leaf.map_plotting as maplot
 from sbtn_leaf.paths import data_path
 
 ############
@@ -661,7 +661,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
     results = []
 
-    # Iterate regions (itertuples gives ~25-30% speedup vs iterrows on large shapefiles in local tests)
+    # Iterate regions
     for region in shp.itertuples(index=True):
         idx = region.Index
         geom = region.geometry
