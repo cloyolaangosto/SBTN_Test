@@ -825,6 +825,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         )
 
     results_df = pd.DataFrame(results)
+    print(results_df.columns)
 
     # Merge back for spatial output
     if area_type == "ecoregion":
@@ -834,7 +835,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         
     elif area_type == "country":
         final_gdf = shp.merge(results_df, how="left", left_on="ADM0_NAME", right_on="country")
-        drop_cols = [ 'STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
+        drop_cols = ['STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
         
     else:
         final_gdf = shp.merge(results_df, how="left", on="ADM1_CODE")
@@ -978,7 +979,7 @@ def build_cfs_gpkg_from_rasters(
             if input_raster_key_startswith:
                 flow_name = flow_name.replace(input_raster_key_startswith, "")
             if input_raster_key_endswith:
-                flow_name = flow_name.replace(input_raster_key_startswith, "")
+                flow_name = flow_name.replace(input_raster_key_endswith, "")
 
             if logger:
                 logger.info(f"Calculating {cf_name} for {flow_name}...")
