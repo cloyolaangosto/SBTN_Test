@@ -827,7 +827,6 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         )
 
     results_df = pd.DataFrame(results)
-    print(results_df.columns)
 
     # Merge back for spatial output
     if area_type == "ecoregion":
@@ -896,6 +895,10 @@ def build_cfs_gpkg_from_rasters(
     # Reset outputs if requested
     if write_gpkg and reset_gpkg and gpckg_path and os.path.exists(gpckg_path):
         os.remove(gpckg_path)
+    if reset_gpkg and os.path.exists(csv_path):
+        os.remove(csv_path)
+
+    # Reset CSV if requested
     if reset_gpkg and os.path.exists(csv_path):
         os.remove(csv_path)
 
@@ -1881,7 +1884,7 @@ def create_binary_mask(input_path, output_path, binary_value = 1, band=1, src_no
     # Create the binary mask.
     # If a nodata value is defined, determine valid pixels.
     if nodata is None:
-        print(f"Input doens't have a nodata value. Value {binary_value} if cell has value and {dst_nodata} if not, disregarding which value it is.")
+        print(f"Input doesn't have a nodata value. Value {binary_value} if cell has value and {dst_nodata} if not, disregarding which value it is.")
         # If no nodata value is defined, assume a cell has a value if it is non-zero.
         binary = np.where(data != 0, binary_value, dst_nodata).astype(np.float32)
     else:
