@@ -914,7 +914,7 @@ def _load_crop_data(
     evap = evap.where(lu_mask).fillna(0)
 
     pc = rxr.open_rasterio(_as_path(pc_fp), masked=True)
-    pc    = pc.rename({"band": "time"})
+    pc = pc.rename({"band": "time"})
     pc = (pc).where(lu_mask)
     pc = pc.where(lu_mask).fillna(0)
     

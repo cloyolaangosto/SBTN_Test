@@ -711,6 +711,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
                 valid = np.isfinite(arr)
 
             if not np.any(valid):
+                print("No valid data for %s. Skipping...", region_text)
                 if log:
                     log.debug("No valid data for %s. Skipping...", region_text)
                 continue
@@ -766,6 +767,8 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             wvar = np.sum(weights * (values - wmean) ** 2) / wsum
             wstd = np.sqrt(wvar)
             wmed = _weighted_median(values, weights)
+
+            print(f"Country {getattr(region, "ADM0_NAME", None)} has a cf of {wmean}")
 
             # Append per area_type
             if area_type == "ecoregion":

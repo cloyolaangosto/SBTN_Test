@@ -1802,7 +1802,7 @@ def convert_K2C_raster(kelvin_raster: str, output_path):
 def create_plant_cover_monthly_raster(
     crop: str,
     save_path: str,
-    climate_raster_path: str = uhth_climates_fp,
+    climate_raster_path: str | Path = uhth_climates_fp,
     output_nodata: int = 255,
     *,
     crop_table: Optional[pl.DataFrame] = None,
@@ -1816,15 +1816,15 @@ def create_plant_cover_monthly_raster(
     - output_nodata: integer nodata code for the output mask
     """
     # 1. Load the climate raster (raw values, no masking)
-    da = rxr.open_rasterio(climate_raster_path, masked=False)
+    da_clim = rxr.open_rasterio(climate_raster_path, masked=False)
     # If band dim exists, drop it
-    if "band" in da.dims and da.sizes["band"] == 1:
-        da = da.squeeze("band", drop=True)
+    if "band" in da_clim.dims and da_clim.sizes["band"] == 1:
+        da_clim = da_clim.squeeze("band", drop=True)
 
     # 2. Get the raw ID grid and its spatial coords
-    ids = da.values        # 2D array (y, x)
-    y = da.coords["y"]
-    x = da.coords["x"]
+    clim_ids = da_clim.values        # 2D array (y, x)
+    y = da_clim.coords["y"]
+    x = da_clim.coords["x"]
 
     # 3. Prepare an output array filled with nodata
     n_months = 12
@@ -1837,14 +1837,16 @@ def create_plant_cover_monthly_raster(
 
     # 4. Loop over each unique climate ID
     # Pull nodata from rioxarray metadata, falling back to legacy attrs.
-    nodata = da.rio.nodata
+    nodata = da_clim.rio.nodata
     if nodata is None:
-        nodata = da.attrs.get("nodata")
+        nodata = da_clim.attrs.get("nodata")
+    
     # Start with all pixels valid, then progressively filter out invalid ones.
-    valid_mask = np.ones(ids.shape, dtype=bool)
+    valid_mask = np.ones(clim_ids.shape, dtype=bool)
     # Drop NaN values for floating-point rasters.
-    if np.issubdtype(ids.dtype, np.floating):
-        valid_mask &= ~np.isnan(ids)
+    if np.issubdtype(clim_ids.dtype, np.floating):
+        valid_mask &= ~np.isnan(clim_ids)
+    
     if nodata is not None:
         # Skip nodata comparison if nodata itself is NaN or non-numeric.
         try:
@@ -1853,8 +1855,9 @@ def create_plant_cover_monthly_raster(
             nodata_is_nan = False
         # Exclude explicit nodata values for integer or float rasters.
         if not nodata_is_nan:
-            valid_mask &= ids != nodata
-    unique_ids = np.unique(ids[valid_mask]).astype(int)
+            valid_mask &= clim_ids != nodata
+    
+    unique_ids = np.unique(clim_ids[valid_mask]).astype(int)
     for cid in unique_ids:
         group = climate_lookup.get(cid)
         if group is None:
@@ -1865,7 +1868,7 @@ def create_plant_cover_monthly_raster(
         pc_vec = np.array(pc_df.select("Plant_Cover").to_series())  # shape (12,)
 
         # Assign that vector to all pixels where ids==cid
-        rows, cols = np.where(ids == cid)
+        rows, cols = np.where(clim_ids == cid)
         mask[:, rows, cols] = pc_vec[:, None]
 
     # 5. Wrap into an xarray.DataArray with spatial metadata
@@ -1880,8 +1883,8 @@ def create_plant_cover_monthly_raster(
         name=f"{crop}_pc_mask"
     )
     # 6. Write CRS, transform, and nodata
-    da_mask = da_mask.rio.write_crs(da.rio.crs)
-    da_mask = da_mask.rio.write_transform(da.rio.transform())
+    da_mask = da_mask.rio.write_crs(da_clim.rio.crs)
+    da_mask = da_mask.rio.write_transform(da_clim.rio.transform())
     da_mask = da_mask.rio.write_nodata(output_nodata)
     da_mask = da_mask.rio.set_spatial_dims(x_dim="x", y_dim="y")
 
