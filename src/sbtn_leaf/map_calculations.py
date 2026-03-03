@@ -25,6 +25,8 @@ import xarray as xr
 
 import os
 
+from pyogrio import list_layers as list_gpkg_layers
+from pyogrio import read_dataframe as read_df
 from pyogrio import write_dataframe as write_df
 gpd.options.io_engine = "pyogrio"  # To be able to write gpckg's
 
@@ -892,6 +894,10 @@ def build_cfs_gpkg_from_rasters(
     if write_gpkg and reset_gpkg and gpckg_path and os.path.exists(gpckg_path):
         os.remove(gpckg_path)
 
+    # Reset CSV if requested
+    if reset_gpkg and os.path.exists(csv_path):
+        os.remove(csv_path)
+
     # Ensure master has needed columns & unique keys
     if master_key not in master_gdf.columns:
         raise KeyError(f"master_key '{master_key}' not in master_gdf columns.")
@@ -904,6 +910,31 @@ def build_cfs_gpkg_from_rasters(
             f"Building '{layer_name}' from rasters in {input_folder} into {output_folder} ({destination})\n"
         )
 
+    def _flow_name_from_file(file_name: str) -> str:
+        flow = os.path.splitext(file_name)[0]
+        if input_raster_key_startswith:
+            flow = flow.replace(input_raster_key_startswith, "")
+        if input_raster_key_endswith:
+            flow = flow.replace(input_raster_key_endswith, "")
+        return flow
+
+    existing_layers: set[str] = set()
+    processed_flows: set[str] = set()
+    if write_gpkg and gpckg_path and os.path.exists(gpckg_path):
+        try:
+            layer_info = list_gpkg_layers(gpckg_path)
+            existing_layers = {str(row[0]) for row in layer_info}
+        except Exception:
+            existing_layers = set()
+
+        if not reset_gpkg and layer_name in existing_layers:
+            try:
+                existing_values = read_df(gpckg_path, layer=layer_name)
+                if "flow_name" in existing_values.columns:
+                    processed_flows = set(existing_values["flow_name"].dropna().astype(str).unique())
+            except Exception:
+                processed_flows = set()
+
     # Gather files
     all_files = sorted(os.listdir(input_folder))
     if run_test:
@@ -914,6 +945,7 @@ def build_cfs_gpkg_from_rasters(
         for file in all_files
         if file.lower().endswith(file_filter.lower())
         and (not input_raster_key_startswith or file.startswith(input_raster_key_startswith))
+        and (_flow_name_from_file(file) not in processed_flows)
     ]
 
     progress_iter = tqdm(
@@ -930,9 +962,6 @@ def build_cfs_gpkg_from_rasters(
     attribute_first_write = True
     schema_cols: Optional[List[str]] = None
     total_rows = 0
-
-    # Prepare metadata container (impact category/unit stored once per flow)
-    metadata_records: List[Dict[str, str]] = []
 
     # Dropping unnecessary columns
     if area_type == "ecoregion":
@@ -953,33 +982,36 @@ def build_cfs_gpkg_from_rasters(
         master_gdf = master_gdf.to_crs(equal_area_crs)
 
     # Persist master geometry once (recommendation #1)
-    if write_gpkg:
-        write_df(
-            master_gdf,
-            gpckg_path,
-            layer="geometry_layer",
-            driver="GPKG",
-            append=False,
-            promote_to_multi=promote_to_multi,
-            layer_options={"GEOMETRY_NAME": "geom", "SPATIAL_INDEX": "NO"}
-        )
+    if write_gpkg and gpckg_path:
+        geometry_layer_exists = (not reset_gpkg) and ("geometry_layer" in existing_layers)
+        if not geometry_layer_exists:
+            write_df(
+                master_gdf,
+                gpckg_path,
+                layer="geometry_layer",
+                driver="GPKG",
+                append=False,
+                promote_to_multi=promote_to_multi,
+                layer_options={"GEOMETRY_NAME": "geom", "SPATIAL_INDEX": "NO"}
+            )
+
+    if write_gpkg and gpckg_path and (not reset_gpkg) and (layer_name in existing_layers):
+        attribute_first_write = False
+        try:
+            existing_values = read_df(gpckg_path, layer=layer_name)
+            schema_cols = list(existing_values.columns)
+        except Exception:
+            schema_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
 
     # Base frame with master identifiers for later joins
     master_id_df = pd.DataFrame(master_gdf[master_key])
-
-    # Store long-format results for CSV export (without constant metadata columns)
-    long_result_frames: List[pd.DataFrame] = []
 
     # Iterates through files
     with logging_context:
         for file in progress_iter:
 
             raster_path = os.path.join(input_folder, file)
-            flow_name = os.path.splitext(file)[0]
-            if input_raster_key_startswith:
-                flow_name = flow_name.replace(input_raster_key_startswith, "")
-            if input_raster_key_endswith:
-                flow_name = flow_name.replace(input_raster_key_endswith, "")
+            flow_name = _flow_name_from_file(file)
 
             if logger:
                 logger.info(f"Calculating {cf_name} for {flow_name}...")
@@ -1038,7 +1070,6 @@ def build_cfs_gpkg_from_rasters(
             }
             if add_source_file_name:
                 metadata_entry["source_file"] = file
-            metadata_records.append(metadata_entry)
 
             if write_gpkg:
                 # Initialize schema for attribute layer on first write
@@ -1067,6 +1098,17 @@ def build_cfs_gpkg_from_rasters(
                     append=append_flag,
                 )
 
+                metadata_layer = f"{layer_name}_metadata"
+                metadata_df = pd.DataFrame([metadata_entry])
+                write_df(
+                    metadata_df,
+                    gpckg_path,
+                    layer=metadata_layer,
+                    driver="GPKG",
+                    append=(metadata_layer in existing_layers),
+                )
+                existing_layers.add(metadata_layer)
+
             # Long-format table for CSV output (no constant columns)
             mean_df = master_id_df.merge(
                 df_flow[[result_key, "cf"]],
@@ -1092,11 +1134,30 @@ def build_cfs_gpkg_from_rasters(
             ).rename(columns={"cf_std": "value"})
             std_df["metric"] = "cf_std"
 
+            per_flow_frames: List[pd.DataFrame] = []
             for frame in (mean_df, median_df, std_df):
                 if (result_key in flow_values.columns) and (master_key != result_key):
                     frame = frame.drop(columns=result_key)
                 frame["flow_name"] = flow_name
-                long_result_frames.append(frame)
+                per_flow_frames.append(frame)
+
+            flow_results_df = pd.concat(per_flow_frames, ignore_index=True)
+
+            # Persist CSV progress after each successful raster
+            csv_row_block = flow_results_df.copy()
+            if area_type == "subcountry":
+                csv_row_block = csv_row_block.merge(master_gdf[["ADM1_CODE", "ADM1_NAME", "ADM0_NAME"]], how="left", on="ADM1_CODE")
+                csv_row_block = csv_row_block[["ADM0_NAME", "ADM1_NAME", "ADM1_CODE", "flow_name", "metric", "value"]]
+            elif area_type == "ecoregion":
+                csv_row_block = csv_row_block.merge(master_gdf[['ECO_ID', 'ECO_NAME', 'BIOME_NUM', 'BIOME_NAME', 'REALM']], how="left", on="ECO_ID")
+
+            csv_row_block.to_csv(
+                csv_path,
+                mode="a",
+                header=not os.path.exists(csv_path),
+                index=False,
+            )
+
 
             if write_gpkg:
                 total_rows += len(flow_values)
@@ -1106,33 +1167,11 @@ def build_cfs_gpkg_from_rasters(
     elif hasattr(progress_iter, "update"):
         progress_iter.update(0)
 
-    # Combine long-format data and persist to CSV
-    if long_result_frames:
-        results_df = pd.concat(long_result_frames, ignore_index=True)
+    # Load current CSV snapshot (includes prior progress when resuming)
+    if os.path.exists(csv_path):
+        results_df = pd.read_csv(csv_path)
     else:
         results_df = pd.DataFrame(columns=[master_key, "flow_name", "metric", "value"])
-
-    # Add missing columns for subcountries
-    if area_type == "subcountry":
-        results_df = results_df.merge(master_gdf[["ADM1_CODE", "ADM1_NAME", "ADM0_NAME"]], how="left", on="ADM1_CODE")
-        results_df = results_df[["ADM0_NAME", "ADM1_NAME", "ADM1_CODE", "flow_name", "metric", "value"]]
-    elif area_type == "ecoregion":
-        results_df = results_df.merge(master_gdf[['ECO_ID', 'ECO_NAME', 'BIOME_NUM', 'BIOME_NAME', 'REALM']], how="left", on="ECO_ID")
-    
-    # Store results
-    results_df.to_csv(csv_path, index=False)
-
-    # Persist metadata table once (recommendation #2)
-    if write_gpkg and metadata_records:
-        metadata_df = pd.DataFrame(metadata_records).drop_duplicates(subset=["flow_name"], keep="last")
-        metadata_layer = f"{layer_name}_metadata"
-        write_df(
-            metadata_df,
-            gpckg_path,
-            layer=metadata_layer,
-            driver="GPKG",
-            append=False,
-        )
 
     if logger is not None:
         if write_gpkg:
