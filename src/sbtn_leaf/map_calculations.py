@@ -898,10 +898,6 @@ def build_cfs_gpkg_from_rasters(
     if reset_gpkg and os.path.exists(csv_path):
         os.remove(csv_path)
 
-    # Reset CSV if requested
-    if reset_gpkg and os.path.exists(csv_path):
-        os.remove(csv_path)
-
     # Ensure master has needed columns & unique keys
     if master_key not in master_gdf.columns:
         raise KeyError(f"master_key '{master_key}' not in master_gdf columns.")
@@ -957,6 +953,7 @@ def build_cfs_gpkg_from_rasters(
         for file in all_files
         if file.lower().endswith(file_filter.lower())
         and (not input_raster_key_startswith or file.startswith(input_raster_key_startswith))
+        and (not input_raster_key_endswith or os.path.splitext(file)[0].endswith(input_raster_key_endswith))
         and (_flow_name_from_file(file) not in processed_flows)
     ]
 
@@ -1029,6 +1026,7 @@ def build_cfs_gpkg_from_rasters(
         csv_enrichment = None
 
     pending_csv_blocks: List[pd.DataFrame] = []
+    pending_gpkg_blocks: List[pd.DataFrame] = []
     pending_metadata: List[Dict[str, str]] = []
 
     def flush_pending() -> None:
@@ -1048,6 +1046,18 @@ def build_cfs_gpkg_from_rasters(
                 index=False,
             )
             pending_csv_blocks.clear()
+
+        if write_gpkg and gpckg_path and pending_gpkg_blocks:
+            gpkg_block = pd.concat(pending_gpkg_blocks, ignore_index=True)
+            write_df(
+                gpkg_block,
+                gpckg_path,
+                layer=layer_name,
+                driver="GPKG",
+                append=(layer_name in existing_layers),
+            )
+            existing_layers.add(layer_name)
+            pending_gpkg_blocks.clear()
 
         if write_gpkg and gpckg_path and pending_metadata:
             metadata_df = pd.DataFrame(pending_metadata)
@@ -1131,15 +1141,12 @@ def build_cfs_gpkg_from_rasters(
                     metadata_entry["source_file"] = file
 
                 if write_gpkg:
-                    # Initialize schema for attribute layer on first write
+                    # Initialize schema for attribute layer on first raster seen
                     if attribute_first_write:
                         base_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
                         extras = [c for c in flow_values.columns if c not in base_cols]
                         schema_cols = [c for c in base_cols + extras if c in flow_values.columns]
-                        append_flag = False
                         attribute_first_write = False
-                    else:
-                        append_flag = True
 
                     # Align columns to schema for stability across flows
                     if schema_cols is None:
@@ -1149,14 +1156,7 @@ def build_cfs_gpkg_from_rasters(
                             flow_values[c] = pd.NA
                     flow_values = flow_values[schema_cols]
 
-                    write_df(
-                        flow_values,
-                        gpckg_path,
-                        layer=layer_name,
-                        driver="GPKG",
-                        append=append_flag,
-                    )
-                    existing_layers.add(layer_name)
+                    pending_gpkg_blocks.append(flow_values)
                     total_rows += len(flow_values)
 
                 # Long-format rows for CSV export
