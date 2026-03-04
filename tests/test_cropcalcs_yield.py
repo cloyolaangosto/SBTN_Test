@@ -57,7 +57,7 @@ def test_create_crop_yield_raster_base(tmp_path):
     spam_array = np.array([[10, -9999], [30, 40]], dtype="float32")
     _write_raster(spam_path, spam_array, transform, nodata=-9999.0)
 
-    fao_gdf = _make_fao_gdf("avg_yield_1423", "ratio_yield_20_toavg", avg_value=1000.0, ratio_value=0.5)
+    fao_gdf = _make_fao_gdf("avg_yield", "yld_ratio", avg_value=1000.0, ratio_value=0.5)
 
     out_path = tmp_path / "yield.tif"
     create_crop_yield_raster(str(lu_path), fao_gdf, str(spam_path), str(out_path))

@@ -8,16 +8,13 @@ from functools import lru_cache
 import hashlib
 from collections import defaultdict
 import numpy as np
-import polars as pl
-import rasterio
-import numpy as np
 import pandas as pd
 import polars as pl
+import rasterio
 import xarray as xr
 from dataclasses import dataclass
 from typing import Mapping, Optional, Tuple, Dict, Union, List, NamedTuple, Set
 import geopandas as gpd
-import rasterio
 from affine import Affine
 from rasterio.crs import CRS
 from rasterio.features import rasterize
@@ -580,17 +577,16 @@ def _compose_yield_result_2(
     global_watering_ratio: float,
     lu_valid: np.ndarray,
     ylds_src: str,
-    fao_yld_ratio: float | None = None
+    enable_ecoregion_fill: bool = True,
+    enable_nearest_fill: bool = True,
     ):
 
     # Initializing results
     results = np.full_like(lu_data, np.nan, dtype="float32")
-    # results_s0 = results
 
     # Step 1 - Filling with correct watered array
     irrigation_valid =  ~np.isnan(watered_yields)
     needs_filling = lu_valid & irrigation_valid
-    fao_yld_ratio = 1 if ylds_src == "GAEZ" else fao_yld_ratio
     results[needs_filling] = watered_yields[needs_filling]
     # results_s1 = results
 
@@ -607,11 +603,13 @@ def _compose_yield_result_2(
     # results_s3 = results
 
     # Step 4 - Filling with ecoregion averages
-    results_er = _fill_with_ecoregions(
+    results_er, _ = _fill_with_ecoregions(
         result=results,
         croplu_grid_raster=lu_raster_fp,
         lu_mask=lu_valid,
-        global_fao_yield_fallback=global_fao_yield
+        global_fao_yield_fallback=global_fao_yield,
+        enable_ecoregion_fill=enable_ecoregion_fill,
+        enable_nearest_fill=enable_nearest_fill,
     )
 
     results_final = np.where(lu_valid, results_er, np.nan)
@@ -625,44 +623,51 @@ def _fill_with_ecoregions(
     lu_mask: np.ndarray,
     global_fao_yield_fallback: float,
     *,
+    enable_ecoregion_fill: bool = True,
     enable_nearest_fill: bool = True,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, Optional[np.ndarray]]:
 
-    ecoregion_avg, biome_avg, zone_array, biome_name_map = _calculate_average_yield_by_ecoregion_and_biome(
-        result, croplu_grid_raster
-    )
+    zone_array = None
 
-    remaining = lu_mask & np.isnan(result)
-    if np.any(remaining):
-        zone_max = int(zone_array.max())
-        if zone_max >= 0:
-            zone_lookup = np.full(zone_max + 1, np.nan, dtype=float)
-            for zid, avg in ecoregion_avg.items():
-                if 0 <= zid <= zone_max:
-                    zone_lookup[zid] = avg
+    if enable_ecoregion_fill:
+        ecoregion_avg, biome_avg, zone_array, biome_name_map = calculate_average_yield_by_ecoregion_and_biome(
+            result, croplu_grid_raster
+        )
 
-            unique_zones = np.unique(zone_array)
-            unique_zones = unique_zones[unique_zones >= 0]
-            if unique_zones.size:
-                missing = np.isnan(zone_lookup[unique_zones])
-                if np.any(missing):
-                    for zid in unique_zones[missing]:
-                        biome = biome_name_map.get(int(zid))
-                        if isinstance(biome, str):
-                            zone_lookup[zid] = biome_avg.get(biome, global_fao_yield_fallback)
-                        else:
-                            zone_lookup[zid] = global_fao_yield_fallback
-            zone_lookup = np.where(np.isnan(zone_lookup), global_fao_yield_fallback, zone_lookup)
+        remaining = lu_mask & np.isnan(result)
+        if np.any(remaining):
+            zone_max = int(zone_array.max())
+            if zone_max >= 0:
+                zone_lookup = np.full(zone_max + 1, np.nan, dtype=float)
+                for zid, avg in ecoregion_avg.items():
+                    if 0 <= zid <= zone_max:
+                        zone_lookup[zid] = avg
 
-            remaining_zones = zone_array[remaining]
-            fill_vals = np.full(remaining_zones.shape, global_fao_yield_fallback, dtype=float)
-            valid_zones = remaining_zones >= 0
-            if np.any(valid_zones):
-                fill_vals[valid_zones] = zone_lookup[remaining_zones[valid_zones]]
-            before_missing = np.isnan(result)
-            result[remaining] = fill_vals
-        else:
-            before_missing = np.isnan(result)
+                unique_zones = np.unique(zone_array)
+                unique_zones = unique_zones[unique_zones >= 0]
+                if unique_zones.size:
+                    missing = np.isnan(zone_lookup[unique_zones])
+                    if np.any(missing):
+                        for zid in unique_zones[missing]:
+                            biome = biome_name_map.get(int(zid))
+                            if isinstance(biome, str):
+                                zone_lookup[zid] = biome_avg.get(biome, global_fao_yield_fallback)
+                            else:
+                                zone_lookup[zid] = global_fao_yield_fallback
+                zone_lookup = np.where(np.isnan(zone_lookup), global_fao_yield_fallback, zone_lookup)
+
+                remaining_zones = zone_array[remaining]
+                fill_vals = np.full(remaining_zones.shape, global_fao_yield_fallback, dtype=float)
+                valid_zones = remaining_zones >= 0
+                if np.any(valid_zones):
+                    fill_vals[valid_zones] = zone_lookup[remaining_zones[valid_zones]]
+                result[remaining] = fill_vals
+            else:
+                result[remaining] = global_fao_yield_fallback
+    else:
+        # When ecoregion fill is disabled, still fill remaining LU pixels with global fallback
+        remaining = lu_mask & np.isnan(result)
+        if np.any(remaining):
             result[remaining] = global_fao_yield_fallback
 
     remaining = lu_mask & np.isnan(result)
@@ -672,10 +677,10 @@ def _fill_with_ecoregions(
             ~valid, return_distances=True, return_indices=True
         )
         filled = result[iy, ix]
-        before_missing = np.isnan(result)
         result[remaining] = filled[remaining]
 
-    return result
+    return result, zone_array
+
 
 def _pre_filter_yields_rasters(
     yld_arrays: tuple[np.ndarray, ...],
@@ -736,11 +741,16 @@ def _pre_filter_yields_rasters(
         return result
 
     # --- validate local params if needed ---
-    if apply_local_zscore:
+    if apply_local_zscore or filter_outlier_strategy == "local_zscore":
         if local_window is None or local_k is None or local_min_neighbors is None:
             raise ValueError("local_window, local_k, and local_min_neighbors must be provided when apply_local_zscore=True")
         if local_window <= 0 or local_window % 2 == 0:
             raise ValueError("local_window must be a positive odd integer")
+
+    # When "local_zscore" is selected as the zone strategy, automatically enable
+    # the second-stage local z-score pass (no zone clipping is applied).
+    if filter_outlier_strategy == "local_zscore":
+        apply_local_zscore = True
 
     # --- validate zone strategy ---
     if filter_outlier_strategy == "ratio_percentile":
@@ -755,7 +765,7 @@ def _pre_filter_yields_rasters(
     elif filter_outlier_strategy == "sd":
         if k_sd is None:
             raise ValueError("k_sd must be provided for sd strategy")
-    elif filter_outlier_strategy == "none":
+    elif filter_outlier_strategy in ("none", "local_zscore"):
         pass
     else:
         raise ValueError(f"Unknown strategy: {filter_outlier_strategy}")
@@ -764,7 +774,7 @@ def _pre_filter_yields_rasters(
     out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in yld_arrays]
 
     # --- zone-based clipping (if requested) ---
-    if filter_outlier_strategy != "none":
+    if filter_outlier_strategy not in ("none", "local_zscore"):
         for _, row in fao_gdf.iterrows():
             zid = int(row["zone_id"])
             zid_mask = zone_array == zid
@@ -804,6 +814,13 @@ def _pre_filter_yields_rasters(
                 clipped = np.clip(array, min_val, max_val).astype("float32", copy=False)
                 out_arrays[i][valid_zone] = clipped[valid_zone]
 
+    elif filter_outlier_strategy == "local_zscore":
+        # No statistical clipping, but restrict to pixels in known FAO zones.
+        known_zone_ids = {int(row["zone_id"]) for _, row in fao_gdf.iterrows()}
+        known_zone_mask = np.isin(zone_array, list(known_zone_ids))
+        for i, array in enumerate(yld_arrays):
+            m = np.isfinite(array) & known_zone_mask
+            out_arrays[i][m] = array[m].astype("float32", copy=False)
     else:
         # No zone clipping: just copy finite values through before local pass
         for i, array in enumerate(yld_arrays):
@@ -943,7 +960,6 @@ def _create_crop_yield_raster_core_2(
         global_watering_ratio = irrigation_scaling.avg_wat_ratio,
         lu_valid=lu_mask,
         ylds_src=ylds_src,
-        fao_yld_ratio=global_fao_ratio
     )
 
     randomized_result = _apply_uncertainty_to_yields(
@@ -958,8 +974,9 @@ def _create_crop_yield_raster_core_2(
     mean = np.nanmean(randomized_result)
     median = np.nanmedian(randomized_result)
 
-    
-    print(f"        Final mean is {mean:.1f} and median is {median:.1f}.")
+    logging.getLogger(__name__).info(
+        "Final mean is %.1f and median is %.1f.", mean, median
+    )
 
     # Output block
     if write_output:
@@ -1000,9 +1017,8 @@ def _create_crop_yield_raster_core(
         lu_data
     ) = _read_cropland_raster(croplu_grid_raster)
 
-    # Step 2 - Reprojects all yields bands
-    yields_all = _reproject_ylds_src_to_lu(
-        ylds_crop_raster=config.all_fp,
+    # Step 2 - Reprojects all yields bands (skip when path is None)
+    _reproject_kwargs = dict(
         ylds_band=config.ylds_band,
         lu_height=lu_height,
         lu_width=lu_width,
@@ -1010,25 +1026,22 @@ def _create_crop_yield_raster_core(
         lu_crs=lu_crs,
         resampling_method=config.resampling_method,
     )
+    _nan_placeholder = np.full((lu_height, lu_width), np.nan, dtype="float32")
 
-    yields_irr = _reproject_ylds_src_to_lu(
-        ylds_crop_raster=config.irr_fp,
-        ylds_band=config.ylds_band,
-        lu_height=lu_height,
-        lu_width=lu_width,
-        lu_transform=lu_transform,
-        lu_crs=lu_crs,
-        resampling_method=config.resampling_method,
+    # Use ylds_crop_raster as fallback for all_fp when no separate irrigation rasters
+    all_fp = config.all_fp if config.all_fp is not None else ylds_crop_raster
+
+    yields_all = (
+        _reproject_ylds_src_to_lu(ylds_crop_raster=all_fp, **_reproject_kwargs)
+        if all_fp is not None else _nan_placeholder.copy()
     )
-
-    yields_rf = _reproject_ylds_src_to_lu(
-        ylds_crop_raster=config.rf_fp,
-        ylds_band=config.ylds_band,
-        lu_height=lu_height,
-        lu_width=lu_width,
-        lu_transform=lu_transform,
-        lu_crs=lu_crs,
-        resampling_method=config.resampling_method,
+    yields_irr = (
+        _reproject_ylds_src_to_lu(ylds_crop_raster=config.irr_fp, **_reproject_kwargs)
+        if config.irr_fp is not None else _nan_placeholder.copy()
+    )
+    yields_rf = (
+        _reproject_ylds_src_to_lu(ylds_crop_raster=config.rf_fp, **_reproject_kwargs)
+        if config.rf_fp is not None else _nan_placeholder.copy()
     )
 
     # Step 3 - Rasterize fao yields
@@ -1099,7 +1112,8 @@ def _create_crop_yield_raster_core(
         global_watering_ratio=irrigation_scaling.avg_wat_ratio,
         lu_valid=lu_mask,
         ylds_src=config.ylds_src,
-        fao_yld_ratio = global_fao_ratio
+        enable_ecoregion_fill=config.apply_ecoregion_fill,
+        enable_nearest_fill=config.enable_nearest_fill,
     )
 
     # Apply uncertainty to results
@@ -1481,6 +1495,10 @@ def _calculate_average_yield_by_ecoregion_and_biome(
     return ecoregion_avg, biome_avg, zone_array, biome_name_map
 
 
+# Public alias so tests can monkeypatch via the non-underscored name.
+calculate_average_yield_by_ecoregion_and_biome = _calculate_average_yield_by_ecoregion_and_biome
+
+
 def calculate_crop_residues(crop: str, crop_yield: float, C_Content: float = 0.5):
     """
     Compute above- and below-ground residues (in C-content dry matter) for a given crop.
@@ -1501,7 +1519,7 @@ def calculate_crop_residues(crop: str, crop_yield: float, C_Content: float = 0.5
     # Initialize crop amounts
     ABG = 0.0
     BG = 0.0
-    Res = ABG + BG
+    Res = 0.0
 
     # Getting IPCC name and calculating belowground
     ipcc_crop = crop_table.filter(pl.col('Crops') == crop).select('IPCC_Crop').item()
@@ -1750,7 +1768,7 @@ def create_plant_cover_monthly_curve(
 
     # Fill the plant cover curve based on start and end dates
     plant_cover_array = plant_cover_array.with_columns(
-        pl.when((pl.col('Month')>=pc_starts), (pl.col('Month')<=pc_ends)).then(1).otherwise(0).alias('Plant_Cover')
+        pl.when((pl.col('Month')>=pc_starts) & (pl.col('Month')<=pc_ends)).then(1).otherwise(0).alias('Plant_Cover')
     )
 
     return plant_cover_array
@@ -2202,14 +2220,8 @@ def calculate_irrigation_fromArray(rain, evap):
     rain = np.asarray(rain, dtype=float)
     evap = np.asarray(evap, dtype=float)
 
-    # Creates a new empty array
-    irr = np.zeros_like(rain, dtype=float)
-
-    # See where it needs irrigation
-    irr_needed = evap > rain
-
-    # Fills the irrigation array
-    irr = np.where(irr_needed, evap - rain, 0)
+    # Calculate irrigation: where ET exceeds precipitation
+    irr = np.where(evap > rain, evap - rain, 0)
 
     return irr
 
@@ -2227,18 +2239,20 @@ def calculate_irrigation_fromTif(rain_fp, evap_fp, out_path: str):
     with rasterio.open(rain_fp) as src_rain:
         rain = src_rain.read().astype("float32")
         rain_src = src_rain.crs
+        rain_shape = src_rain.shape
 
     with rasterio.open(evap_fp) as src_evap:
         evap = src_evap.read().astype("float32")
         evap_src = src_evap.crs
         evap_profile = src_evap.profile
+        evap_shape = src_evap.shape
 
     # Check if crs is the same
     if rain_src != evap_src:
         raise ValueError("Rasters have different crs. Please align before.")
 
     # Checks if size are the same
-    if src_rain.shape != src_evap.shape:
+    if rain_shape != evap_shape:
         raise ValueError("Rasters different shape")
 
     # See where it needs irrigation
@@ -2589,9 +2603,6 @@ def prepare_crop_scenarios_PET_PlantCover_only(csv_filepath: str, override_param
         # otherwise, this is a new LU for this crop → keep it
         seen_hashes_by_crop[crop_name].add(lu_hash)
         unique_scenarios.append(row)
-
-    # Append these missing irrigation scenarios to the list
-    unique_scenarios.extend(extra_irrigation.to_dicts())
 
     # 3.- Run scenarions
     # Creates an emtpy list
@@ -3061,7 +3072,11 @@ def create_monthly_residue_vPipeline(
     da = da.rio.set_spatial_dims(x_dim="x", y_dim="y")
 
     if write_output:
-        # 2️⃣ Write CRS, transform, nodata in order
+        if yield_raster_path is None:
+            raise ValueError(
+                "write_output=True requires yield_raster_path to obtain CRS and "
+                "transform metadata. Provide a raster path or set write_output=False."
+            )
         da.rio.to_raster(
             output_path,
             driver="GTiff",
@@ -3177,8 +3192,6 @@ def get_forest_litter_monthlyrate_fromda(da: np.ndarray, forest_type: str, weath
 #### GRASSLAND CALCULATIONS #####
 #################################
 @lru_cache(maxsize=1)
-
-
 def _load_grassland_residue_table() -> pl.DataFrame:
     """Load the IPCC grassland residue table from disk."""
 
@@ -3313,7 +3326,6 @@ class DungBundle(NamedTuple):
     path: str
 
 # Class to store output of dung calculations
-from dataclasses import dataclass
 @dataclass
 class RasterResult:
     array: np.ndarray
