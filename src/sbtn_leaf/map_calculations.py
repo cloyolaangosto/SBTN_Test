@@ -16,6 +16,7 @@ import rioxarray
 import tempfile
 from contextlib import nullcontext
 from typing import Optional, Tuple, Dict, List, Union, Sequence
+import shapely as _shapely
 from shapely.geometry import box
 from shapely.prepared import prep as prep_geom
 from tqdm.auto import tqdm
@@ -640,10 +641,11 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
                     break
         if nodata_value is None:
             # As a last resort, use encoded nodata to catch per-band fill values.
-            nodata_value = data_array.rio.encoded_nodata()
+            nodata_value = data_array.rio.encoded_nodata
         return nodata_value
 
-    need_reproj = raster_crs.is_geographic or (str(raster_crs) != equal_area_crs)
+    _target_crs = pyproj.CRS.from_user_input(equal_area_crs)
+    need_reproj = raster_crs.is_geographic or (not raster_crs.equals(_target_crs))
     if need_reproj:
         # Carry forward the resolved nodata so reprojection preserves fill values.
         reproject_nodata = _resolve_nodata(raster)
@@ -843,7 +845,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         drop_cols = ['STR1_YEAR', 'EXP1_YEAR', 'STATUS', 'DISP_AREA', 'ADM0_CODE',  'SHAPE_LENG', "SHAPE_AREA"]
         # final_gdf = final_gdf.drop(columns=["country", "subcountry (adm1)"])
 
-    final_gdf = final_gdf.drop(columns=drop_cols)
+    final_gdf = final_gdf.drop(columns=drop_cols, errors='ignore')
     return [results_df, final_gdf]
 
 
@@ -1327,7 +1329,14 @@ def _apply_outlier_filter(
         else:
             if not (0 <= q_low < q_high <= 1):
                 raise ValueError("q_low and q_high must satisfy 0 <= q_low < q_high <= 1")
-            lo, hi = np.percentile(log_vals, [q_low * 100.0, q_high * 100.0])
+            # Use weighted quantile (consistent with the 'quantile' method above).
+            sorted_idx = np.argsort(log_vals)
+            s_log = log_vals[sorted_idx]
+            s_w   = wghts[sorted_idx]
+            cum_w = np.cumsum(s_w)
+            total_w = cum_w[-1]
+            lo = s_log[min(np.searchsorted(cum_w, q_low  * total_w, side="left"), s_log.size - 1)]
+            hi = s_log[min(np.searchsorted(cum_w, q_high * total_w, side="left"), s_log.size - 1)]
             min_val = np.expm1(lo)
             max_val = np.expm1(hi)
             val = np.clip(val, min_val, max_val)
@@ -1404,39 +1413,61 @@ def _fractional_cover_exact(geom, out_shape, transform):
     """
     Exact fractional coverage using per-cell polygon intersections.
     Returns an array (H, W) with fractions in [0, 1].
-    NOTE: This can be slow for large rasters/regions.
+
+    Uses shapely 2.x vectorized operations when available (much faster).
+    Falls back to a prepared-geometry loop for shapely < 2.
     """
     H, W = out_shape
-    frac = np.zeros((H, W), dtype="float32")
-    prepared = _prepare_geom_for_fast_contains(geom)
-
-    # Precompute pixel area (assumes north-up)
     px_area = _pixel_area_from_transform(transform)
 
-    # Iterate only over bbox that actually intersects the polygon bbox
-    # (here we do the full window; for speed, you could compute row/col bounds by polygon bbox)
-    for r in range(H):
-        y_top = transform.f + r * transform.e
-        y_bot = y_top + transform.e
-        for c in range(W):
-            x_left = transform.c + c * transform.a
-            x_right = x_left + transform.a
+    # Precompute all cell coordinates
+    rows = np.arange(H)
+    cols = np.arange(W)
+    y_tops  = transform.f + rows * transform.e
+    y_bots  = y_tops + transform.e
+    x_lefts  = transform.c + cols * transform.a
+    x_rights = x_lefts + transform.a
 
-            cell_poly = box(min(x_left, x_right), min(y_top, y_bot),
-                            max(x_left, x_right), max(y_top, y_bot))
-            if not prepared.intersects(cell_poly):
-                continue
+    # Try shapely 2.x vectorised path first (box/intersects/intersection/area accept arrays)
+    try:
+        X_left,  Y_top = np.meshgrid(x_lefts, y_tops)
+        X_right, Y_bot = np.meshgrid(x_rights, y_bots)
+        cells = _shapely.box(
+            np.minimum(X_left,  X_right).ravel(),
+            np.minimum(Y_top,   Y_bot  ).ravel(),
+            np.maximum(X_left,  X_right).ravel(),
+            np.maximum(Y_top,   Y_bot  ).ravel(),
+        )
+        hits = _shapely.intersects(cells, geom)
+        frac_flat = np.zeros(H * W, dtype="float32")
+        if hits.any():
+            inters = _shapely.intersection(cells[hits], geom)
+            areas  = _shapely.area(inters)
+            frac_flat[hits] = np.minimum(1.0, (areas / px_area).astype("float32"))
+        return frac_flat.reshape(H, W)
 
-            inter = cell_poly.intersection(geom)
-            if inter.is_empty:
-                continue
-
-            inter_area = inter.area  # in m^2 (equal-area CRS)
-            if inter_area <= 0:
-                continue
-
-            frac[r, c] = min(1.0, inter_area / px_area)
-    return frac
+    except (AttributeError, TypeError):
+        # Fallback: prepared-geometry loop (shapely < 2.0)
+        frac = np.zeros((H, W), dtype="float32")
+        prepared = _prepare_geom_for_fast_contains(geom)
+        for r in range(H):
+            y_top = y_tops[r]
+            y_bot = y_bots[r]
+            for c in range(W):
+                x_left  = x_lefts[c]
+                x_right = x_rights[c]
+                cell_poly = box(min(x_left, x_right), min(y_top, y_bot),
+                                max(x_left, x_right), max(y_top, y_bot))
+                if not prepared.intersects(cell_poly):
+                    continue
+                inter = cell_poly.intersection(geom)
+                if inter.is_empty:
+                    continue
+                inter_area = inter.area
+                if inter_area <= 0:
+                    continue
+                frac[r, c] = min(1.0, inter_area / px_area)
+        return frac
 
 def _prepare_geom_for_fast_contains(geom):
     # Shapely 'prepared geometry' for faster intersects/contains in loops
