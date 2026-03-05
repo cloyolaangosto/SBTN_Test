@@ -25,6 +25,7 @@ from pathlib import Path
 import xarray as xr
 
 import os
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
 from pyogrio import list_layers as list_gpkg_layers
 from pyogrio import read_dataframe as read_df
@@ -524,6 +525,200 @@ def _filter_invalid_latitudes(gdf):
     return valid_gdf, invalid_gdf
 
 
+def _resolve_nodata_rasterio(src) -> Optional[float]:
+    """Resolve nodata value from a rasterio dataset handle."""
+    nodata_value = src.nodata
+    if nodata_value is None:
+        # Check tags for common CF/NetCDF-style attrs
+        tags = src.tags()
+        for attr_key in ("_FillValue", "nodata"):
+            if attr_key in tags and tags[attr_key] is not None:
+                try:
+                    nodata_value = float(tags[attr_key])
+                except (ValueError, TypeError):
+                    continue
+                break
+    return nodata_value
+
+
+def _process_single_region(
+    raster_path: str,
+    raster_band: int,
+    geom,
+    region_attrs: dict,
+    area_type: str,
+    src_crs,
+    src_transform,
+    src_nodata: Optional[float],
+    src_shape: tuple,
+    need_reproj: bool,
+    equal_area_crs: str,
+    resampling_method,
+    base_pixel_area: float,
+    coverage_method: str,
+    supersample_factor: int,
+    outlier_method: Optional[str],
+    q_low: float,
+    q_high: float,
+    std_thresh: float,
+    apply_local_zscore: bool,
+    local_window: int,
+    local_k: float,
+    local_min_neighbors: int,
+    cf_name: str,
+    cf_unit: str,
+    flow_name: str,
+) -> Optional[dict]:
+    """
+    Process a single region against a raster file.  Opens its own rasterio
+    handle so this is safe to call from multiple threads.
+
+    Returns a result dict or None if the region has no valid data.
+    """
+    if geom is None or geom.is_empty:
+        return None
+
+    minx, miny, maxx, maxy = geom.bounds
+
+    # Compute window in source pixel coordinates
+    src_window = rasterio.windows.from_bounds(
+        minx, miny, maxx, maxy, src_transform
+    )
+    # Snap to integer pixel boundaries (round outward to avoid clipping data)
+    col_off = max(0, int(np.floor(src_window.col_off)))
+    row_off = max(0, int(np.floor(src_window.row_off)))
+    col_end = min(src_shape[1], int(np.ceil(src_window.col_off + src_window.width)))
+    row_end = min(src_shape[0], int(np.ceil(src_window.row_off + src_window.height)))
+    win_width = col_end - col_off
+    win_height = row_end - row_off
+
+    if win_width <= 0 or win_height <= 0:
+        return None
+
+    int_window = Window(col_off, row_off, win_width, win_height)
+
+    # Read only this window from disk (thread-safe: each call opens its own handle)
+    with rasterio.open(raster_path) as src:
+        arr = src.read(raster_band, window=int_window).astype(np.float64)
+        win_transform = src.window_transform(int_window)
+
+    nodata = src_nodata
+
+    if need_reproj:
+        # Reproject just this small window to equal-area CRS
+        dst_crs = pyproj.CRS.from_user_input(equal_area_crs)
+        # Compute destination shape and transform using rasterio.warp
+        dst_transform, dst_width, dst_height = rasterio.warp.calculate_default_transform(
+            src_crs, dst_crs,
+            win_width, win_height,
+            left=minx, bottom=miny, right=maxx, top=maxy,
+        )
+        dst_arr = np.empty((dst_height, dst_width), dtype=np.float64)
+        rasterio.warp.reproject(
+            source=arr,
+            destination=dst_arr,
+            src_transform=win_transform,
+            src_crs=src_crs,
+            dst_transform=dst_transform,
+            dst_crs=dst_crs,
+            resampling=resampling_method,
+            src_nodata=nodata,
+            dst_nodata=nodata,
+        )
+        arr = dst_arr
+        win_transform = dst_transform
+        pixel_area = _pixel_area_from_transform(dst_transform)
+    else:
+        pixel_area = base_pixel_area
+
+    # Build validity mask
+    if nodata is not None:
+        valid = np.isfinite(arr) & (arr != nodata)
+    else:
+        valid = np.isfinite(arr)
+
+    if not np.any(valid):
+        return None
+
+    # Fractional cover computation
+    H, W = arr.shape
+    if coverage_method == "exact":
+        frac = _fractional_cover_exact(geom, (H, W), win_transform)
+    else:
+        frac = _fractional_cover_supersample(geom, (H, W), win_transform, factor=supersample_factor)
+
+    # Keep only pixels that are both valid and have some coverage
+    keep = valid & (frac > 0)
+    if not np.any(keep):
+        return None
+
+    values = arr[keep].astype(np.float64, copy=False)
+    weights = (frac[keep] * pixel_area).astype(np.float64, copy=False)
+
+    # Outlier filtering (optional)
+    values, weights = _apply_outlier_filter(
+        values,
+        weights,
+        method=outlier_method,
+        q_low=q_low,
+        q_high=q_high,
+        std_thresh=std_thresh,
+        apply_local_zscore=apply_local_zscore,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
+    )
+
+    if values.size == 0:
+        return None
+
+    # Weighted stats (population variance)
+    wsum = np.sum(weights)
+    if (not np.isfinite(wsum)) or (wsum <= 0):
+        return None
+    wmean = np.sum(values * weights) / wsum
+    wvar = np.sum(weights * (values - wmean) ** 2) / wsum
+    wstd = np.sqrt(wvar)
+    wmed = _weighted_median(values, weights)
+
+    # Build result dict per area_type
+    idx = region_attrs.get("_index")
+    if area_type == "ecoregion":
+        return {
+            "er_id": region_attrs.get("ECO_ID", idx),
+            "er_name": region_attrs.get("ECO_NAME"),
+            "Biome": region_attrs.get("BIOME_NAME"),
+            "imp_cat": cf_name,
+            "flow_name": flow_name,
+            "unit": cf_unit,
+            "cf": wmean,
+            "cf_median": wmed,
+            "cf_std": wstd,
+        }
+    elif area_type == "country":
+        return {
+            "country": region_attrs.get("ADM0_NAME"),
+            "imp_cat": cf_name,
+            "flow_name": flow_name,
+            "unit": cf_unit,
+            "cf": wmean,
+            "cf_median": wmed,
+            "cf_std": wstd,
+        }
+    else:
+        return {
+            "country": region_attrs.get("ADM0_NAME"),
+            "subcountry": region_attrs.get("ADM1_NAME"),
+            "ADM1_CODE": region_attrs.get("ADM1_CODE"),
+            "imp_cat": cf_name,
+            "flow_name": flow_name,
+            "unit": cf_unit,
+            "cf": wmean,
+            "cf_median": wmed,
+            "cf_std": wstd,
+        }
+
+
 def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     raster_input_filepath: str,
     cf_name: str,
@@ -554,6 +749,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     subcountry_gdf: Optional[gpd.GeoDataFrame] = None,
     raster_logger=raster_logger,
     suppress_logging: bool = False,
+    _disable_region_threads: bool = False,
 ):
     """
     Compute area-weighted CF stats (mean, median, std) per region with proper fractional pixel coverage and
@@ -588,30 +784,34 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         )
 
     # Select region GeoDataFrame
+    # NOTE: no .copy() needed here — .to_crs() below already returns a new GeoDataFrame.
     if area_type == "ecoregion":
         er_gdf = er_gdf if er_gdf is not None else _get_er_2017_shp()
         if er_gdf is None:
             raise ValueError("er_gdf must be provided for area_type='ecoregion'.")
-        shp = er_gdf.copy()
+        shp = er_gdf
     elif area_type == "country":
         country_gdf = country_gdf if country_gdf is not None else _get_country_shp()
         if country_gdf is None:
             raise ValueError("country_gdf must be provided for area_type='country'.")
-        shp = country_gdf.copy()
+        shp = country_gdf
     else:
         subcountry_gdf = subcountry_gdf if subcountry_gdf is not None else _get_subcountry_shp()
         if subcountry_gdf is None:
             raise ValueError("subcountry_gdf must be provided for area_type='subcountry'.")
-        shp = subcountry_gdf.copy()
+        shp = subcountry_gdf
 
     if run_test:
         shp = shp.head(5).copy()
         if log:
             log.info("Doing a test run for %s %s averages", cf_name, area_type)
 
-    # Open raster
-    raster = rioxarray.open_rasterio(raster_input_filepath, masked=True)
-    raster_crs = raster.rio.crs
+    # Open raster with rasterio (lazy — no full load into memory)
+    with rasterio.open(raster_input_filepath) as src:
+        raster_crs = src.crs
+        src_transform = src.transform
+        src_nodata = _resolve_nodata_rasterio(src)
+        src_shape = (src.height, src.width)
 
     if log:
         if outlier_method:
@@ -628,198 +828,98 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
                 flow_name,
             )
 
-    # Ensure equal-area CRS
-    # If raster isn't in equal-area, reproject raster to equal_area_crs
-    def _resolve_nodata(data_array: xr.DataArray) -> Optional[float]:
-        # Prefer the explicit rio nodata tag when available.
-        nodata_value = data_array.rio.nodata
-        if nodata_value is None:
-            # Fall back to common CF/NetCDF-style attrs if rio nodata is unset.
-            for attr_key in ("_FillValue", "nodata"):
-                if attr_key in data_array.attrs and data_array.attrs[attr_key] is not None:
-                    nodata_value = data_array.attrs[attr_key]
-                    break
-        if nodata_value is None:
-            # As a last resort, use encoded nodata to catch per-band fill values.
-            nodata_value = data_array.rio.encoded_nodata
-        return nodata_value
-
+    # Determine if reprojection is needed
     _target_crs = pyproj.CRS.from_user_input(equal_area_crs)
-    need_reproj = raster_crs.is_geographic or (not raster_crs.equals(_target_crs))
-    if need_reproj:
-        # Carry forward the resolved nodata so reprojection preserves fill values.
-        reproject_nodata = _resolve_nodata(raster)
-        raster = raster.rio.reproject(
-            equal_area_crs,
-            resampling=resampling,
-            nodata=reproject_nodata,
-        )
-        raster_crs = raster.rio.crs
+    need_reproj = raster_crs.is_geographic or (not pyproj.CRS(raster_crs).equals(_target_crs))
 
-    # Pre-compute the transform and pixel area once so it can be reused per region
-    base_transform = raster.rio.transform()
-    base_pixel_area = _pixel_area_from_transform(base_transform)
+    # Pre-compute pixel area for the non-reprojection case
+    base_pixel_area = _pixel_area_from_transform(src_transform)
 
-    # Reproject the shapefile to the raster's (equal-area) CRS
+    # Reproject shapefile to the raster's source CRS for windowing
+    # (regions are clipped in source CRS, then each window is individually
+    #  reprojected to equal-area if needed — avoids full-raster reproject)
     shp = shp.to_crs(raster_crs)
 
-    results = []
+    # Prepare region tuples for parallel processing
+    _attr_keys = {
+        "ecoregion": ["ECO_ID", "ECO_NAME", "BIOME_NAME"],
+        "country": ["ADM0_NAME"],
+        "subcountry": ["ADM0_NAME", "ADM1_NAME", "ADM1_CODE"],
+    }
+    attr_keys = _attr_keys.get(area_type, [])
 
-    # Iterate regions
+    region_items = []
     for region in shp.itertuples(index=True):
-        idx = region.Index
         geom = region.geometry
         if geom is None or geom.is_empty:
             continue
+        attrs = {"_index": region.Index}
+        for k in attr_keys:
+            attrs[k] = getattr(region, k, None)
+        region_items.append((geom, attrs))
 
-        # Label string
-        if area_type == "ecoregion":
-            region_text = (
-                f"Object # {getattr(region, 'ECO_ID', idx)} - "
-                f"{getattr(region, 'ECO_NAME', 'Unknown')}"
-            )
-        elif area_type == "country":
-            region_text = getattr(region, "ADM0_NAME", "Unknown")
-        else:
-            region_text = (
-                f"{getattr(region, 'ADM0_NAME', 'Unknown')} - "
-                f"{getattr(region, 'ADM1_NAME', 'Unknown')}"
-            )
+    # Shared keyword arguments for _process_single_region
+    common_kwargs = dict(
+        raster_path=raster_input_filepath,
+        raster_band=raster_band,
+        area_type=area_type,
+        src_crs=raster_crs,
+        src_transform=src_transform,
+        src_nodata=src_nodata,
+        src_shape=src_shape,
+        need_reproj=need_reproj,
+        equal_area_crs=equal_area_crs,
+        resampling_method=resampling,
+        base_pixel_area=base_pixel_area,
+        coverage_method=coverage_method,
+        supersample_factor=supersample_factor,
+        outlier_method=outlier_method,
+        q_low=q_low,
+        q_high=q_high,
+        std_thresh=std_thresh,
+        apply_local_zscore=apply_local_zscore,
+        local_window=local_window,
+        local_k=local_k,
+        local_min_neighbors=local_min_neighbors,
+        cf_name=cf_name,
+        cf_unit=cf_unit,
+        flow_name=flow_name,
+    )
 
-        try:
-            if log:
-                log.debug("Calculating %s", region_text)
+    # Process regions — use threads if multiple regions are present
+    n_workers = 1 if _disable_region_threads else min(os.cpu_count() or 1, 8, len(region_items))
+    results = []
 
-            # Clip quickly to region bounds; fall back to precise clipping if needed
-            minx, miny, maxx, maxy = geom.bounds
-            try:
-                window = raster.rio.window(minx, miny, maxx, maxy)
-                masked = raster.rio.isel_window(window)
-                if masked.size == 0 or masked.rio.width == 0 or masked.rio.height == 0:
+    if n_workers > 1 and len(region_items) > 1:
+        # Parallel region processing via threads (rasterio + numpy release the GIL)
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            futures = {
+                pool.submit(
+                    _process_single_region,
+                    geom=geom,
+                    region_attrs=attrs,
+                    **common_kwargs,
+                ): i
+                for i, (geom, attrs) in enumerate(region_items)
+            }
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    if result is not None:
+                        results.append(result)
+                except Exception:
                     if log:
-                        log.debug("Window outside raster for %s. Skipping...", region_text)
-                    continue
+                        log.debug("Region processing failed", exc_info=True)
+    else:
+        # Sequential fallback (single region or single core)
+        for geom, attrs in region_items:
+            try:
+                result = _process_single_region(geom=geom, region_attrs=attrs, **common_kwargs)
+                if result is not None:
+                    results.append(result)
             except Exception:
-                masked = raster.rio.clip([geom], drop=True)
-
-            # Extract band given as ndarray; masked is xarray.DataArray with shape (band, y, x)
-            arr = masked.values[raster_band-1]  # (H, W)
-            # nodata from masked raster (with fallback to attrs/encoded values)
-            nodata = _resolve_nodata(masked)
-
-            # Build validity mask for data values (finite and not nodata)
-            if nodata is not None:
-                # Exclude fill/nodata values from stats to avoid contaminating averages.
-                valid = np.isfinite(arr) & (arr != nodata)
-            else:
-                valid = np.isfinite(arr)
-
-            if not np.any(valid):
                 if log:
-                    log.debug("No valid data for %s. Skipping...", region_text)
-                continue
-
-            # Transform for the clipped raster
-            transform = masked.rio.transform()
-
-            # Fractional cover computation
-            H, W = arr.shape
-            if coverage_method == "exact":
-                frac = _fractional_cover_exact(geom, (H, W), transform)
-            else:
-                # default to supersample
-                frac = _fractional_cover_supersample(geom, (H, W), transform, factor=supersample_factor)
-
-            # Keep only pixels that are both valid and have some coverage
-            keep = valid & (frac > 0)
-            if not np.any(keep):
-                if log:
-                    log.debug("No overlap/valid pixels for %s. Skipping...", region_text)
-                continue
-
-            values = arr[keep].astype(np.float64, copy=False)
-            # area weight = frac * pixel_area
-            weights = (frac[keep] * base_pixel_area).astype(np.float64, copy=False)
-
-            # Outlier filtering (optional)
-            values, weights = _apply_outlier_filter(
-                values,
-                weights,
-                method=outlier_method,
-                q_low=q_low,
-                q_high=q_high,
-                std_thresh=std_thresh,
-                apply_local_zscore=apply_local_zscore,
-                local_window=local_window,
-                local_k=local_k,
-                local_min_neighbors=local_min_neighbors,
-            )
-
-            if values.size == 0:
-                if log:
-                    log.debug("All values filtered for %s. Skipping...", region_text)
-                continue
-
-            # Weighted stats (population variance)
-            wsum = np.sum(weights)
-            if (not np.isfinite(wsum)) or (wsum <= 0):
-                if log:
-                    log.debug("Degenerate weights for %s. Skipping...", region_text)
-                continue
-            wmean = np.sum(values * weights) / wsum
-            wvar = np.sum(weights * (values - wmean) ** 2) / wsum
-            wstd = np.sqrt(wvar)
-            wmed = _weighted_median(values, weights)
-
-            # Append per area_type
-            if area_type == "ecoregion":
-                results.append(
-                    {
-                        "er_id": getattr(region, "ECO_ID", idx),
-                        "er_name": getattr(region, "ECO_NAME", None),
-                        "Biome": getattr(region, "BIOME_NAME", None),
-                        "imp_cat": cf_name,
-                        "flow_name": flow_name,
-                        "unit": cf_unit,
-                        "cf": wmean,
-                        "cf_median": wmed,
-                        "cf_std": wstd
-                    }
-                )
-            elif area_type == "country":
-                results.append(
-                    {
-                        "country": getattr(region, "ADM0_NAME", None),
-                        "imp_cat": cf_name,
-                        "flow_name": flow_name,
-                        "unit": cf_unit,
-                        "cf": wmean,
-                        "cf_median": wmed,
-                        "cf_std": wstd
-                    }
-                )
-            else:
-                results.append(
-                    {
-                        "country": getattr(region, "ADM0_NAME", None),
-                        "subcountry": getattr(region, "ADM1_NAME", None),
-                        "ADM1_CODE": getattr(region, "ADM1_CODE", None),
-                        "imp_cat": cf_name,
-                        "flow_name": flow_name,
-                        "unit": cf_unit,
-                        "cf": wmean,
-                        "cf_median": wmed,
-                        "cf_std": wstd
-                    }
-                )
-
-            if log:
-                log.debug("Calculations finished for region %s. Next!", region_text)
-
-        except rioxarray.exceptions.NoDataInBounds:
-            if log:
-                log.debug("No overlap for region %s, skipping...", region_text)
-            continue
+                    log.debug("Region processing failed", exc_info=True)
 
     if log:
         log.info(
@@ -833,17 +933,15 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     # Merge back for spatial output
     if area_type == "ecoregion":
         final_gdf = shp.merge(results_df, how="left", left_on="ECO_ID", right_on="er_id")
-        # keep names/biome (or drop if you intentionally don't want them duplicated)
         drop_cols = ['NNH', 'SHAPE_LENG', 'SHAPE_AREA', 'NNH_NAME','COLOR', 'COLOR_BIO', 'COLOR_NNH', 'LICENSE']
-        
+
     elif area_type == "country":
         final_gdf = shp.merge(results_df, how="left", left_on="ADM0_NAME", right_on="country")
         drop_cols = ['STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
-        
+
     else:
         final_gdf = shp.merge(results_df, how="left", on="ADM1_CODE")
         drop_cols = ['STR1_YEAR', 'EXP1_YEAR', 'STATUS', 'DISP_AREA', 'ADM0_CODE',  'SHAPE_LENG', "SHAPE_AREA"]
-        # final_gdf = final_gdf.drop(columns=["country", "subcountry (adm1)"])
 
     final_gdf = final_gdf.drop(columns=drop_cols, errors='ignore')
     return [results_df, final_gdf]
@@ -874,6 +972,8 @@ def build_cfs_gpkg_from_rasters(
     logger: Optional[logging.Logger] = build_logger,  # pass a logger or None
     write_gpkg: bool = True,         # optionally skip GeoPackage output entirely
     checkpoint_every: int = 0,       # flush CSV progress every N rasters (0=flush only at end/failure)
+    parallel_strategy: str = "auto", # 'regions' (inner), 'rasters' (outer), 'auto', or 'none'
+    max_raster_workers: int = 4,     # max workers for raster-level parallelism
 ) -> Tuple[Optional[str], pd.DataFrame]:
     """
     Process all rasters in a folder into ONE GeoPackage layer (tidy/long),
@@ -959,13 +1059,40 @@ def build_cfs_gpkg_from_rasters(
         and (_flow_name_from_file(file) not in processed_flows)
     ]
 
-    progress_iter = tqdm(
-        file_list,
-        desc=f"Processing rasters ({layer_name})",
-        unit="raster",
-        dynamic_ncols=True,
-        disable=not file_list,
-    )
+    # Resolve parallel strategy
+    _strategy = parallel_strategy.lower()
+    if _strategy == "auto":
+        # Heuristic: if many rasters (>4) and we have workers, use outer (raster) parallelism.
+        # Otherwise, use inner (region) parallelism (handled inside the calculator).
+        if len(file_list) > 4 and max_raster_workers > 1:
+            _strategy = "rasters"
+        else:
+            _strategy = "regions"
+    if _strategy not in ("regions", "rasters", "none"):
+        raise ValueError(f"parallel_strategy must be 'auto', 'regions', 'rasters', or 'none', got '{parallel_strategy}'")
+
+    # When using raster-level parallelism, disable region-level threading inside
+    # each worker to avoid over-subscribing the CPU.
+    if _strategy == "rasters":
+        calc_kwargs["_disable_region_threads"] = True
+
+    if _strategy == "rasters" and len(file_list) > 1:
+        # Manual progress bar for parallel raster processing (updated via .update(1))
+        progress_iter = tqdm(
+            total=len(file_list),
+            desc=f"Processing rasters ({layer_name})",
+            unit="raster",
+            dynamic_ncols=True,
+            disable=not file_list,
+        )
+    else:
+        progress_iter = tqdm(
+            file_list,
+            desc=f"Processing rasters ({layer_name})",
+            unit="raster",
+            dynamic_ncols=True,
+            disable=not file_list,
+        )
 
     logging_context = logging_redirect_tqdm() if logger is not None else nullcontext()
 
@@ -1078,115 +1205,147 @@ def build_cfs_gpkg_from_rasters(
 
     processed_since_flush = 0
 
-    # Iterate through files
+    def _process_raster_result(file, flow_name, df_flow, gdf_flow):
+        """Post-process a single raster result (merge, buffer, checkpoint). Runs in main process."""
+        nonlocal attribute_first_write, schema_cols, total_rows, processed_since_flush
+
+        # Check if the result is empty and thus skip
+        if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty) or gdf_flow is None or getattr(gdf_flow, "empty", False):
+            if logger is not None:
+                logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
+            return
+
+        # Align CRS
+        if gdf_flow.crs != master_gdf.crs:
+            if logger is not None:
+                logger.info("Result gdf aligned with master_gdf")
+            gdf_flow = gdf_flow.set_crs(master_gdf.crs, allow_override=True)
+
+        # Ensure flow results include the expected join key
+        if master_key not in gdf_flow.columns:
+            raise KeyError(f"master_key '{master_key}' not found in result gdf. Available: {list(gdf_flow.columns)}")
+
+        # Merge onto master identifiers so all regions are represented
+        flow_values = master_id_df.merge(
+            df_flow[[result_key, "cf", "cf_median", "cf_std"]],
+            how="left",
+            left_on=master_key,
+            right_on=result_key,
+        )
+
+        if (result_key in flow_values.columns) and (master_key != result_key):
+            flow_values = flow_values.drop(columns=result_key)
+
+        flow_values.insert(1, "flow_name", flow_name)
+
+        for col in ("cf", "cf_median", "cf_std"):
+            if col in flow_values.columns:
+                flow_values[col] = flow_values[col].astype("float32")
+
+        if add_source_file_name:
+            flow_values["_source_file"] = file
+
+        metadata_entry = {
+            "flow_name": flow_name,
+            "impact_category": cf_name,
+            "unit": cf_unit,
+        }
+        if add_source_file_name:
+            metadata_entry["source_file"] = file
+
+        if write_gpkg:
+            # Initialize schema for attribute layer on first raster seen
+            if attribute_first_write:
+                base_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
+                extras = [c for c in flow_values.columns if c not in base_cols]
+                schema_cols = [c for c in base_cols + extras if c in flow_values.columns]
+                attribute_first_write = False
+
+            # Align columns to schema for stability across flows
+            if schema_cols is None:
+                raise RuntimeError("GeoPackage schema not initialized before writing.")
+            for c in schema_cols:
+                if c not in flow_values.columns:
+                    flow_values[c] = pd.NA
+            flow_values = flow_values[schema_cols]
+
+            pending_gpkg_blocks.append(flow_values)
+            total_rows += len(flow_values)
+
+        # Long-format rows for CSV export
+        base_metrics = flow_values[[master_key, "flow_name", "cf", "cf_median", "cf_std"]]
+        flow_results_df = base_metrics.melt(
+            id_vars=[master_key, "flow_name"],
+            value_vars=["cf", "cf_median", "cf_std"],
+            var_name="metric",
+            value_name="value",
+        )
+        flow_results_df["metric"] = flow_results_df["metric"].replace({
+            "cf": "cf_mean",
+            "cf_median": "cf_median",
+            "cf_std": "cf_std",
+        })
+
+        pending_csv_blocks.append(flow_results_df)
+        pending_metadata.append(metadata_entry)
+
+        processed_since_flush += 1
+        if checkpoint_every > 0 and processed_since_flush >= checkpoint_every:
+            flush_pending()
+            processed_since_flush = 0
+
+    def _run_calculator(file):
+        """Run the CF calculator for a single raster file. Safe for use in ProcessPoolExecutor."""
+        raster_path = os.path.join(input_folder, file)
+        flow_name = _flow_name_from_file(file)
+        df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
+            raster_input_filepath=raster_path,
+            cf_name=cf_name,
+            cf_unit=cf_unit,
+            flow_name=flow_name,
+            area_type=area_type,
+            **calc_kwargs
+        )
+        return file, flow_name, df_flow, gdf_flow
+
+    # Iterate through files — sequential or parallel depending on strategy
     with logging_context:
-        for file in progress_iter:
-            try:
-                raster_path = os.path.join(input_folder, file)
-                flow_name = _flow_name_from_file(file)
+        if _strategy == "rasters" and len(file_list) > 1:
+            # Parallel raster processing — compute in worker processes, I/O in main process
+            n_raster_workers = min(max_raster_workers, os.cpu_count() or 1, len(file_list))
+            with ProcessPoolExecutor(max_workers=n_raster_workers) as pool:
+                futures = {pool.submit(_run_calculator, f): f for f in file_list}
+                for future in as_completed(futures):
+                    try:
+                        file, flow_name, df_flow, gdf_flow = future.result()
+                        _process_raster_result(file, flow_name, df_flow, gdf_flow)
+                        progress_iter.update(1)
+                    except Exception:
+                        flush_pending()
+                        raise
+        else:
+            # Sequential raster processing (region-level parallelism handled inside calculator)
+            for file in progress_iter:
+                try:
+                    raster_path = os.path.join(input_folder, file)
+                    flow_name = _flow_name_from_file(file)
 
-                if logger:
-                    logger.info(f"Calculating {cf_name} for {flow_name}...")
+                    if logger:
+                        logger.info(f"Calculating {cf_name} for {flow_name}...")
 
-                # Run calculator → (df, gdf)
-                df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
-                    raster_input_filepath=raster_path,
-                    cf_name=cf_name,
-                    cf_unit=cf_unit,
-                    flow_name=flow_name,
-                    area_type=area_type,
-                    **calc_kwargs
-                )
+                    df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
+                        raster_input_filepath=raster_path,
+                        cf_name=cf_name,
+                        cf_unit=cf_unit,
+                        flow_name=flow_name,
+                        area_type=area_type,
+                        **calc_kwargs
+                    )
+                    _process_raster_result(file, flow_name, df_flow, gdf_flow)
 
-                # Check if the result is empty and thus skip
-                if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty) or gdf_flow is None or getattr(gdf_flow, "empty", False):
-                    if logger is not None:
-                        logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
-                    continue
-
-                # Align CRS
-                if gdf_flow.crs != master_gdf.crs:
-                    if logger is not None:
-                        logger.info("Result gdf aligned with master_gdf")
-                    gdf_flow = gdf_flow.set_crs(master_gdf.crs, allow_override=True)
-
-                # Ensure flow results include the expected join key
-                if master_key not in gdf_flow.columns:
-                    raise KeyError(f"master_key '{master_key}' not found in result gdf. Available: {list(gdf_flow.columns)}")
-
-                # Merge onto master identifiers so all regions are represented
-                flow_values = master_id_df.merge(
-                    df_flow[[result_key, "cf", "cf_median", "cf_std"]],
-                    how="left",
-                    left_on=master_key,
-                    right_on=result_key,
-                )
-
-                if (result_key in flow_values.columns) and (master_key != result_key):
-                    flow_values = flow_values.drop(columns=result_key)
-
-                flow_values.insert(1, "flow_name", flow_name)
-
-                for col in ("cf", "cf_median", "cf_std"):
-                    if col in flow_values.columns:
-                        flow_values[col] = flow_values[col].astype("float32")
-
-                if add_source_file_name:
-                    flow_values["_source_file"] = file
-
-                metadata_entry = {
-                    "flow_name": flow_name,
-                    "impact_category": cf_name,
-                    "unit": cf_unit,
-                }
-                if add_source_file_name:
-                    metadata_entry["source_file"] = file
-
-                if write_gpkg:
-                    # Initialize schema for attribute layer on first raster seen
-                    if attribute_first_write:
-                        base_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
-                        extras = [c for c in flow_values.columns if c not in base_cols]
-                        schema_cols = [c for c in base_cols + extras if c in flow_values.columns]
-                        attribute_first_write = False
-
-                    # Align columns to schema for stability across flows
-                    if schema_cols is None:
-                        raise RuntimeError("GeoPackage schema not initialized before writing.")
-                    for c in schema_cols:
-                        if c not in flow_values.columns:
-                            flow_values[c] = pd.NA
-                    flow_values = flow_values[schema_cols]
-
-                    pending_gpkg_blocks.append(flow_values)
-                    total_rows += len(flow_values)
-
-                # Long-format rows for CSV export
-                base_metrics = flow_values[[master_key, "flow_name", "cf", "cf_median", "cf_std"]]
-                flow_results_df = base_metrics.melt(
-                    id_vars=[master_key, "flow_name"],
-                    value_vars=["cf", "cf_median", "cf_std"],
-                    var_name="metric",
-                    value_name="value",
-                )
-                flow_results_df["metric"] = flow_results_df["metric"].replace({
-                    "cf": "cf_mean",
-                    "cf_median": "cf_median",
-                    "cf_std": "cf_std",
-                })
-
-                pending_csv_blocks.append(flow_results_df)
-                pending_metadata.append(metadata_entry)
-
-                processed_since_flush += 1
-                if checkpoint_every > 0 and processed_since_flush >= checkpoint_every:
+                except Exception:
                     flush_pending()
-                    processed_since_flush = 0
-
-            except Exception:
-                # Persist work completed so far before bubbling up the failure.
-                flush_pending()
-                raise
+                    raise
 
     if hasattr(progress_iter, "close"):
         progress_iter.close()
