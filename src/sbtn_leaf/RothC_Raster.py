@@ -393,7 +393,8 @@ def _raster_rothc_annual_results(
     outlier_strategy: Optional[str] = None,
     percentile_bound: Optional[Tuple[float, float]] = None,
     k_sd: Optional[float] = None,
-    ylds_src: str = "GAEZ"
+    ylds_src: str = "GAEZ",
+    apply_local_zscore: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -440,7 +441,8 @@ def _raster_rothc_annual_results(
                     outlier_strategy = outlier_strategy,
                     percentile_bounds = percentile_bound,
                     k_sd = k_sd,
-                    ylds_src = ylds_src
+                    ylds_src = ylds_src,
+                    apply_local_zscore = apply_local_zscore
                 )
                 c_inp = c_inp_inputs[0]
                 yields_results = c_inp_inputs[1]
@@ -465,7 +467,8 @@ def _raster_rothc_annual_results(
             outlier_strategy = outlier_strategy,
             percentile_bounds = percentile_bound,
             k_sd = k_sd,
-            ylds_src = ylds_src
+            ylds_src = ylds_src,
+            apply_local_zscore = apply_local_zscore
         )
         c_inp = c_inp_inputs[0]
         yields_results = c_inp_inputs[1]
@@ -670,7 +673,8 @@ def raster_rothc_annual_results(
     outlier_strategy: Optional[str] = None,
     percentile_bound: Optional[Tuple[float, float]] = None,
     k_sd: Optional[float] = None,
-    ylds_src: Optional[str] = None
+    ylds_src: Optional[str] = None,
+    apply_local_zscore: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -730,7 +734,8 @@ def raster_rothc_annual_results(
         outlier_strategy = outlier_strategy,
         percentile_bound = percentile_bound,
         k_sd = k_sd,
-        ylds_src=ylds_src
+        ylds_src=ylds_src,
+        apply_local_zscore = apply_local_zscore
     )
 
 
@@ -1111,7 +1116,8 @@ def run_RothC_crops(
     outlier_strategy: str = "sd",
     percentile_bound: Tuple[float, float] = (1.0, 99.0),
     k_sd: float = 2.0,
-    ylds_src: str = "GAEZ"
+    ylds_src: str = "GAEZ",
+    apply_local_zscore: bool = False,
 ):
     def _crop_loader(
         *,
@@ -1154,7 +1160,8 @@ def run_RothC_crops(
         outlier_strategy: Optional[str],
         percentile_bound: Optional[Tuple[float, float]],
         k_sd: Optional[float],
-        ylds_src: str = "GAEZ"
+        ylds_src: str = "GAEZ",
+        apply_local_zscore: bool = False
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1186,7 +1193,8 @@ def run_RothC_crops(
             outlier_strategy = outlier_strategy,
             percentile_bound = percentile_bound,
             k_sd = k_sd,
-            ylds_src = ylds_src
+            ylds_src = ylds_src,
+            apply_local_zscore = apply_local_zscore
         )
 
         if irr_a is not None:
@@ -1231,7 +1239,8 @@ def run_RothC_crops(
             "outlier_strategy": outlier_strategy,
             "percentile_bound": percentile_bound,
             "k_sd": k_sd,
-            "ylds_src": ylds_src
+            "ylds_src": ylds_src,
+            "apply_local_zscore": apply_local_zscore
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
@@ -1448,7 +1457,7 @@ def run_RothC_grassland(
 
 
 
-def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files: bool = False, run_test: bool = False, scenario_sheet_name = "scenarios"):
+def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files: bool = False, run_test: bool = False, scenario_sheet_name = "scenarios", add_filter_descrip: bool = False):
     # 1) Read & cast your CSV exactly as before
     scenarios = (
         pl.read_excel(_resolve_data_path(excel_filepath), has_header=True, sheet_name=scenario_sheet_name)
@@ -1493,7 +1502,18 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
-        output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+       
+        # Builds output string
+        if add_filter_descrip:
+            filter_descrip = scenario.get("outlier_strategy")
+            if scenario["outlier_strategy"] in ("log_winsor", "ratio_percentile"):
+                filter_fig = scenario["percentile_bound"]
+            else:
+                filter_fig = scenario["k_sd"]
+            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
+        else:
+            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+
         output_path = output_folder / output_string
 
         # Remove 'force_new_file' so it's not forwarded to run_RothC_crops
