@@ -1118,6 +1118,7 @@ def run_RothC_crops(
     k_sd: float = 2.0,
     ylds_src: str = "GAEZ",
     apply_local_zscore: bool = False,
+    result_basename: Optional[str] = None,
 ):
     def _crop_loader(
         *,
@@ -1207,10 +1208,11 @@ def run_RothC_crops(
         return raster_rothc_annual_results(**base_kwargs)
     
     # Creating results_basename
-    if commodity_type == "permanent_crop":
-        result_basename = f"{crop_name}_{irr_yield_scaling}_{_BASE_YEAR+n_years}y_SOC.tif"
-    else:
-        result_basename = f"{crop_name}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
+    if result_basename is None:
+        if commodity_type == "permanent_crop":
+            result_basename = f"{crop_name}_{irr_yield_scaling}_{_BASE_YEAR+n_years}y_SOC.tif"
+        else:
+            result_basename = f"{crop_name}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
 
     return _run_rothc_scenario(
         lu_fp=lu_fp,
@@ -1521,17 +1523,17 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
         if all_new_files:
             print(f"Running {scn_string_text}")
-            run_RothC_crops(**scenario)
+            run_RothC_crops(**scenario, result_basename=output_string)
         elif file_fnw is not None and file_fnw is True:
             print(f"Running {scn_string_text}")
-            run_RothC_crops(**scenario)
+            run_RothC_crops(**scenario, result_basename=output_string)
         else:
             if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
                 print(f"Running {scn_string_text}")
-                run_RothC_crops(**scenario)
+                run_RothC_crops(**scenario, result_basename=output_string)
 
         print(f"{scn_string_text} calculated. Continuing...\n\n")
 
