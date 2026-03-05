@@ -30,8 +30,7 @@ surface area.  The curated groups are:
   - :func:`raster_rothc_annual_results`
   - :func:`save_annual_results`
   - :func:`run_RothC_crops`, :func:`run_RothC_forest`, :func:`run_RothC_grassland`
-  - :func:`run_rothC_sceneraios_from_csv`
-  - :func:`calcuate_annual_perc_changes`, :func:`calcuate_practice_change_benefit`
+  - :func:`calculate_annual_perc_changes`, :func:`calculate_practice_change_benefit`
 * Data lookups (:mod:`sbtn_leaf.data_loader`)
   - :func:`get_crop_coefficients_table`, :func:`get_absolute_day_table`
   - :func:`get_days_in_month_table`, :func:`get_crop_naming_index_table`
@@ -121,6 +120,8 @@ from .RothC_Core import (
 from .RothC_Raster import (
     align_and_resample,
     build_pc_mask,
+    calculate_annual_perc_changes,
+    calculate_practice_change_benefit,
     calcuate_annual_perc_changes,
     calcuate_practice_change_benefit,
     load_multiband,
@@ -131,7 +132,6 @@ from .RothC_Raster import (
     run_RothC_crops,
     run_RothC_forest,
     run_RothC_grassland,
-    DEPRECATED_run_rothC_crop_scenarios_from_csv,
     save_annual_results,
     stack_time_series,
     write_multiband_tif,
@@ -250,6 +250,8 @@ _ROTHC_CORE_EXPORTS = [
 _ROTHC_RASTER_EXPORTS = [
     "align_and_resample",
     "build_pc_mask",
+    "calculate_annual_perc_changes",
+    "calculate_practice_change_benefit",
     "calcuate_annual_perc_changes",
     "calcuate_practice_change_benefit",
     "load_multiband",
@@ -260,7 +262,6 @@ _ROTHC_RASTER_EXPORTS = [
     "run_RothC_crops",
     "run_RothC_forest",
     "run_RothC_grassland",
-    "run_rothC_sceneraios_from_csv",
     "save_annual_results",
     "stack_time_series",
     "write_multiband_tif",

@@ -23,6 +23,8 @@ from sbtn_leaf.paths import data_path, project_path
 
 PathLike = Union[str, Path]
 
+_BASE_YEAR = 2016
+
 
 def _as_path(value: PathLike) -> Path:
     """Return ``value`` as a :class:`~pathlib.Path` instance."""
@@ -304,29 +306,32 @@ def raster_rothc_annual_only(
     annual_co2_acc = np.zeros_like(soc0, dtype=np.float32)
     
     dt = 1.0 / 12.0
+
+    # Respiration fraction depends only on clay (static) — compute once
+    x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
+    resp_frac = x / (x + 1.0)
+
     for t in trange(months, desc="RothC months (annual only)"):
         # Rate-modifying factors
         rm_tmp = RMF_Tmp(tmp[t])
         rm_moist, swc = RMF_Moist(rain[t], evap[t], clay, depth, pc[t], swc)
         rm_pc = RMF_PC(pc[t])
         rate_m = rm_tmp * rm_moist * rm_pc
-        
+
         # Decomposition
         D1 = DPM * np.exp(-rate_m * 10.0 * dt)
         R1 = RPM * np.exp(-rate_m *  0.3 * dt)
         B1 = BIO * np.exp(-rate_m *  0.66 * dt)
         H1 = HUM * np.exp(-rate_m *  0.02 * dt)
-        
+
         lossD, lossR, lossB, lossH = DPM - D1, RPM - R1, BIO - B1, HUM - H1
-        x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
-        resp_frac = x / (x + 1.0)
         total_co2 = (lossD + lossR + lossB + lossH) * resp_frac
-        
+
         # Pool partition
-        def part(arr):
-            return arr * (0.46/(x+1.0)), arr * (0.54/(x+1.0))
-        D2B, D2H = part(lossD); R2B, R2H = part(lossR)
-        B2B, B2H = part(lossB); H2B, H2H = part(lossH)
+        D2B, D2H = _partition_to_bio_hum(x, lossD)
+        R2B, R2H = _partition_to_bio_hum(x, lossR)
+        B2B, B2H = _partition_to_bio_hum(x, lossB)
+        H2B, H2H = _partition_to_bio_hum(x, lossH)
         
         # Update pools
         DPM = D1 + (dpm_rpm/(dpm_rpm+1.0))*c_inp[t] + 0.49*fym[t]
@@ -385,9 +390,9 @@ def _raster_rothc_annual_results(
     trm_handler: Optional[TRMHandler],
     progress_desc: str = "RothC months",
     progress_position: Optional[int] = None,
-    outlier_strategy = str | None,
-    percentile_bound = Tuple[float, float] | None,
-    k_sd = float | None,
+    outlier_strategy: Optional[str] = None,
+    percentile_bound: Optional[Tuple[float, float]] = None,
+    k_sd: Optional[float] = None,
     ylds_src: str = "GAEZ"
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
@@ -439,29 +444,6 @@ def _raster_rothc_annual_results(
                 )
                 c_inp = c_inp_inputs[0]
                 yields_results = c_inp_inputs[1]
-            if c_inp is None:
-                if practices_string_id is not None and "roff" in practices_string_id:
-                    print(f"        C_inputs are 0's")
-                    c_inp = np.zeros_like(rain)
-                else:
-                    print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
-                    c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
-                        lu_fp=commodity_lu_fp,
-                        crop_name=crop_name,
-                        crop_type=crop_type,
-                        ylds_crop_raster = ylds_crop_raster,
-                        irr_yield_scaling = irr_yield_scaling,
-                        ylds_all_fp = ylds_all_fp,
-                        ylds_irr_fp = ylds_irr_fp,
-                        ylds_rf_fp = ylds_rf_fp,
-                        random_runs=residue_runs,
-                        outlier_strategy = outlier_strategy,
-                        percentile_bounds = percentile_bound,
-                        k_sd = k_sd,
-                        ylds_src = ylds_src
-                    )
-                    c_inp = c_inp_inputs[0]
-                    yields_results = c_inp_inputs[1]
 
             c_inp = np.squeeze(np.asarray(c_inp))
     elif commodity_type == "permanent_crop":
@@ -547,7 +529,14 @@ def _raster_rothc_annual_results(
     dt = 1.0 / 12.0
     sand_has_time_dim = sand is not None and sand.ndim == 3
 
+    # Respiration fraction depends only on clay (static) — compute once
+    x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
+    resp_frac = x / (x + 1.0)
+
     position = 0 if progress_position is None else progress_position
+
+    # Cached per-year carbon inputs for forest/grassland (recomputed at start of each year)
+    c_inp_month = None
 
     for t_abs in trange(months, desc=progress_desc, position=position):
         t = t_abs % 12
@@ -576,8 +565,6 @@ def _raster_rothc_annual_results(
         H1 = HUM * np.exp(-rate_m * trm_hum * 0.02 * dt)
 
         lossD, lossR, lossB, lossH = DPM - D1, RPM - R1, BIO - B1, HUM - H1
-        x = 1.67 * (1.85 + 1.60 * np.exp(-0.0786 * clay))
-        resp_frac = x / (x + 1.0)
         total_co2 = (lossD + lossR + lossB + lossH) * resp_frac
 
         # Pool partition
@@ -586,8 +573,8 @@ def _raster_rothc_annual_results(
         B2B, B2H = _partition_to_bio_hum(x, lossB)
         H2B, H2H = _partition_to_bio_hum(x, lossH)
 
-        # Calculates carbon residue input if it's forest or grassland
-        if commodity_type == "forest":
+        # Calculates carbon residue input if it's forest or grassland (once per year)
+        if commodity_type == "forest" and t_abs % 12 == 0:
             c_inp_month = cropcalcs.get_forest_litter_monthlyrate_fromda(
                 forest_age,
                 forest_type,
@@ -599,11 +586,10 @@ def _raster_rothc_annual_results(
             c_inp_month = np.squeeze(np.asarray(c_inp_month))
             if c_inp_month.ndim != 2:
                 raise ValueError("Forest litter input must be 2-D after squeezing")
-        elif commodity_type == "grassland":
-            c_annual = cropcalcs.generate_grassland_residue_map(grass_lu_fp=commodity_lu_fp, random_runs=residue_runs)  # Returns raster for 1 year
-            pr_monthly = c_annual/12
-            c_inp_month = np.squeeze(np.asarray(pr_monthly))
-        else:
+        elif commodity_type == "grassland" and t_abs % 12 == 0:
+            c_annual = cropcalcs.generate_grassland_residue_map(grass_lu_fp=commodity_lu_fp, random_runs=residue_runs)
+            c_inp_month = np.squeeze(np.asarray(c_annual / 12))
+        elif commodity_type not in ("forest", "grassland"):
             c_inp_month = c_inp[t]
 
         # Harmonize fym
@@ -646,23 +632,6 @@ def _raster_rothc_annual_results(
                         lu_mask=yields_results.lu_mask,
                         random_runs=residue_runs,
                     )
-                    
-                    # c_inp = cropcalcs.calculate_monthly_residues_array(
-                    #    lu_fp=commodity_lu_fp,
-                    #    crop_name=crop_name,
-                    #    crop_type=crop_type,
-                    #    ylds_crop_raster = ylds_crop_raster,
-                    #    irr_yield_scaling = irr_yield_scaling,
-                    #    ylds_all_fp = ylds_all_fp,
-                    #    ylds_irr_fp = ylds_irr_fp,
-                    #    ylds_rf_fp = ylds_rf_fp,
-                    #    random_runs=residue_runs,
-                    #    print_outputs= True,
-                    #    outlier_strategy = outlier_strategy,
-                    #    percentile_bounds = percentile_bound,
-                    #    k_sd = k_sd,
-                    #    ylds_src = ylds_src
-                    #)
                 c_inp = np.squeeze(np.asarray(c_inp))
 
     return soc_annual, co2_annual
@@ -698,10 +667,10 @@ def raster_rothc_annual_results(
     soc0_nodatavalue: float = -32768.0,
     red_till: bool = False,
     sand: Optional[np.ndarray] = None,
-    outlier_strategy = str | None,
-    percentile_bound = Tuple[float, float] | None,
-    k_sd = float | None,
-    ylds_src: str | None = None
+    outlier_strategy: Optional[str] = None,
+    percentile_bound: Optional[Tuple[float, float]] = None,
+    k_sd: Optional[float] = None,
+    ylds_src: Optional[str] = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -782,7 +751,7 @@ def save_annual_results(
     model_description: str = "RothC rasterized vectorized",
 ):
     
-    years = np.arange(1, n_years+1+1) # To include year 0
+    years = np.arange(0, n_years + 1)
     
     # Construct the results array
     data_array = xr.DataArray(results_array, 
@@ -804,7 +773,7 @@ def save_annual_results(
 
     # Write data description
     if data_description is None:
-        data_description = f"RothC model results for {results_array} after {n_years}"
+        data_description = f"RothC model results for {var_name} after {n_years} years"
 
     # Update text metadata
     data_array.attrs.update({
@@ -876,9 +845,9 @@ def _load_environmental_data(
     iom.attrs["units"]       = "t C/ha"
     iom.attrs["description"] = "IOM derived from SOC_initial"
 
-    # Rename bands 
-    tmp   = tmp[0].rename({'band': 'time'}) if isinstance(tmp, list) else tmp.rename({'band': 'time'})
-    rain  = rain[0].rename({'band': 'time'}) if isinstance(rain, list) else rain.rename({'band': 'time'})
+    # Rename bands
+    tmp  = tmp.rename({'band': 'time'})
+    rain = rain.rename({'band': 'time'})
 
     # Mask data to land use requirementes
     lu_mask = (lu_raster==1)
@@ -915,34 +884,29 @@ def _load_crop_data(
 
     pc = rxr.open_rasterio(_as_path(pc_fp), masked=True)
     pc = pc.rename({"band": "time"})
-    pc = (pc).where(lu_mask)
     pc = pc.where(lu_mask).fillna(0)
     
     # Optional inputs
     if irr_fp:
         irr = rxr.open_rasterio(_as_path(irr_fp), masked=True)  # (12-band: Jan–Dec)
         irr = irr.rename({'band': 'time'})
-        irr = (irr).where(lu_mask)
         irr = irr.where(lu_mask).fillna(0)
     else:
-        irr = (xr.zeros_like(pc)).where(lu_mask)
+        irr = xr.zeros_like(pc).where(lu_mask)
 
     if pr_fp:
         pr = rxr.open_rasterio(_as_path(pr_fp), masked=True)  # (12-band: Jan–Dec)
         pr = pr.rename({'band': 'time'})
-        pr = (pr).where(lu_mask)
         pr = pr.where(lu_mask).fillna(0)
     else:
-        pr    = (xr.zeros_like(pc)).where(lu_mask)
-    
+        pr = xr.zeros_like(pc).where(lu_mask)
+
     if fym_fp:
-        fym = rxr.open_rasterio(_as_path(fym_fp), masked=True) # No farmyard manure in this case
-        fym   = fym.rename({'band': 'time'})
-        fym = (fym).where(lu_mask)
+        fym = rxr.open_rasterio(_as_path(fym_fp), masked=True)
+        fym = fym.rename({'band': 'time'})
         fym = fym.where(lu_mask).fillna(0)
     else:
-        fym    = (xr.zeros_like(pc)).where(lu_mask)
-
+        fym = xr.zeros_like(pc).where(lu_mask)
 
     return lu_raster, evap, pc, irr, pr, fym
 
@@ -1021,20 +985,18 @@ def _load_grassland_data(
     # Opens and returns each fym_fp for each animal
     fym_all = np.zeros_like(lu_mask)
     for fp in fym_fp:
-        fym_annual = rxr.open_rasterio(_as_path(fp), masked=True) # No farmyard manure in this case
-        fym_monthly = fym_annual/12
+        fym_annual = rxr.open_rasterio(_as_path(fp), masked=True)
+        fym_monthly = fym_annual / 12
         fym_all = fym_all + fym_monthly
-        fym = (fym_all).where(lu_mask)
-        fym = fym.where(lu_mask).fillna(0)
+    fym = fym_all.where(lu_mask).fillna(0)
 
     # Optional irrigation input - POTENTIALLY USED ON MANAGED GRASSLANDS
     if irr_fp:
         irr = rxr.open_rasterio(_as_path(irr_fp), masked=True)  # (12-band: Jan–Dec)
         irr = irr.rename({'band': 'time'})
-        irr = (irr).where(lu_mask)
         irr = irr.where(lu_mask).fillna(0)
     else:
-        irr = (xr.zeros_like(pc)).where(lu_mask)
+        irr = xr.zeros_like(pc).where(lu_mask)
 
     return lu_raster, evap, pr, pc, fym, irr
 
@@ -1189,9 +1151,9 @@ def run_RothC_crops(
         ylds_all_fp: Optional[str],
         ylds_irr_fp: Optional[str],
         ylds_rf_fp: Optional[str],
-        outlier_strategy: str | None,
-        percentile_bound: Tuple[float, float] | None,
-        k_sd: float | None,
+        outlier_strategy: Optional[str],
+        percentile_bound: Optional[Tuple[float, float]],
+        k_sd: Optional[float],
         ylds_src: str = "GAEZ"
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
@@ -1238,9 +1200,9 @@ def run_RothC_crops(
     
     # Creating results_basename
     if commodity_type == "permanent_crop":
-        result_basename = f"{crop_name}_{irr_yield_scaling}_{2016+n_years}y_SOC.tif"
+        result_basename = f"{crop_name}_{irr_yield_scaling}_{_BASE_YEAR+n_years}y_SOC.tif"
     else:
-        result_basename = f"{crop_name}_{practices_string_id}_{2016+n_years}y_SOC.tif"
+        result_basename = f"{crop_name}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
 
     return _run_rothc_scenario(
         lu_fp=lu_fp,
@@ -1345,9 +1307,9 @@ def run_RothC_forest(
         )
 
     if practices_string_id is not None:
-        result_basename = f"{forest_type}_{weather_type}_{practices_string_id}_{2016+n_years}y_SOC.tif"
+        result_basename = f"{forest_type}_{weather_type}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
     else:
-        result_basename=f"{forest_type}_{weather_type}_{2016+n_years}y_SOC.tif"
+        result_basename=f"{forest_type}_{weather_type}_{_BASE_YEAR+n_years}y_SOC.tif"
 
     return _run_rothc_scenario(
         lu_fp=lu_fp,
@@ -1462,7 +1424,7 @@ def run_RothC_grassland(
         n_years=n_years,
         save_folder=save_folder,
         data_description=data_description,
-        result_basename=f"{grassland_type}_grassland_{string_id}_{2016+n_years}y_SOC.tif",
+        result_basename=f"{grassland_type}_grassland_{string_id}_{_BASE_YEAR+n_years}y_SOC.tif",
         loader=_grassland_loader,
         loader_kwargs={
             "evap_fp": evap_fp,
@@ -1485,25 +1447,6 @@ def run_RothC_grassland(
     )
 
 
-def DEPRECATED_run_rothC_crop_scenarios_from_csv(csv_filepath: PathLike):
-    # 1) Read & cast your CSV exactly as before
-    scenarios = (
-        pl.read_csv(_resolve_data_path(csv_filepath), null_values=["", "None"])
-        .with_columns([
-            pl.col("n_years").cast(pl.Int64),
-            pl.col("red_till").cast(pl.Boolean),
-            pl.col("save_CO2").cast(pl.Boolean),
-        ])
-    )
-
-    # 2) Turn into a list of dicts once (so we know the total count)
-    scenario_list = scenarios.to_dicts()
-
-    # 3) Iterate with tqdm
-    for scenario in scenario_list:
-        print(f"Running {scenario['crop_name']} - {scenario['practices_string_id']}")
-        run_RothC_crops(**scenario)
-        print("\n\n")
 
 def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files: bool = False, run_test: bool = False, scenario_sheet_name = "scenarios"):
     # 1) Read & cast your CSV exactly as before
@@ -1550,7 +1493,7 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
-        output_string = f"{scenario['crop_name']}_{scenario_description}_{2016 + scenario['n_years']}y_SOC.tif"
+        output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
         output_path = output_folder / output_string
 
         # Remove 'force_new_file' so it's not forwarded to run_RothC_crops
@@ -1596,7 +1539,7 @@ def run_rothc_grassland_scenarios_from_excel(excel_filepath: PathLike, force_new
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
-        output_string = f"{scenario['grassland_type']}_grassland_{scenario['string_id']}_{2016 + scenario['n_years']}y_SOC.tif"
+        output_string = f"{scenario['grassland_type']}_grassland_{scenario['string_id']}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
         output_path = output_folder / output_string
 
         # Loads fym_fp
@@ -1640,7 +1583,7 @@ def run_rothC_forest_scenarios_from_excel(excel_filepath: PathLike, force_new_fi
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
-        output_string = f"{scenario['forest_type']}_{scenario['weather_type']}_{2016 + scenario['n_years']}y_SOC.tif"
+        output_string = f"{scenario['forest_type']}_{scenario['weather_type']}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
         output_path = output_folder / output_string
 
         if force_new_files:
@@ -1660,7 +1603,7 @@ def run_rothC_forest_scenarios_from_excel(excel_filepath: PathLike, force_new_fi
 #### OTHER USEFUL FUNCTIONS FOR ROTHC ####
 ##########################################
 
-def calcuate_annual_perc_changes(raster_path: PathLike):
+def calculate_annual_perc_changes(raster_path: PathLike):
     # Open the raster
     da = rxr.open_rasterio(_as_path(raster_path), masked=True)
     if isinstance(da, list):
@@ -1677,7 +1620,7 @@ def calcuate_annual_perc_changes(raster_path: PathLike):
     
     return pct
 
-def calcuate_practice_change_benefit(
+def calculate_practice_change_benefit(
     raster1_fp: PathLike,
     raster2_fp: PathLike,
     band_r1,
@@ -1696,5 +1639,10 @@ def calcuate_practice_change_benefit(
 
     # Eliminates infinites and replace them with NaNs
     pct = pct.where(np.isfinite(pct))
-    
+
     return pct
+
+
+# Backward-compatible aliases for the old (misspelled) names
+calcuate_annual_perc_changes = calculate_annual_perc_changes
+calcuate_practice_change_benefit = calculate_practice_change_benefit
