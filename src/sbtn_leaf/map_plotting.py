@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colors import BoundaryNorm, ListedColormap, TwoSlopeNorm, Normalize, LinearSegmentedColormap
 import matplotlib.cm as cm
-import plotly.express as px
 import rioxarray
 import rasterio
 from rasterio.enums import Resampling
@@ -333,15 +332,7 @@ def _create_plt_choropleth(
         ncat = len(unique_vals)
 
         # --- build boundaries (len = ncat+1) ---
-        if ncat > 1:
-            diffs = np.diff(unique_vals)
-            boundaries = np.concatenate([
-                [unique_vals[0] - diffs[0] / 2],
-                (unique_vals[:-1] + unique_vals[1:]) / 2,
-                [unique_vals[-1] + diffs[-1] / 2],
-            ])
-        else:
-            boundaries = np.array([unique_vals[0] - 0.5, unique_vals[0] + 0.5])
+        boundaries = _categorical_boundaries(unique_vals)
 
         # --- choose colormap: USE the one the user passed ---
         # assume `cmap` is your input argument (string or Colormap)
@@ -497,6 +488,44 @@ def _truncate_colormap(cmap_name, minval=0.0, maxval=1.0, n=256):
         colors,
         N=n
     )
+
+
+def _categorical_boundaries(unique_vals: np.ndarray, single_val_half_width: float = 0.5) -> np.ndarray:
+    """Compute BoundaryNorm boundaries for categorical (discrete) data.
+
+    For n unique values, returns n+1 boundary edges placed at midpoints
+    between adjacent values and half-gaps beyond the extremes.
+    """
+    if len(unique_vals) > 1:
+        diffs = np.diff(unique_vals)
+        return np.concatenate([
+            [unique_vals[0] - diffs[0] / 2],
+            (unique_vals[:-1] + unique_vals[1:]) / 2,
+            [unique_vals[-1] + diffs[-1] / 2],
+        ])
+    return np.array([
+        unique_vals[0] - single_val_half_width,
+        unique_vals[0] + single_val_half_width,
+    ])
+
+
+def _resolve_quantile_edges(
+    vals: np.ndarray,
+    quantiles: Union[int, Sequence[float]],
+    vmin: float,
+    vmax: float,
+) -> np.ndarray:
+    """Return bin edges for a quantile-based BoundaryNorm.
+
+    If *quantiles* is an integer, returns that many evenly-spaced edges
+    between *vmin* and *vmax*.  If it is a sequence, values in [0, 100]
+    are treated as percentiles of *vals*; otherwise they are used as-is.
+    """
+    if isinstance(quantiles, (int, np.integer)):
+        return np.linspace(vmin, vmax, int(quantiles) + 1)
+    q = np.asarray(quantiles, dtype=float)
+    return np.percentile(vals, q) if np.all((q >= 0) & (q <= 100)) else q
+
 
 def plot_raster_on_world_extremes_cutoff(
     raster: Union[str, Path, xr.DataArray],
@@ -728,14 +757,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
         global_max = float(np.max(combined)) if max_val is None else float(max_val)
 
         if quantiles is not None:
-            if isinstance(quantiles, (int, np.integer)):
-                edges = np.linspace(global_min, global_max, int(quantiles) + 1)
-            else:
-                q = np.asarray(quantiles, dtype=float)
-                if np.all((q >= 0) & (q <= 100)):
-                    edges = np.percentile(combined, q)
-                else:
-                    edges = q
+            edges = _resolve_quantile_edges(combined, quantiles, global_min, global_max)
             shared_norm = BoundaryNorm(edges, ncolors=shared_cmap.N)
         elif resolved_divergence is not None:
             shared_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=global_min, vmax=global_max)
@@ -756,15 +778,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
             unique_vals = np.unique(vals)
             is_categorical = len(unique_vals) <= n_categories
             if is_categorical:
-                if len(unique_vals) > 1:
-                    diffs = np.diff(unique_vals)
-                    boundaries = np.concatenate([
-                        [unique_vals[0] - diffs[0] / 2],
-                        (unique_vals[:-1] + unique_vals[1:]) / 2,
-                        [unique_vals[-1] + diffs[-1] / 2],
-                    ])
-                else:
-                    boundaries = np.array([unique_vals[0] - 0.5, unique_vals[0] + 0.5])
+                boundaries = _categorical_boundaries(unique_vals)
                 local_cmap = ListedColormap(plt.get_cmap(cmap)(np.linspace(0, 1, len(unique_vals))))
                 local_norm = BoundaryNorm(boundaries, ncolors=local_cmap.N, clip=True)
             else:
@@ -772,14 +786,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
                 local_max = float(np.max(vals)) if max_val is None else float(max_val)
 
                 if quantiles is not None:
-                    if isinstance(quantiles, (int, np.integer)):
-                        edges = np.linspace(local_min, local_max, int(quantiles) + 1)
-                    else:
-                        q = np.asarray(quantiles, dtype=float)
-                        if np.all((q >= 0) & (q <= 100)):
-                            edges = np.percentile(vals, q)
-                        else:
-                            edges = q
+                    edges = _resolve_quantile_edges(vals, quantiles, local_min, local_max)
                     local_norm = BoundaryNorm(edges, ncolors=local_cmap.N)
                 elif resolved_divergence is not None:
                     local_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=local_min, vmax=local_max)
@@ -855,7 +862,7 @@ def plot_all_raster_bands(
         data = bands[idx].astype("float32")
 
         # mask nodata
-        data[data == nodata] = np.nan
+        data = _preprocess_raster_data_eliminate_nodata(data, nodata_value=nodata, eliminate_zeros=False)
 
         # decide categorical vs continuous
         unique = np.unique(data[np.isfinite(data)])
@@ -863,13 +870,7 @@ def plot_all_raster_bands(
 
         if is_cat:
             # build discrete norm
-            if len(unique) > 1:
-                first = unique[0] - (unique[1] - unique[0]) / 2
-                mids  = [(unique[i-1] + unique[i]) / 2 for i in range(1, len(unique))]
-                last  = unique[-1] + (unique[-1] - unique[-2]) / 2
-                bounds_list = [first] + mids + [last]
-            else:
-                bounds_list = [unique[0] - 0.05, unique[0] + 0.05]
+            bounds_list = _categorical_boundaries(unique, single_val_half_width=0.05)
 
             discrete_cmap = ListedColormap(plt.cm.tab20.colors[:len(unique)])
             norm          = BoundaryNorm(bounds_list, len(unique))
@@ -941,7 +942,7 @@ def plot_raster_on_world_no_min(
     if threshold is None:
         raster_data = _preprocess_raster_data_eliminate_nodata(raster_data, nodata_value=no_data_value)
     else:
-        raster_data = _preprocess_raster_data_eliminate_nodata(raster_data, nodata_value=no_data_value, threshold=threshold)
+        raster_data = _preprocess_raster_data_eliminate_low_values(raster_data, nodata_value=no_data_value, threshold=threshold)
 
     # Create the plot
     _create_plt_choropleth(raster_data=raster_data, bounds=bounds, title=title, label_title=label_title, quantiles=quantiles, cmap=cmap,
