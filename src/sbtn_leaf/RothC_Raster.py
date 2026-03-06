@@ -1019,15 +1019,17 @@ def _load_grassland_data(
 def _clip_soc_output(
     soc_annual: np.ndarray,
     soc0: np.ndarray,
-    max_annual_gain: float,
-    max_soc_tc_ha: float = 500.0,
+    *,
+    max_soc_tc_ha: float | None = 500.0,
+    max_annual_gain: float | None = 5.0,
     global_percentile_cap: float | None = 99.5,
 ) -> np.ndarray:
     """Clip SOC to prevent physically unreasonable accumulation.
 
-    Applies three filters in order:
-    1. Absolute physical cap: any pixel with SOC > max_soc_tc_ha is clipped.
-    2. Annual delta cap: SOC capped at soc0 + max_annual_gain * year_index.
+    Each filter can be independently disabled by passing ``None``:
+
+    1. Absolute physical cap: any pixel with SOC > *max_soc_tc_ha* is clipped.
+    2. Annual delta cap: SOC capped at ``soc0 + max_annual_gain * year_index``.
     3. Global percentile cap: final-year values clipped to percentile threshold.
 
     Pixels where soc0 is NaN or non-finite are left unchanged for the
@@ -1036,20 +1038,22 @@ def _clip_soc_output(
     result = soc_annual.copy()
 
     # 1. Absolute physical cap
-    for yi in range(result.shape[0]):
-        finite = np.isfinite(result[yi])
-        result[yi] = np.where(
-            finite, np.minimum(result[yi], max_soc_tc_ha), result[yi]
-        )
+    if max_soc_tc_ha is not None:
+        for yi in range(result.shape[0]):
+            finite = np.isfinite(result[yi])
+            result[yi] = np.where(
+                finite, np.minimum(result[yi], max_soc_tc_ha), result[yi]
+            )
 
     # 2. Annual delta cap
-    for yi in range(1, result.shape[0]):
-        cap = soc0 + max_annual_gain * yi
-        result[yi] = np.where(
-            np.isfinite(result[yi]) & np.isfinite(cap),
-            np.minimum(result[yi], cap),
-            result[yi],
-        )
+    if max_annual_gain is not None:
+        for yi in range(1, result.shape[0]):
+            cap = soc0 + max_annual_gain * yi
+            result[yi] = np.where(
+                np.isfinite(result[yi]) & np.isfinite(cap),
+                np.minimum(result[yi], cap),
+                result[yi],
+            )
 
     # 3. Global percentile cap (computed from last year, applied to all years)
     if global_percentile_cap is not None:
@@ -1081,8 +1085,8 @@ def _run_rothc_scenario(
     save_CO2: bool = False,
     env_overrides: Optional[Dict[str, PathLike]] = None,
     apply_soc_clip: bool = False,
-    max_annual_soc_gain: float = 5.0,
-    max_soc_tc_ha: float = 500.0,
+    max_annual_soc_gain: float | None = 5.0,
+    max_soc_tc_ha: float | None = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
 ):
     """Shared workflow for RothC scenario execution and persistence."""
@@ -1125,8 +1129,9 @@ def _run_rothc_scenario(
     if apply_soc_clip:
         print(f"    Clipping SOC output (max gain = {max_annual_soc_gain} t C/ha/year)...")
         SOC_results = _clip_soc_output(
-            SOC_results, env_arrays["soc0"], max_annual_soc_gain,
+            SOC_results, env_arrays["soc0"],
             max_soc_tc_ha=max_soc_tc_ha,
+            max_annual_gain=max_annual_soc_gain,
             global_percentile_cap=soc_global_percentile_cap,
         )
 
@@ -1193,7 +1198,7 @@ def run_RothC_crops(
     fao_max_ratio: float = 3.0,
     global_percentile_cap: float | None = None,
     apply_soc_clip: bool = False,
-    max_annual_soc_gain: float = 5.0,
+    max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
 ):
@@ -1351,7 +1356,7 @@ def run_RothC_forest(
     residue_runs = 100,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
     apply_soc_clip: bool = False,
-    max_annual_soc_gain: float = 5.0,
+    max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
 ):
@@ -1456,7 +1461,7 @@ def run_RothC_grassland(
     save_CO2: bool = False,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
     apply_soc_clip: bool = False,
-    max_annual_soc_gain: float = 5.0,
+    max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
 ):

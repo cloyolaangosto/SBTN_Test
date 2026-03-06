@@ -79,6 +79,85 @@ def test_clip_soc_output_no_clip_when_within_bounds():
     np.testing.assert_allclose(result[1, 0, 0], 12.0, rtol=1e-6)
 
 
+def test_clip_soc_output_abs_cap_disabled():
+    """When max_soc_tc_ha=None, values above 500 should pass through."""
+    soc0 = np.array([[40.0]], dtype="float32")
+    soc_annual = np.array([
+        [[40.0]],
+        [[600.0]],  # exceeds default 500 cap
+    ], dtype="float32")
+
+    result = _clip_soc_output(soc_annual, soc0,
+                              max_soc_tc_ha=None,
+                              max_annual_gain=None,
+                              global_percentile_cap=None)
+    # With all filters disabled, value should be unchanged
+    np.testing.assert_allclose(result[1, 0, 0], 600.0, rtol=1e-6)
+
+
+def test_clip_soc_output_delta_cap_disabled():
+    """When max_annual_gain=None, large year-over-year gains pass through."""
+    soc0 = np.array([[10.0]], dtype="float32")
+    soc_annual = np.array([
+        [[10.0]],
+        [[100.0]],  # gain of 90 in 1 year
+    ], dtype="float32")
+
+    result = _clip_soc_output(soc_annual, soc0,
+                              max_soc_tc_ha=None,
+                              max_annual_gain=None,
+                              global_percentile_cap=None)
+    np.testing.assert_allclose(result[1, 0, 0], 100.0, rtol=1e-6)
+
+
+def test_clip_soc_output_all_disabled():
+    """When all filters are None, output equals input for finite values."""
+    soc0 = np.array([[10.0, 20.0]], dtype="float32")
+    soc_annual = np.array([
+        [[10.0, 20.0]],
+        [[600.0, 800.0]],
+        [[1000.0, 2000.0]],
+    ], dtype="float32")
+
+    result = _clip_soc_output(soc_annual, soc0,
+                              max_soc_tc_ha=None,
+                              max_annual_gain=None,
+                              global_percentile_cap=None)
+    np.testing.assert_array_equal(result, soc_annual)
+
+
+def test_clip_soc_output_only_abs_cap():
+    """Only abs cap active; delta and percentile disabled."""
+    soc0 = np.array([[10.0]], dtype="float32")
+    soc_annual = np.array([
+        [[10.0]],
+        [[600.0]],  # exceeds 500 cap, but huge gain should pass if delta disabled
+    ], dtype="float32")
+
+    result = _clip_soc_output(soc_annual, soc0,
+                              max_soc_tc_ha=500.0,
+                              max_annual_gain=None,
+                              global_percentile_cap=None)
+    # Clipped by abs cap only
+    np.testing.assert_allclose(result[1, 0, 0], 500.0, rtol=1e-6)
+
+
+def test_clip_soc_output_only_delta_cap():
+    """Only delta cap active; abs and percentile disabled."""
+    soc0 = np.array([[10.0]], dtype="float32")
+    soc_annual = np.array([
+        [[10.0]],
+        [[600.0]],  # gain of 590 in 1 year
+    ], dtype="float32")
+
+    result = _clip_soc_output(soc_annual, soc0,
+                              max_soc_tc_ha=None,
+                              max_annual_gain=5.0,
+                              global_percentile_cap=None)
+    # cap = 10 + 5*1 = 15
+    np.testing.assert_allclose(result[1, 0, 0], 15.0, rtol=1e-6)
+
+
 # ---------------------------------------------------------------------------
 # Tests for filter_output_raster
 # ---------------------------------------------------------------------------
