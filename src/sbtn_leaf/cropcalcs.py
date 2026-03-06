@@ -53,7 +53,7 @@ class FilterParametersYieldsCalculations:
     percentile_bounds: Tuple[float, float] = (1.0, 99.0)
     k_sd: float = 2.0
     fao_max_ratio: float = 3.0      #  Absolute cap: yield ≤ fao_max_ratio × FAO zone average.
-    global_percentile_cap: Optional[float] = None  # Cross-zone global percentile cap. None disables.
+    yield_global_percentile_cap: Optional[float] = None  # Cross-zone global percentile cap. None disables.
     local_window: int = 11          #  Local z-score window size (odd kernel width/height in pixels).
     local_k: float = 2.5            #  Number of local standard deviations used to define clipping bounds.
     local_min_neighbors: int = 20   #  Minimum valid neighbors required before applying local clipping to a pixel.
@@ -88,7 +88,7 @@ class CropYieldRasterConfig:
     # Absolute cap: yield ≤ fao_max_ratio × FAO zone average. None disables.
     fao_max_ratio: Optional[float] = None
     # Cross-zone global percentile cap. None disables.
-    global_percentile_cap: Optional[float] = None
+    yield_global_percentile_cap: Optional[float] = None
     # Local z-score window size (odd kernel width/height in pixels).
     local_window: int = 11
     # Number of local standard deviations used to define clipping bounds.
@@ -698,7 +698,7 @@ def _pre_filter_yields_rasters(
     percentile_bounds: Tuple[float, float] | None = None,
     k_sd: float | None = None,
     fao_max_ratio: float | None = None,
-    global_percentile_cap: float | None = None,
+    yield_global_percentile_cap: float | None = None,
     # NEW: optional second-stage spatial cleanup
     apply_local_zscore: bool = False,
     local_window: int | None = None,
@@ -868,11 +868,11 @@ def _pre_filter_yields_rasters(
                 out_arrays[i][m] = array[m].astype("float32", copy=False)
 
     # --- optional cross-zone global percentile cap ---
-    if global_percentile_cap is not None:
+    if yield_global_percentile_cap is not None:
         for i in range(len(out_arrays)):
             finite_vals = out_arrays[i][np.isfinite(out_arrays[i])]
             if finite_vals.size > 0:
-                cap_val = np.nanpercentile(finite_vals, global_percentile_cap)
+                cap_val = np.nanpercentile(finite_vals, yield_global_percentile_cap)
                 finite_mask = np.isfinite(out_arrays[i])
                 out_arrays[i] = np.where(
                     finite_mask, np.minimum(out_arrays[i], cap_val), out_arrays[i]
@@ -977,7 +977,7 @@ def _create_crop_yield_raster_core_2(
         percentile_bounds=filter_parameters.percentile_bounds,
         k_sd = filter_parameters.k_sd,
         fao_max_ratio=filter_parameters.fao_max_ratio,
-        global_percentile_cap=filter_parameters.global_percentile_cap,
+        yield_global_percentile_cap=filter_parameters.yield_global_percentile_cap,
         local_window = filter_parameters.local_window,
         local_k =filter_parameters.local_k,
         local_min_neighbors = filter_parameters.local_min_neighbors,
@@ -1136,7 +1136,7 @@ def _create_crop_yield_raster_core(
         percentile_bounds=config.percentile_bound,
         k_sd=config.k_sd,
         fao_max_ratio=config.fao_max_ratio,
-        global_percentile_cap=config.global_percentile_cap,
+        yield_global_percentile_cap=config.yield_global_percentile_cap,
         local_window=config.local_window,
         local_k=config.local_k,
         local_min_neighbors=config.local_min_neighbors,
@@ -2533,7 +2533,7 @@ def calculate_monthly_residues_array(
     apply_local_zscore: bool = True,
     ylds_src: str = "GAEZ",
     fao_max_ratio: float = 3.0,
-    global_percentile_cap: float | None = 99.5,
+    yield_global_percentile_cap: float | None = 99.5,
 ):
     # print("    Calculating stochastic residue array...")
 
@@ -2564,7 +2564,7 @@ def calculate_monthly_residues_array(
         ylds_src = ylds_src,
         apply_local_zscore= apply_local_zscore,
         fao_max_ratio=fao_max_ratio,
-        global_percentile_cap=global_percentile_cap,
+        yield_global_percentile_cap=yield_global_percentile_cap,
     )
 
     # Step 3 - Create plant residue raster
@@ -2953,7 +2953,7 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     ylds_direct_min_share_warn: float = 0.05,
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
-    global_percentile_cap: float | None = None,
+    yield_global_percentile_cap: float | None = None,
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2976,7 +2976,7 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         percentile_bound=percentile_bounds,
         k_sd=k_sd,
         fao_max_ratio=fao_max_ratio,
-        global_percentile_cap=global_percentile_cap,
+        yield_global_percentile_cap=yield_global_percentile_cap,
         local_window=local_window,
         local_k=local_k,
         local_min_neighbors=local_min_neighbors,

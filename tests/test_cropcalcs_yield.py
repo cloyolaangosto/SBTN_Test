@@ -354,11 +354,11 @@ def test_fao_max_ratio_with_local_zscore_strategy():
 
 
 # ---------------------------------------------------------------------------
-# Tests for global_percentile_cap
+# Tests for yield_global_percentile_cap
 # ---------------------------------------------------------------------------
 
-def test_global_percentile_cap_clips_extreme_values():
-    """global_percentile_cap should clip values above the computed percentile."""
+def test_yield_global_percentile_cap_clips_extreme_values():
+    """yield_global_percentile_cap should clip values above the computed percentile."""
     # 100 pixels: 99 at value 10, 1 at value 1000
     arr = np.full((10, 10), 10.0, dtype="float32")
     arr[0, 0] = 1000.0
@@ -377,15 +377,15 @@ def test_global_percentile_cap_clips_extreme_values():
         filter_outlier_strategy="sd",
         k_sd=100.0,  # very wide, won't clip on its own
         fao_max_ratio=None,  # disable FAO cap
-        global_percentile_cap=99.0,  # should clip the single outlier
+        yield_global_percentile_cap=99.0,  # should clip the single outlier
     )
 
     # The 99th percentile of 99x10 + 1x1000 should bring the outlier down
     assert np.nanmax(filtered) < 1000.0
 
 
-def test_global_percentile_cap_none_disables():
-    """When global_percentile_cap is None, no global clipping occurs."""
+def test_yield_global_percentile_cap_none_disables():
+    """When yield_global_percentile_cap is None, no global clipping occurs."""
     arr = np.full((10, 10), 10.0, dtype="float32")
     arr[0, 0] = 1000.0
     zone_array = np.ones((10, 10), dtype=int)
@@ -403,7 +403,7 @@ def test_global_percentile_cap_none_disables():
         filter_outlier_strategy="sd",
         k_sd=100.0,
         fao_max_ratio=None,
-        global_percentile_cap=None,
+        yield_global_percentile_cap=None,
     )
 
     # Outlier should pass through untouched
