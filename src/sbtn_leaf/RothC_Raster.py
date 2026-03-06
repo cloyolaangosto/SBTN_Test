@@ -1623,19 +1623,21 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
         # Pop manual basename before building the auto-generated one
         manual_basename = scenario.pop("result_basename", None)
 
-        # Builds output string
-        if add_filter_descrip:
-            filter_descrip = scenario.get("outlier_strategy")
-            if scenario["outlier_strategy"] in ("log_winsor", "ratio_percentile"):
-                filter_fig = scenario["percentile_bound"]
-            else:
-                filter_fig = scenario["k_sd"]
-            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
-        else:
-            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
-
         if manual_basename:
             output_string = manual_basename
+        else:
+            # Builds output string
+            if add_filter_descrip:
+                filter_descrip = scenario.get("outlier_strategy")
+                if scenario["outlier_strategy"] in ("log_winsor", "ratio_percentile"):
+                    filter_fig = scenario["percentile_bound"]
+                else:
+                    filter_fig = scenario["k_sd"]
+                output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
+            else:
+                output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+
+
 
         output_path = output_folder / output_string
 
