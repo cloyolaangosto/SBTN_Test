@@ -396,7 +396,7 @@ def _raster_rothc_annual_results(
     ylds_src: str = "GAEZ",
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
-    global_percentile_cap: float | None = None,
+    yield_global_percentile_cap: float | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -446,7 +446,7 @@ def _raster_rothc_annual_results(
                     ylds_src = ylds_src,
                     apply_local_zscore = apply_local_zscore,
                     fao_max_ratio = fao_max_ratio,
-                    global_percentile_cap = global_percentile_cap,
+                    yield_global_percentile_cap = yield_global_percentile_cap,
                 )
                 c_inp = c_inp_inputs[0]
                 yields_results = c_inp_inputs[1]
@@ -474,7 +474,7 @@ def _raster_rothc_annual_results(
             ylds_src = ylds_src,
             apply_local_zscore = apply_local_zscore,
             fao_max_ratio = fao_max_ratio,
-            global_percentile_cap = global_percentile_cap,
+            yield_global_percentile_cap = yield_global_percentile_cap,
         )
         c_inp = c_inp_inputs[0]
         yields_results = c_inp_inputs[1]
@@ -682,7 +682,7 @@ def raster_rothc_annual_results(
     ylds_src: Optional[str] = None,
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
-    global_percentile_cap: float | None = None,
+    yield_global_percentile_cap: float | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -745,7 +745,7 @@ def raster_rothc_annual_results(
         ylds_src=ylds_src,
         apply_local_zscore = apply_local_zscore,
         fao_max_ratio = fao_max_ratio,
-        global_percentile_cap = global_percentile_cap,
+        yield_global_percentile_cap = yield_global_percentile_cap,
     )
 
 
@@ -1196,7 +1196,7 @@ def run_RothC_crops(
     ylds_src: str = "GAEZ",
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
-    global_percentile_cap: float | None = None,
+    yield_global_percentile_cap: float | None = None,
     apply_soc_clip: bool = False,
     max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
@@ -1246,7 +1246,7 @@ def run_RothC_crops(
         ylds_src: str = "GAEZ",
         apply_local_zscore: bool = False,
         fao_max_ratio: float = 3.0,
-        global_percentile_cap: float | None = None,
+        yield_global_percentile_cap: float | None = None,
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1281,7 +1281,7 @@ def run_RothC_crops(
             ylds_src = ylds_src,
             apply_local_zscore = apply_local_zscore,
             fao_max_ratio = fao_max_ratio,
-            global_percentile_cap = global_percentile_cap,
+            yield_global_percentile_cap = yield_global_percentile_cap,
         )
 
         if irr_a is not None:
@@ -1329,7 +1329,7 @@ def run_RothC_crops(
             "ylds_src": ylds_src,
             "apply_local_zscore": apply_local_zscore,
             "fao_max_ratio": fao_max_ratio,
-            "global_percentile_cap": global_percentile_cap,
+            "yield_global_percentile_cap": yield_global_percentile_cap,
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
