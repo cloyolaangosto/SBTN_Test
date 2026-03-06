@@ -1361,6 +1361,7 @@ def run_RothC_forest(
     max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
+    result_basename: Optional[str] = None,
 ):
     def _forest_loader(
         *,
@@ -1414,10 +1415,11 @@ def run_RothC_forest(
             residue_runs=residue_runs
         )
 
-    if practices_string_id is not None:
-        result_basename = f"{forest_type}_{weather_type}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
-    else:
-        result_basename=f"{forest_type}_{weather_type}_{_BASE_YEAR+n_years}y_SOC.tif"
+    if result_basename is None:
+        if practices_string_id is not None:
+            result_basename = f"{forest_type}_{weather_type}_{practices_string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
+        else:
+            result_basename = f"{forest_type}_{weather_type}_{_BASE_YEAR+n_years}y_SOC.tif"
 
     return _run_rothc_scenario(
         lu_fp=lu_fp,
@@ -1466,6 +1468,7 @@ def run_RothC_grassland(
     max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
+    result_basename: Optional[str] = None,
 ):
     def _grassland_loader(
         *,
@@ -1535,12 +1538,15 @@ def run_RothC_grassland(
 
         return raster_rothc_annual_results(**base_kwargs)
 
+    if result_basename is None:
+        result_basename = f"{grassland_type}_grassland_{string_id}_{_BASE_YEAR+n_years}y_SOC.tif"
+
     return _run_rothc_scenario(
         lu_fp=lu_fp,
         n_years=n_years,
         save_folder=save_folder,
         data_description=data_description,
-        result_basename=f"{grassland_type}_grassland_{string_id}_{_BASE_YEAR+n_years}y_SOC.tif",
+        result_basename=result_basename,
         loader=_grassland_loader,
         loader_kwargs={
             "evap_fp": evap_fp,
@@ -1613,7 +1619,10 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
-       
+
+        # Pop manual basename before building the auto-generated one
+        manual_basename = scenario.pop("result_basename", None)
+
         # Builds output string
         if add_filter_descrip:
             filter_descrip = scenario.get("outlier_strategy")
@@ -1624,6 +1633,9 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
             output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
         else:
             output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+
+        if manual_basename:
+            output_string = manual_basename
 
         output_path = output_folder / output_string
 
@@ -1670,7 +1682,10 @@ def run_rothc_grassland_scenarios_from_excel(excel_filepath: PathLike, force_new
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
+        manual_basename = scenario.pop("result_basename", None)
         output_string = f"{scenario['grassland_type']}_grassland_{scenario['string_id']}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+        if manual_basename:
+            output_string = manual_basename
         output_path = output_folder / output_string
 
         # Loads fym_fp
@@ -1680,14 +1695,14 @@ def run_rothc_grassland_scenarios_from_excel(excel_filepath: PathLike, force_new
 
         if force_new_files:
             print(f"Running {scn_string_text}")
-            run_RothC_grassland(**scenario)
+            run_RothC_grassland(**scenario, result_basename=output_string)
         else:
             if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
                 print(f"Running {scn_string_text}")
-                run_RothC_grassland(**scenario)
+                run_RothC_grassland(**scenario, result_basename=output_string)
 
         print(f"{scn_string_text} calculated. Continuing...\n\n")
 
@@ -1714,19 +1729,22 @@ def run_rothC_forest_scenarios_from_excel(excel_filepath: PathLike, force_new_fi
 
         # Checks if output filepath exist
         output_folder = _resolve_project_path(scenario["save_folder"])
+        manual_basename = scenario.pop("result_basename", None)
         output_string = f"{scenario['forest_type']}_{scenario['weather_type']}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
+        if manual_basename:
+            output_string = manual_basename
         output_path = output_folder / output_string
 
         if force_new_files:
             print(f"Running {scn_string_text}")
-            run_RothC_forest(**scenario)
+            run_RothC_forest(**scenario, result_basename=output_string)
         else:
             if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
                 continue
             else:
                 print(f"Running {scn_string_text}")
-                run_RothC_forest(**scenario)
+                run_RothC_forest(**scenario, result_basename=output_string)
 
         print(f"{scn_string_text} calculated. Continuing...\n\n")
 
