@@ -268,3 +268,143 @@ def test_apply_uncertainty_to_monthly_residues_preserves_sparse_zero_months():
 
     assert randomized.shape == monthly.shape
     np.testing.assert_allclose(randomized[monthly == 0.0], 0.0, rtol=0.0, atol=0.0)
+
+
+# ---------------------------------------------------------------------------
+# Tests for fao_max_ratio yield cap
+# ---------------------------------------------------------------------------
+
+def test_fao_max_ratio_clips_high_yields_sd_strategy():
+    """Yields exceeding fao_max_ratio * FAO avg should be clipped."""
+    arr = np.array([[5.0, 50.0], [100.0, 200.0]], dtype="float32")
+    zone_array = np.ones((2, 2), dtype=int)
+    fao_gdf = gpd.GeoDataFrame(
+        {"zone_id": [1], "avg_yield": [10.0]},
+        geometry=[box(0, 0, 1, 1)],
+        crs="EPSG:4326",
+    )
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        yld_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        filter_outlier_strategy="sd",
+        k_sd=100.0,  # very wide — would not clip on its own
+        fao_max_ratio=3.0,  # cap at 30.0
+    )
+
+    # All pixels should be <= 3.0 * 10.0 = 30.0
+    assert np.nanmax(filtered) <= 30.0 + 1e-6
+    np.testing.assert_allclose(filtered[0, 0], 5.0, rtol=1e-6)
+    np.testing.assert_allclose(filtered[0, 1], 30.0, rtol=1e-6)
+    np.testing.assert_allclose(filtered[1, 0], 30.0, rtol=1e-6)
+    np.testing.assert_allclose(filtered[1, 1], 30.0, rtol=1e-6)
+
+
+def test_fao_max_ratio_none_disables_cap():
+    """When fao_max_ratio is None, no FAO-based cap is applied."""
+    arr = np.array([[5.0, 200.0]], dtype="float32")
+    zone_array = np.ones((1, 2), dtype=int)
+    fao_gdf = gpd.GeoDataFrame(
+        {"zone_id": [1], "avg_yield": [10.0]},
+        geometry=[box(0, 0, 1, 1)],
+        crs="EPSG:4326",
+    )
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        yld_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        filter_outlier_strategy="sd",
+        k_sd=100.0,
+        fao_max_ratio=None,  # disabled
+    )
+
+    # 200.0 should pass through (only sd strategy with huge k_sd)
+    np.testing.assert_allclose(filtered[0, 1], 200.0, rtol=1e-6)
+
+
+def test_fao_max_ratio_with_local_zscore_strategy():
+    """fao_max_ratio should also cap values when using local_zscore strategy."""
+    arr = np.ones((5, 5), dtype="float32") * 50.0
+    zone_array = np.ones((5, 5), dtype=int)
+    fao_gdf = gpd.GeoDataFrame(
+        {"zone_id": [1], "avg_yield": [10.0]},
+        geometry=[box(0, 0, 1, 1)],
+        crs="EPSG:4326",
+    )
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        yld_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        filter_outlier_strategy="local_zscore",
+        fao_max_ratio=2.0,  # cap at 20.0
+        local_window=3,
+        local_k=2.5,
+        local_min_neighbors=4,
+    )
+
+    # All values should be capped at 2.0 * 10.0 = 20.0
+    finite = filtered[np.isfinite(filtered)]
+    assert np.all(finite <= 20.0 + 1e-6)
+
+
+# ---------------------------------------------------------------------------
+# Tests for global_percentile_cap
+# ---------------------------------------------------------------------------
+
+def test_global_percentile_cap_clips_extreme_values():
+    """global_percentile_cap should clip values above the computed percentile."""
+    # 100 pixels: 99 at value 10, 1 at value 1000
+    arr = np.full((10, 10), 10.0, dtype="float32")
+    arr[0, 0] = 1000.0
+    zone_array = np.ones((10, 10), dtype=int)
+    fao_gdf = gpd.GeoDataFrame(
+        {"zone_id": [1], "avg_yield": [10.0]},
+        geometry=[box(0, 0, 1, 1)],
+        crs="EPSG:4326",
+    )
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        yld_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        filter_outlier_strategy="sd",
+        k_sd=100.0,  # very wide, won't clip on its own
+        fao_max_ratio=None,  # disable FAO cap
+        global_percentile_cap=99.0,  # should clip the single outlier
+    )
+
+    # The 99th percentile of 99x10 + 1x1000 should bring the outlier down
+    assert np.nanmax(filtered) < 1000.0
+
+
+def test_global_percentile_cap_none_disables():
+    """When global_percentile_cap is None, no global clipping occurs."""
+    arr = np.full((10, 10), 10.0, dtype="float32")
+    arr[0, 0] = 1000.0
+    zone_array = np.ones((10, 10), dtype=int)
+    fao_gdf = gpd.GeoDataFrame(
+        {"zone_id": [1], "avg_yield": [10.0]},
+        geometry=[box(0, 0, 1, 1)],
+        crs="EPSG:4326",
+    )
+
+    (filtered,) = cropcalcs._pre_filter_yields_rasters(
+        yld_arrays=(arr,),
+        fao_gdf=fao_gdf,
+        zone_array=zone_array,
+        fao_avg_yield_name="avg_yield",
+        filter_outlier_strategy="sd",
+        k_sd=100.0,
+        fao_max_ratio=None,
+        global_percentile_cap=None,
+    )
+
+    # Outlier should pass through untouched
+    np.testing.assert_allclose(filtered[0, 0], 1000.0, rtol=1e-6)

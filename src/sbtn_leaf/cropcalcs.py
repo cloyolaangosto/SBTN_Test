@@ -52,9 +52,11 @@ class FilterParametersYieldsCalculations:
     filter_strategy: str = "sd"
     percentile_bounds: Tuple[float, float] = (1.0, 99.0)
     k_sd: float = 2.0
-    local_window: int = 3           #  Local z-score window size (odd kernel width/height in pixels, e.g. 3 or 5).
+    fao_max_ratio: float = 3.0      #  Absolute cap: yield ≤ fao_max_ratio × FAO zone average.
+    global_percentile_cap: Optional[float] = None  # Cross-zone global percentile cap. None disables.
+    local_window: int = 11          #  Local z-score window size (odd kernel width/height in pixels).
     local_k: float = 2.5            #  Number of local standard deviations used to define clipping bounds.
-    local_min_neighbors: int = 4    #  Minimum valid neighbors required before applying local clipping to a pixel.
+    local_min_neighbors: int = 20   #  Minimum valid neighbors required before applying local clipping to a pixel.
     apply_local_zscore: bool = False
 
 
@@ -83,12 +85,16 @@ class CropYieldRasterConfig:
     outlier_strategy: str = "sd"
     percentile_bound: Tuple[float, float] = (1.0, 99.0)
     k_sd: float = 2.0
-    # Local z-score window size (odd kernel width/height in pixels, e.g. 3 or 5).
-    local_window: int = 3
+    # Absolute cap: yield ≤ fao_max_ratio × FAO zone average. None disables.
+    fao_max_ratio: Optional[float] = None
+    # Cross-zone global percentile cap. None disables.
+    global_percentile_cap: Optional[float] = None
+    # Local z-score window size (odd kernel width/height in pixels).
+    local_window: int = 11
     # Number of local standard deviations used to define clipping bounds.
     local_k: float = 2.5
     # Minimum valid neighbors required before applying local clipping to a pixel.
-    local_min_neighbors: int = 4
+    local_min_neighbors: int = 20
     ylds_src: str = "GAEZ"
     enable_fao_fill: bool = True
     enable_ecoregion_fill: bool = True
@@ -691,6 +697,8 @@ def _pre_filter_yields_rasters(
     filter_outlier_strategy: str,
     percentile_bounds: Tuple[float, float] | None = None,
     k_sd: float | None = None,
+    fao_max_ratio: float | None = None,
+    global_percentile_cap: float | None = None,
     # NEW: optional second-stage spatial cleanup
     apply_local_zscore: bool = False,
     local_window: int | None = None,
@@ -703,6 +711,9 @@ def _pre_filter_yields_rasters(
       - "ratio_percentile": clip by percentile bounds of (yield / FAO_avg) within each zone
       - "sd": clip by zone mean ± k_sd * sd within each zone
       - "log_winsor": winsorize in log1p space within each zone (then invert)
+
+    Optional absolute cap:
+      - fao_max_ratio: if set, yield is capped at fao_max_ratio * FAO_zone_avg regardless of strategy.
 
     Optional second stage:
       - apply_local_zscore=True applies spatial local z-score clipping after zone clipping.
@@ -811,21 +822,61 @@ def _pre_filter_yields_rasters(
                     min_val = np.expm1(lo)
                     max_val = np.expm1(hi)
 
+                # Apply FAO absolute cap on top of strategy bounds
+                if fao_max_ratio is not None and np.isfinite(faostat_zone_avg) and faostat_zone_avg > 0:
+                    max_val = min(max_val, fao_max_ratio * faostat_zone_avg)
+
                 clipped = np.clip(array, min_val, max_val).astype("float32", copy=False)
                 out_arrays[i][valid_zone] = clipped[valid_zone]
 
     elif filter_outlier_strategy == "local_zscore":
-        # No statistical clipping, but restrict to pixels in known FAO zones.
-        known_zone_ids = {int(row["zone_id"]) for _, row in fao_gdf.iterrows()}
-        known_zone_mask = np.isin(zone_array, list(known_zone_ids))
-        for i, array in enumerate(yld_arrays):
-            m = np.isfinite(array) & known_zone_mask
-            out_arrays[i][m] = array[m].astype("float32", copy=False)
+        # No statistical clipping, but restrict to pixels in known FAO zones
+        # and apply FAO absolute cap if set.
+        for _, row in fao_gdf.iterrows():
+            zid = int(row["zone_id"])
+            zid_mask = zone_array == zid
+            faostat_zone_avg = row[fao_avg_yield_name]
+            for i, array in enumerate(yld_arrays):
+                m = zid_mask & np.isfinite(array)
+                if not np.any(m):
+                    continue
+                if fao_max_ratio is not None and np.isfinite(faostat_zone_avg) and faostat_zone_avg > 0:
+                    capped = np.minimum(array, fao_max_ratio * faostat_zone_avg)
+                    out_arrays[i][m] = capped[m].astype("float32", copy=False)
+                else:
+                    out_arrays[i][m] = array[m].astype("float32", copy=False)
     else:
         # No zone clipping: just copy finite values through before local pass
-        for i, array in enumerate(yld_arrays):
-            m = np.isfinite(array)
-            out_arrays[i][m] = array[m].astype("float32", copy=False)
+        # Still apply FAO absolute cap per zone if set.
+        if fao_max_ratio is not None:
+            for _, row in fao_gdf.iterrows():
+                zid = int(row["zone_id"])
+                zid_mask = zone_array == zid
+                faostat_zone_avg = row[fao_avg_yield_name]
+                for i, array in enumerate(yld_arrays):
+                    m = zid_mask & np.isfinite(array)
+                    if not np.any(m):
+                        continue
+                    if np.isfinite(faostat_zone_avg) and faostat_zone_avg > 0:
+                        capped = np.minimum(array, fao_max_ratio * faostat_zone_avg)
+                        out_arrays[i][m] = capped[m].astype("float32", copy=False)
+                    else:
+                        out_arrays[i][m] = array[m].astype("float32", copy=False)
+        else:
+            for i, array in enumerate(yld_arrays):
+                m = np.isfinite(array)
+                out_arrays[i][m] = array[m].astype("float32", copy=False)
+
+    # --- optional cross-zone global percentile cap ---
+    if global_percentile_cap is not None:
+        for i in range(len(out_arrays)):
+            finite_vals = out_arrays[i][np.isfinite(out_arrays[i])]
+            if finite_vals.size > 0:
+                cap_val = np.nanpercentile(finite_vals, global_percentile_cap)
+                finite_mask = np.isfinite(out_arrays[i])
+                out_arrays[i] = np.where(
+                    finite_mask, np.minimum(out_arrays[i], cap_val), out_arrays[i]
+                ).astype("float32", copy=False)
 
     # --- optional second-stage local z-score ---
     if apply_local_zscore:
@@ -925,6 +976,8 @@ def _create_crop_yield_raster_core_2(
         filter_outlier_strategy=filter_parameters.filter_strategy,
         percentile_bounds=filter_parameters.percentile_bounds,
         k_sd = filter_parameters.k_sd,
+        fao_max_ratio=filter_parameters.fao_max_ratio,
+        global_percentile_cap=filter_parameters.global_percentile_cap,
         local_window = filter_parameters.local_window,
         local_k =filter_parameters.local_k,
         local_min_neighbors = filter_parameters.local_min_neighbors,
@@ -1082,6 +1135,8 @@ def _create_crop_yield_raster_core(
         filter_outlier_strategy=config.outlier_strategy,
         percentile_bounds=config.percentile_bound,
         k_sd=config.k_sd,
+        fao_max_ratio=config.fao_max_ratio,
+        global_percentile_cap=config.global_percentile_cap,
         local_window=config.local_window,
         local_k=config.local_k,
         local_min_neighbors=config.local_min_neighbors,
@@ -2476,14 +2531,16 @@ def calculate_monthly_residues_array(
     # Minimum valid neighbors needed to apply local clipping at a pixel.
     local_min_neighbors: int = 4,
     apply_local_zscore: bool = True,
-    ylds_src: str = "GAEZ"
+    ylds_src: str = "GAEZ",
+    fao_max_ratio: float = 3.0,
+    global_percentile_cap: float | None = 99.5,
 ):
     # print("    Calculating stochastic residue array...")
 
     # Step 1 - Prepare fao yield shapefile
     crop_names_table = _get_crop_naming_index_table()
     fao_crop_name = crop_names_table.filter(pl.col("Crops") == crop_name).select(pl.col("FAO_Crop")).item()
-    
+
     # print(f"Creating {fao_crop_name} helper shapefile...")
     fao_yield_shp = create_crop_yield_shapefile(fao_crop_name)
 
@@ -2505,7 +2562,9 @@ def calculate_monthly_residues_array(
         local_k=local_k,
         local_min_neighbors=local_min_neighbors,
         ylds_src = ylds_src,
-        apply_local_zscore= apply_local_zscore
+        apply_local_zscore= apply_local_zscore,
+        fao_max_ratio=fao_max_ratio,
+        global_percentile_cap=global_percentile_cap,
     )
 
     # Step 3 - Create plant residue raster
@@ -2893,6 +2952,8 @@ def calculate_crop_yield_array_with_irrigation_scaling(
     enable_nearest_fill: bool = True,
     ylds_direct_min_share_warn: float = 0.05,
     apply_local_zscore: bool = False,
+    fao_max_ratio: float = 3.0,
+    global_percentile_cap: float | None = None,
 ) -> CropYieldRasterResult:
     """Pipeline wrapper around :func:`create_crop_yield_raster_withIrrigationPracticeScaling`."""
 
@@ -2914,6 +2975,8 @@ def calculate_crop_yield_array_with_irrigation_scaling(
         outlier_strategy=outlier_strategy,
         percentile_bound=percentile_bounds,
         k_sd=k_sd,
+        fao_max_ratio=fao_max_ratio,
+        global_percentile_cap=global_percentile_cap,
         local_window=local_window,
         local_k=local_k,
         local_min_neighbors=local_min_neighbors,

@@ -2753,3 +2753,115 @@ def extract_coordinates_values_from_raster(points_source, raster_input_filepath,
     # Append the extracted values as a new column in the GeoDataFrame.
     points_gdf[column_name] = values
     return points_gdf
+
+
+# ---------------------------------------------------------------------------
+# Post-processing filter for already-computed output rasters (SOC / erosion)
+# ---------------------------------------------------------------------------
+
+PathLike = Union[str, Path]
+
+
+def filter_output_raster(
+    input_path: PathLike,
+    output_path: Optional[PathLike] = None,
+    *,
+    percentile_bounds: Optional[Tuple[float, float]] = None,
+    abs_min: Optional[float] = None,
+    abs_max: Optional[float] = None,
+    max_annual_gain: Optional[float] = None,
+    baseline_band: int = 0,
+    bands: Optional[List[int]] = None,
+    overwrite: bool = False,
+) -> str:
+    """Filter an already-computed output raster (SOC, soil erosion, etc.).
+
+    Reads the input GeoTIFF, applies the requested filters in order:
+      1. ``abs_min`` / ``abs_max`` — hard value clipping
+      2. ``percentile_bounds`` — clip to (lo, hi) percentiles computed from
+         all finite values across the selected bands
+      3. ``max_annual_gain`` — for multi-band SOC rasters, cap each band at
+         ``baseline + max_annual_gain * (band_index - baseline_band)``
+
+    Parameters
+    ----------
+    input_path : path-like
+        Path to the input GeoTIFF.
+    output_path : path-like or None
+        Destination path.  When *None*, overwrites *input_path* (requires
+        ``overwrite=True``).
+    percentile_bounds : (lo, hi) or None
+        Percentile pair in [0, 100].  Computed from all finite values across
+        the selected bands.
+    abs_min, abs_max : float or None
+        Absolute lower / upper bound applied via ``np.clip``.
+    max_annual_gain : float or None
+        Maximum SOC gain per band-step (typically t C/ha/year).  Only useful
+        for multi-band temporal rasters where each band is one year.
+    baseline_band : int
+        0-based band index that represents the baseline (year 0) when using
+        ``max_annual_gain``.
+    bands : list[int] or None
+        0-based band indices to process.  *None* means all bands.
+    overwrite : bool
+        Must be *True* to allow in-place overwrite when *output_path* is None.
+
+    Returns
+    -------
+    str
+        The path of the written output file.
+    """
+    input_path = Path(input_path)
+    if output_path is None:
+        if not overwrite:
+            raise ValueError("output_path is None — set overwrite=True to overwrite the input file")
+        output_path = input_path
+    else:
+        output_path = Path(output_path)
+
+    with rasterio.open(input_path) as src:
+        profile = src.profile.copy()
+        data = src.read()  # shape: (bands, height, width)
+        tags = src.tags()
+
+    n_bands = data.shape[0]
+    if bands is None:
+        band_indices = list(range(n_bands))
+    else:
+        band_indices = list(bands)
+
+    # 1. Absolute bounds clipping
+    if abs_min is not None or abs_max is not None:
+        for bi in band_indices:
+            finite = np.isfinite(data[bi])
+            lo = abs_min if abs_min is not None else np.finfo(data.dtype).min
+            hi = abs_max if abs_max is not None else np.finfo(data.dtype).max
+            data[bi] = np.where(finite, np.clip(data[bi], lo, hi), data[bi])
+
+    # 2. Percentile clipping
+    if percentile_bounds is not None:
+        q_lo, q_hi = percentile_bounds
+        all_finite = np.concatenate([data[bi][np.isfinite(data[bi])].ravel() for bi in band_indices])
+        if all_finite.size > 0:
+            p_lo, p_hi = np.percentile(all_finite, [q_lo, q_hi])
+            for bi in band_indices:
+                finite = np.isfinite(data[bi])
+                data[bi] = np.where(finite, np.clip(data[bi], p_lo, p_hi), data[bi])
+
+    # 3. Max annual gain clipping (multi-band SOC)
+    if max_annual_gain is not None and n_bands > 1:
+        baseline = data[baseline_band].copy()
+        for bi in band_indices:
+            if bi == baseline_band:
+                continue
+            years_from_baseline = abs(bi - baseline_band)
+            cap = baseline + max_annual_gain * years_from_baseline
+            finite = np.isfinite(data[bi]) & np.isfinite(cap)
+            data[bi] = np.where(finite, np.minimum(data[bi], cap), data[bi])
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(output_path, "w", **profile) as dst:
+        dst.write(data)
+        dst.update_tags(**tags)
+
+    return str(output_path)

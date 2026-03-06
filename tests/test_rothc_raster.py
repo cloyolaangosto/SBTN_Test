@@ -503,3 +503,82 @@ def test_run_rothc_forest_passes_nan_age_through_litter(monkeypatch, tmp_path):
     for arr in captured_outputs:
         assert np.isnan(arr[0, 1])
         assert np.isnan(arr[1, 0])
+
+
+# ---------------------------------------------------------------------------
+# Tests for _clip_soc_output post-filter
+# ---------------------------------------------------------------------------
+
+from sbtn_leaf.RothC_Raster import _clip_soc_output
+
+
+def test_clip_soc_output_absolute_cap():
+    """Values exceeding max_soc_tc_ha should be clipped."""
+    soc0 = np.array([[40.0, 50.0]], dtype="float32")
+    soc_annual = np.array([
+        [[40.0, 50.0]],
+        [[100.0, 600.0]],  # 600 exceeds default 500 cap
+    ], dtype="float32")
+
+    result = _clip_soc_output(
+        soc_annual, soc0, max_annual_gain=1000.0,  # high to not trigger delta cap
+        max_soc_tc_ha=500.0, global_percentile_cap=None,
+    )
+
+    assert result[1, 0, 0] == 100.0  # unchanged, below cap
+    assert result[1, 0, 1] == 500.0  # clipped to cap
+
+
+def test_clip_soc_output_annual_delta_cap():
+    """Year-over-year SOC gain should be capped at soc0 + max_annual_gain * year."""
+    soc0 = np.array([[40.0]], dtype="float32")
+    soc_annual = np.array([
+        [[40.0]],
+        [[60.0]],  # gain of 20 from soc0
+        [[90.0]],  # gain of 50 from soc0
+    ], dtype="float32")
+
+    result = _clip_soc_output(
+        soc_annual, soc0, max_annual_gain=5.0,
+        max_soc_tc_ha=1000.0, global_percentile_cap=None,
+    )
+
+    # year 1: cap = 40 + 5*1 = 45
+    assert result[1, 0, 0] == 45.0
+    # year 2: cap = 40 + 5*2 = 50
+    assert result[2, 0, 0] == 50.0
+
+
+def test_clip_soc_output_global_percentile():
+    """Global percentile cap should clip high values across final year."""
+    soc0 = np.full((1, 100), 40.0, dtype="float32")
+    year1 = np.full((1, 100), 50.0, dtype="float32")
+    year1[0, 99] = 200.0  # single outlier
+
+    soc_annual = np.stack([soc0, year1])
+
+    result = _clip_soc_output(
+        soc_annual, soc0, max_annual_gain=1000.0,
+        max_soc_tc_ha=1000.0, global_percentile_cap=99.0,
+    )
+
+    # The outlier at 200.0 should be clipped down
+    assert result[1, 0, 99] < 200.0
+
+
+def test_clip_soc_output_preserves_nans():
+    """NaN pixels should be left unchanged."""
+    soc0 = np.array([[40.0, np.nan]], dtype="float32")
+    soc_annual = np.array([
+        [[40.0, np.nan]],
+        [[60.0, np.nan]],
+    ], dtype="float32")
+
+    result = _clip_soc_output(
+        soc_annual, soc0, max_annual_gain=5.0,
+        max_soc_tc_ha=500.0, global_percentile_cap=None,
+    )
+
+    assert np.isnan(result[0, 0, 1])
+    assert np.isnan(result[1, 0, 1])
+    assert result[1, 0, 0] == 45.0  # 40 + 5*1

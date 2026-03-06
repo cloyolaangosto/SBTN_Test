@@ -394,7 +394,9 @@ def _raster_rothc_annual_results(
     percentile_bound: Optional[Tuple[float, float]] = None,
     k_sd: Optional[float] = None,
     ylds_src: str = "GAEZ",
-    apply_local_zscore: bool = False
+    apply_local_zscore: bool = False,
+    fao_max_ratio: float = 3.0,
+    global_percentile_cap: float | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -442,7 +444,9 @@ def _raster_rothc_annual_results(
                     percentile_bounds = percentile_bound,
                     k_sd = k_sd,
                     ylds_src = ylds_src,
-                    apply_local_zscore = apply_local_zscore
+                    apply_local_zscore = apply_local_zscore,
+                    fao_max_ratio = fao_max_ratio,
+                    global_percentile_cap = global_percentile_cap,
                 )
                 c_inp = c_inp_inputs[0]
                 yields_results = c_inp_inputs[1]
@@ -468,7 +472,9 @@ def _raster_rothc_annual_results(
             percentile_bounds = percentile_bound,
             k_sd = k_sd,
             ylds_src = ylds_src,
-            apply_local_zscore = apply_local_zscore
+            apply_local_zscore = apply_local_zscore,
+            fao_max_ratio = fao_max_ratio,
+            global_percentile_cap = global_percentile_cap,
         )
         c_inp = c_inp_inputs[0]
         yields_results = c_inp_inputs[1]
@@ -674,7 +680,9 @@ def raster_rothc_annual_results(
     percentile_bound: Optional[Tuple[float, float]] = None,
     k_sd: Optional[float] = None,
     ylds_src: Optional[str] = None,
-    apply_local_zscore: bool = False
+    apply_local_zscore: bool = False,
+    fao_max_ratio: float = 3.0,
+    global_percentile_cap: float | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -735,7 +743,9 @@ def raster_rothc_annual_results(
         percentile_bound = percentile_bound,
         k_sd = k_sd,
         ylds_src=ylds_src,
-        apply_local_zscore = apply_local_zscore
+        apply_local_zscore = apply_local_zscore,
+        fao_max_ratio = fao_max_ratio,
+        global_percentile_cap = global_percentile_cap,
     )
 
 
@@ -1006,6 +1016,56 @@ def _load_grassland_data(
     return lu_raster, evap, pr, pc, fym, irr
 
 
+def _clip_soc_output(
+    soc_annual: np.ndarray,
+    soc0: np.ndarray,
+    max_annual_gain: float,
+    max_soc_tc_ha: float = 500.0,
+    global_percentile_cap: float | None = 99.5,
+) -> np.ndarray:
+    """Clip SOC to prevent physically unreasonable accumulation.
+
+    Applies three filters in order:
+    1. Absolute physical cap: any pixel with SOC > max_soc_tc_ha is clipped.
+    2. Annual delta cap: SOC capped at soc0 + max_annual_gain * year_index.
+    3. Global percentile cap: final-year values clipped to percentile threshold.
+
+    Pixels where soc0 is NaN or non-finite are left unchanged for the
+    annual-delta check.
+    """
+    result = soc_annual.copy()
+
+    # 1. Absolute physical cap
+    for yi in range(result.shape[0]):
+        finite = np.isfinite(result[yi])
+        result[yi] = np.where(
+            finite, np.minimum(result[yi], max_soc_tc_ha), result[yi]
+        )
+
+    # 2. Annual delta cap
+    for yi in range(1, result.shape[0]):
+        cap = soc0 + max_annual_gain * yi
+        result[yi] = np.where(
+            np.isfinite(result[yi]) & np.isfinite(cap),
+            np.minimum(result[yi], cap),
+            result[yi],
+        )
+
+    # 3. Global percentile cap (computed from last year, applied to all years)
+    if global_percentile_cap is not None:
+        last_year = result[-1]
+        finite_vals = last_year[np.isfinite(last_year)]
+        if finite_vals.size > 0:
+            pct_val = np.nanpercentile(finite_vals, global_percentile_cap)
+            for yi in range(result.shape[0]):
+                finite = np.isfinite(result[yi])
+                result[yi] = np.where(
+                    finite, np.minimum(result[yi], pct_val), result[yi]
+                )
+
+    return result
+
+
 def _run_rothc_scenario(
     *,
     lu_fp: PathLike,
@@ -1020,6 +1080,10 @@ def _run_rothc_scenario(
     loader_message: Optional[str] = None,
     save_CO2: bool = False,
     env_overrides: Optional[Dict[str, PathLike]] = None,
+    apply_soc_clip: bool = False,
+    max_annual_soc_gain: float = 5.0,
+    max_soc_tc_ha: float = 500.0,
+    soc_global_percentile_cap: float | None = 99.5,
 ):
     """Shared workflow for RothC scenario execution and persistence."""
 
@@ -1057,6 +1121,14 @@ def _run_rothc_scenario(
         SOC_results, CO2_results = results
     else:
         SOC_results, CO2_results = results, None
+
+    if apply_soc_clip:
+        print(f"    Clipping SOC output (max gain = {max_annual_soc_gain} t C/ha/year)...")
+        SOC_results = _clip_soc_output(
+            SOC_results, env_arrays["soc0"], max_annual_soc_gain,
+            max_soc_tc_ha=max_soc_tc_ha,
+            global_percentile_cap=soc_global_percentile_cap,
+        )
 
     save_path = _resolve_project_path(save_folder) / result_basename
     save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1118,6 +1190,12 @@ def run_RothC_crops(
     k_sd: float = 2.0,
     ylds_src: str = "GAEZ",
     apply_local_zscore: bool = False,
+    fao_max_ratio: float = 3.0,
+    global_percentile_cap: float | None = None,
+    apply_soc_clip: bool = False,
+    max_annual_soc_gain: float = 5.0,
+    max_soc_tc_ha: float = 500.0,
+    soc_global_percentile_cap: float | None = 99.5,
 ):
     def _crop_loader(
         *,
@@ -1161,7 +1239,9 @@ def run_RothC_crops(
         percentile_bound: Optional[Tuple[float, float]],
         k_sd: Optional[float],
         ylds_src: str = "GAEZ",
-        apply_local_zscore: bool = False
+        apply_local_zscore: bool = False,
+        fao_max_ratio: float = 3.0,
+        global_percentile_cap: float | None = None,
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         evap_a = np.asarray(scenario["evap"].values)
         pc_a = np.asarray(scenario["pc"].values)
@@ -1194,7 +1274,9 @@ def run_RothC_crops(
             percentile_bound = percentile_bound,
             k_sd = k_sd,
             ylds_src = ylds_src,
-            apply_local_zscore = apply_local_zscore
+            apply_local_zscore = apply_local_zscore,
+            fao_max_ratio = fao_max_ratio,
+            global_percentile_cap = global_percentile_cap,
         )
 
         if irr_a is not None:
@@ -1240,11 +1322,17 @@ def run_RothC_crops(
             "percentile_bound": percentile_bound,
             "k_sd": k_sd,
             "ylds_src": ylds_src,
-            "apply_local_zscore": apply_local_zscore
+            "apply_local_zscore": apply_local_zscore,
+            "fao_max_ratio": fao_max_ratio,
+            "global_percentile_cap": global_percentile_cap,
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
         env_overrides=env_path_overrides,
+        apply_soc_clip=apply_soc_clip,
+        max_annual_soc_gain=max_annual_soc_gain,
+        max_soc_tc_ha=max_soc_tc_ha,
+        soc_global_percentile_cap=soc_global_percentile_cap,
     )
 
 # Forest version
@@ -1262,6 +1350,10 @@ def run_RothC_forest(
     save_CO2: bool = False,
     residue_runs = 100,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
+    apply_soc_clip: bool = False,
+    max_annual_soc_gain: float = 5.0,
+    max_soc_tc_ha: float = 500.0,
+    soc_global_percentile_cap: float | None = 99.5,
 ):
     def _forest_loader(
         *,
@@ -1341,6 +1433,10 @@ def run_RothC_forest(
         loader_message="    Loading forest data...",
         save_CO2=save_CO2,
         env_overrides=env_path_overrides,
+        apply_soc_clip=apply_soc_clip,
+        max_annual_soc_gain=max_annual_soc_gain,
+        max_soc_tc_ha=max_soc_tc_ha,
+        soc_global_percentile_cap=soc_global_percentile_cap,
     )
 
 
@@ -1359,6 +1455,10 @@ def run_RothC_grassland(
     residue_runs = 100,
     save_CO2: bool = False,
     env_path_overrides: Optional[Dict[str, PathLike]] = None,
+    apply_soc_clip: bool = False,
+    max_annual_soc_gain: float = 5.0,
+    max_soc_tc_ha: float = 500.0,
+    soc_global_percentile_cap: float | None = 99.5,
 ):
     def _grassland_loader(
         *,
@@ -1453,6 +1553,10 @@ def run_RothC_grassland(
         loader_message=f"    Loading {grassland_type} grassland data...",
         save_CO2=save_CO2,
         env_overrides=env_path_overrides,
+        apply_soc_clip=apply_soc_clip,
+        max_annual_soc_gain=max_annual_soc_gain,
+        max_soc_tc_ha=max_soc_tc_ha,
+        soc_global_percentile_cap=soc_global_percentile_cap,
     )
 
 
