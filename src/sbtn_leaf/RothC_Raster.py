@@ -1201,6 +1201,7 @@ def run_RothC_crops(
     max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
+    result_basename: Optional[str] = None,
 ):
     def _crop_loader(
         *,
