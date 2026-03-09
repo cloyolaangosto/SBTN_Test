@@ -930,14 +930,20 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
     results_df = pd.DataFrame(results)
 
+    if results_df.empty:
+        if area_type == "ecoregion":
+            results_df = pd.DataFrame(columns=["er_id", "er_name", "Biome", "imp_cat", "flow_name", "unit", "cf", "cf_median", "cf_std"])
+        elif area_type == "country":
+            results_df = pd.DataFrame(columns=["country", "imp_cat", "flow_name", "unit", "cf", "cf_median", "cf_std"])
+        else:
+            results_df = pd.DataFrame(columns=["country", "subcountry", "ADM1_CODE", "imp_cat", "flow_name", "unit", "cf", "cf_median", "cf_std"])
+
     # Merge back for spatial output
     if area_type == "ecoregion":
         final_gdf = shp.merge(results_df, how="left", left_on="ECO_ID", right_on="er_id")
         drop_cols = ['NNH', 'SHAPE_LENG', 'SHAPE_AREA', 'NNH_NAME','COLOR', 'COLOR_BIO', 'COLOR_NNH', 'LICENSE']
 
     elif area_type == "country":
-        print(results_df.columns)
-        print(shp.columns)
         final_gdf = shp.merge(results_df, how="left", left_on="ADM0_NAME", right_on="country")
         drop_cols = ['STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
 
@@ -1300,13 +1306,20 @@ def build_cfs_gpkg_from_rasters(
         """Run the CF calculator for a single raster file. Safe for use in ProcessPoolExecutor."""
         raster_path = os.path.join(input_folder, file)
         flow_name = _flow_name_from_file(file)
+        if area_type == "country":
+            shp_kwarg = {"country_gdf": master_gdf}
+        elif area_type == "ecoregion":
+            shp_kwarg = {"er_gdf": master_gdf}
+        else:
+            shp_kwarg = {"subcountry_gdf": master_gdf}
         df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             raster_input_filepath=raster_path,
             cf_name=cf_name,
             cf_unit=cf_unit,
             flow_name=flow_name,
             area_type=area_type,
-            **calc_kwargs
+            **shp_kwarg,
+            **calc_kwargs,
         )
         return file, flow_name, df_flow, gdf_flow
 
