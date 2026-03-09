@@ -936,6 +936,8 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         drop_cols = ['NNH', 'SHAPE_LENG', 'SHAPE_AREA', 'NNH_NAME','COLOR', 'COLOR_BIO', 'COLOR_NNH', 'LICENSE']
 
     elif area_type == "country":
+        print(results_df.columns)
+        print(shp.columns)
         final_gdf = shp.merge(results_df, how="left", left_on="ADM0_NAME", right_on="country")
         drop_cols = ['STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
 
