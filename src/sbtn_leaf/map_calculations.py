@@ -25,6 +25,7 @@ from pathlib import Path
 import xarray as xr
 
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
 from pyogrio import list_layers as list_gpkg_layers
@@ -1045,9 +1046,22 @@ def build_cfs_gpkg_from_rasters(
         gpckg_path = output_string + ".gpkg"
     csv_path = output_string + ".csv"
 
-    # Reset gpkg if requested
-    if write_gpkg and reset_gpkg and gpckg_path and os.path.exists(gpckg_path):
-        os.remove(gpckg_path)
+    # Checkpoint directory for crash recovery
+    checkpoint_dir = os.path.join(output_folder, f"_checkpoints_{layer_name}")
+
+    if reset_gpkg:
+        # Full reset: delete gpkg and checkpoint dir
+        if write_gpkg and gpckg_path and os.path.exists(gpckg_path):
+            os.remove(gpckg_path)
+        if os.path.exists(checkpoint_dir):
+            shutil.rmtree(checkpoint_dir)
+    else:
+        # Resume mode: keep checkpoints, but delete the gpkg so it can be
+        # cleanly rebuilt from cached checkpoints + new results
+        if write_gpkg and gpckg_path and os.path.exists(gpckg_path):
+            os.remove(gpckg_path)
+
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
     # Ensure master has needed columns & unique keys
     if master_key not in master_gdf.columns:
@@ -1109,6 +1123,11 @@ def build_cfs_gpkg_from_rasters(
     if is_geographic or str(master_crs) != equal_area_crs:
         master_gdf = master_gdf.to_crs(equal_area_crs)
 
+    # Pass pre-reprojected shapefile to inner function so it skips its own
+    # load + reproject on every call (significant speedup for large shapefiles)
+    _shp_key_map = {"ecoregion": "er_gdf", "country": "country_gdf", "subcountry": "subcountry_gdf"}
+    calc_kwargs.setdefault(_shp_key_map[area_type], master_gdf)
+
     # Persist master geometry once (recommendation #1)
     if write_gpkg:
         write_df(
@@ -1127,7 +1146,7 @@ def build_cfs_gpkg_from_rasters(
     # Store long-format results for CSV export (without constant metadata columns)
     long_result_frames: List[pd.DataFrame] = []
 
-    # Iterates through files
+    # Iterates through files (with checkpoint-based crash recovery)
     with logging_context:
         for file in progress_iter:
 
@@ -1138,56 +1157,71 @@ def build_cfs_gpkg_from_rasters(
             if input_raster_key_endswith:
                 flow_name = flow_name.replace(input_raster_key_endswith, "")
 
-            if logger:
-                logger.info(f"Calculating {cf_name} for {flow_name}...")
+            checkpoint_path = os.path.join(checkpoint_dir, f"{flow_name}.parquet")
 
-            # Run calculator → (df, gdf)
-            df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
-                raster_input_filepath=raster_path,
-                cf_name=cf_name,
-                cf_unit=cf_unit,
-                flow_name=flow_name,
-                area_type=area_type,
-                **calc_kwargs
-            )
+            # ── Resume: load from checkpoint if available ──
+            if os.path.exists(checkpoint_path):
+                flow_values = pd.read_parquet(checkpoint_path)
+                if logger:
+                    logger.info(f"Resumed from checkpoint for {flow_name}")
+            else:
+                # ── Compute: run the expensive calculator ──
+                if logger:
+                    logger.info(f"Calculating {cf_name} for {flow_name}...")
 
-            # Check if the result is empty and thus skip
-            if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty) or gdf_flow is None or getattr(gdf_flow, "empty", False):
-                if logger is not None:
-                    logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
-                continue
+                df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
+                    raster_input_filepath=raster_path,
+                    cf_name=cf_name,
+                    cf_unit=cf_unit,
+                    flow_name=flow_name,
+                    area_type=area_type,
+                    **calc_kwargs
+                )
 
-            # Align CRS
-            if gdf_flow.crs != master_gdf.crs:
-                if logger is not None:
-                    logger.info("Result gdf aligned with master_gdf")
-                gdf_flow = gdf_flow.set_crs(master_gdf.crs, allow_override=True)
+                # Check if the result is empty and thus skip
+                if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty) or gdf_flow is None or getattr(gdf_flow, "empty", False):
+                    if logger is not None:
+                        logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
+                    continue
 
-            # Ensure flow results include the expected join key
-            if master_key not in gdf_flow.columns:
-                raise KeyError(f"master_key '{master_key}' not found in result gdf. Available: {list(gdf_flow.columns)}")
+                # Align CRS
+                if gdf_flow.crs != master_gdf.crs:
+                    if logger is not None:
+                        logger.info("Result gdf aligned with master_gdf")
+                    gdf_flow = gdf_flow.set_crs(master_gdf.crs, allow_override=True)
 
-            # Merge onto master identifiers so all regions are represented
-            flow_values = master_id_df.merge(
-                df_flow[[result_key, "cf", "cf_median", "cf_std"]],
-                how="left",
-                left_on=master_key,
-                right_on=result_key,
-            )
+                # Ensure flow results include the expected join key
+                if master_key not in gdf_flow.columns:
+                    raise KeyError(f"master_key '{master_key}' not found in result gdf. Available: {list(gdf_flow.columns)}")
 
-            if (result_key in flow_values.columns) and (master_key != result_key):
-                flow_values = flow_values.drop(columns=result_key)
+                # Merge onto master identifiers so all regions are represented
+                flow_values = master_id_df.merge(
+                    df_flow[[result_key, "cf", "cf_median", "cf_std"]],
+                    how="left",
+                    left_on=master_key,
+                    right_on=result_key,
+                )
 
-            flow_values.insert(1, "flow_name", flow_name)
+                if (result_key in flow_values.columns) and (master_key != result_key):
+                    flow_values = flow_values.drop(columns=result_key)
 
-            for col in ("cf", "cf_median", "cf_std"):
-                if col in flow_values.columns:
-                    flow_values[col] = flow_values[col].astype("float32")
+                flow_values.insert(1, "flow_name", flow_name)
 
-            if add_source_file_name:
-                flow_values["_source_file"] = file
+                for col in ("cf", "cf_median", "cf_std"):
+                    if col in flow_values.columns:
+                        flow_values[col] = flow_values[col].astype("float32")
 
-            # Record metadata once per flow (recommendation #2)
+                if add_source_file_name:
+                    flow_values["_source_file"] = file
+
+                # Save checkpoint atomically (write tmp, then rename)
+                tmp_path = checkpoint_path + ".tmp"
+                flow_values.to_parquet(tmp_path, index=False)
+                os.replace(tmp_path, checkpoint_path)
+
+            # ── Common path (from checkpoint or fresh computation) ──
+
+            # Record metadata once per flow
             metadata_entry = {
                 "flow_name": flow_name,
                 "impact_category": cf_name,
@@ -1224,36 +1258,12 @@ def build_cfs_gpkg_from_rasters(
                     append=append_flag,
                 )
 
-            # Long-format table for CSV output (no constant columns)
-            mean_df = master_id_df.merge(
-                df_flow[[result_key, "cf"]],
-                how="left",
-                left_on=master_key,
-                right_on=result_key,
-            ).rename(columns={"cf": "value"})
-            mean_df["metric"] = "cf_mean"
-
-            median_df = master_id_df.merge(
-                df_flow[[result_key, "cf_median"]],
-                how="left",
-                left_on=master_key,
-                right_on=result_key,
-            ).rename(columns={"cf_median": "value"})
-            median_df["metric"] = "cf_median"
-
-            std_df = master_id_df.merge(
-                df_flow[[result_key, "cf_std"]],
-                how="left",
-                left_on=master_key,
-                right_on=result_key,
-            ).rename(columns={"cf_std": "value"})
-            std_df["metric"] = "cf_std"
-
-            for frame in (mean_df, median_df, std_df):
-                if (result_key in flow_values.columns) and (master_key != result_key):
-                    frame = frame.drop(columns=result_key)
-                frame["flow_name"] = flow_name
-                long_result_frames.append(frame)
+            # Long-format table for CSV output (derived from flow_values directly)
+            for metric_col, metric_name in [("cf", "cf_mean"), ("cf_median", "cf_median"), ("cf_std", "cf_std")]:
+                m_df = flow_values[[master_key, "flow_name"]].copy()
+                m_df["value"] = flow_values[metric_col].values
+                m_df["metric"] = metric_name
+                long_result_frames.append(m_df)
 
             if write_gpkg:
                 total_rows += len(flow_values)
