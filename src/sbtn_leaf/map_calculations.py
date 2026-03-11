@@ -750,6 +750,7 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     subcountry_gdf: Optional[gpd.GeoDataFrame] = None,
     raster_logger=raster_logger,
     suppress_logging: bool = False,
+    return_gdf: bool = True,
 ):
     """
     Compute area-weighted CF stats (mean, median, std) per region with proper fractional pixel coverage and
@@ -788,17 +789,17 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         er_gdf = er_gdf if er_gdf is not None else _get_er_2017_shp()
         if er_gdf is None:
             raise ValueError("er_gdf must be provided for area_type='ecoregion'.")
-        shp = er_gdf.copy()
+        shp = er_gdf
     elif area_type == "country":
         country_gdf = country_gdf if country_gdf is not None else _get_country_shp()
         if country_gdf is None:
             raise ValueError("country_gdf must be provided for area_type='country'.")
-        shp = country_gdf.copy()
+        shp = country_gdf
     else:
         subcountry_gdf = subcountry_gdf if subcountry_gdf is not None else _get_subcountry_shp()
         if subcountry_gdf is None:
             raise ValueError("subcountry_gdf must be provided for area_type='subcountry'.")
-        shp = subcountry_gdf.copy()
+        shp = subcountry_gdf
 
     if run_test:
         shp = shp.head(5).copy()
@@ -1026,16 +1027,19 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
 
     results_df = pd.DataFrame(results)
 
+    if not return_gdf:
+        return [results_df, None]
+
     # Merge back for spatial output
     if area_type == "ecoregion":
         final_gdf = shp.merge(results_df, how="left", left_on="ECO_ID", right_on="er_id")
         # keep names/biome (or drop if you intentionally don't want them duplicated)
         drop_cols = ['NNH', 'SHAPE_LENG', 'SHAPE_AREA', 'NNH_NAME','COLOR', 'COLOR_BIO', 'COLOR_NNH', 'LICENSE']
-        
+
     elif area_type == "country":
         final_gdf = shp.merge(results_df, how="left", left_on="ADM0_NAME", right_on="country")
         drop_cols = ['STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
-        
+
     else:
         final_gdf = shp.merge(results_df, how="left", on="ADM1_CODE")
         drop_cols = ['STR1_YEAR', 'EXP1_YEAR', 'STATUS', 'DISP_AREA', 'ADM0_CODE',  'SHAPE_LENG', "SHAPE_AREA"]
@@ -1072,14 +1076,93 @@ def build_cfs_gpkg_from_rasters(
     checkpoint_every: int = 0,       # flush CSV progress every N rasters (0=flush only at end/failure)
 ) -> Tuple[Optional[str], pd.DataFrame]:
     """
-    Process all rasters in a folder into ONE GeoPackage layer (tidy/long),
-    enforcing a single master geometry set (countries / subcountries / ecoregions),
-    and keeping CF columns as NaN where no raster match exists. Set `write_gpkg`
-    to ``False`` to skip GeoPackage creation and only emit the CSV summary.
+    Process all rasters in a folder into a single GeoPackage layer (wide format)
+    and a long-format CSV, enforcing a consistent master geometry set
+    (countries, subcountries, or ecoregions) and leaving CF columns as NaN
+    where no raster data exists for a region.
+
+    For each raster file, the function:
+      1. Derives a ``flow_name`` from the filename (stripping any configured prefix/suffix).
+      2. Calls ``calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers``
+         to produce area-weighted mean, median, and std CF values per region.
+      3. Left-joins the result onto the master geometry so every region is represented.
+      4. Buffers rows and flushes them to CSV (optionally every ``checkpoint_every``
+         rasters) and to the GeoPackage in a single batch at the end.
+
+    The GeoPackage contains two layers:
+      - ``geometry_layer`` – master geometries (written once).
+      - ``<layer_name>``  – wide-format CF attributes (one row per region × flow).
+      - ``<layer_name>_metadata`` – one row per flow with impact category and unit.
+
+    Crash recovery: on any exception, buffered CSV rows and GPKG blocks are flushed
+    to disk before the exception propagates. Resuming a prior run (``reset_gpkg=False``)
+    skips flows already present in the output.
+
+    Parameters
+    ----------
+    input_folder : str
+        Directory containing input raster files.
+    output_folder : str
+        Directory where output files are written.
+    layer_name : str
+        Name of the attribute layer written to the GeoPackage.
+    master_gdf : GeoDataFrame or None
+        Reference geometry set (countries / subcountries / ecoregions). Must have
+        a defined CRS and contain ``master_key``.
+    master_key : str
+        Column in ``master_gdf`` used as the join key
+        (e.g. ``'ADM0_NAME'``, ``'ISO_A3'``, ``'ADM1_NAME'``, ``'ECO_NAME'``).
+    result_key : str
+        Column in the calculator's output DataFrame that matches ``master_key``.
+    equal_area_crs : str, optional
+        CRS string for area-weighted calculations. Defaults to ``"EPSG:6933"``.
+    cf_name : str
+        Name of the characterization factor (used in filenames and metadata).
+    cf_unit : str
+        Unit of the characterization factor (stored in metadata layer).
+    area_type : str
+        Spatial aggregation level: ``"country"``, ``"subcountry"``, or ``"ecoregion"``.
+        Controls which columns are dropped from ``master_gdf`` and how the CSV
+        enrichment columns are selected.
+    gpckg_name : str, optional
+        Override the output filename stem. If ``None``, defaults to
+        ``<cf_name>_<area_type>``.
+    input_raster_key_startswith : str, optional
+        If set, only raster files whose names start with this prefix are processed.
+        The prefix is also stripped when deriving ``flow_name``.
+    input_raster_key_endswith : str, optional
+        If set, only raster files (stem) ending with this suffix are processed.
+        The suffix is also stripped when deriving ``flow_name``.
+    calc_kwargs : dict, optional
+        Extra keyword arguments forwarded to the CF calculator.
+    file_filter : str, optional
+        File extension filter. Defaults to ``".tif"``.
+    reset_gpkg : bool, optional
+        If ``True`` (default), delete existing ``.gpkg`` and ``.csv`` outputs
+        before processing. If ``False``, resume from prior progress.
+    promote_to_multi : bool, optional
+        Promote Polygon geometries to MultiPolygon to avoid schema mismatches.
+        Defaults to ``True``.
+    add_source_file_name : bool, optional
+        Append a ``_source_file`` column to each row. Defaults to ``True``.
+    run_test : bool, optional
+        If ``True``, process only the first 3 rasters (for quick smoke-testing).
+    logger : logging.Logger or None, optional
+        Logger instance. Pass ``None`` to suppress all log output.
+    write_gpkg : bool, optional
+        If ``False``, skip GeoPackage creation entirely and only write the CSV.
+        Defaults to ``True``.
+    checkpoint_every : int, optional
+        Flush CSV progress every N rasters. ``0`` (default) flushes only at the
+        end or on failure.
 
     Returns
     -------
-    (gpkg_path | None, results_df)
+    gpkg_path : str or None
+        Path to the written GeoPackage, or ``None`` if ``write_gpkg=False``.
+    results_df : pd.DataFrame
+        Long-format DataFrame of all CF results loaded from the CSV output.
+        Columns: ``[master_key, "flow_name", "metric", "value"]``.
     """
     calc_kwargs = dict(calc_kwargs or {})
     calc_kwargs.setdefault("suppress_logging", True)
@@ -1212,6 +1295,18 @@ def build_cfs_gpkg_from_rasters(
             if add_source_file_name:
                 schema_cols.append("_source_file")
 
+    # Inject the pre-prepared (dropped cols + reprojected) master_gdf into calc_kwargs so the
+    # inner function reuses it directly instead of re-loading and re-reprojecting the shapefile
+    # on every raster call. Also skip the expensive spatial merge in the inner function since
+    # build_cfs_gpkg_from_rasters only ever uses df_flow (the plain DataFrame), not gdf_flow.
+    if area_type == "ecoregion":
+        calc_kwargs.setdefault("er_gdf", master_gdf)
+    elif area_type == "country":
+        calc_kwargs.setdefault("country_gdf", master_gdf)
+    else:
+        calc_kwargs.setdefault("subcountry_gdf", master_gdf)
+    calc_kwargs.setdefault("return_gdf", False)
+
     # Base frame with master identifiers for later joins
     master_id_df = pd.DataFrame(master_gdf[master_key])
 
@@ -1228,7 +1323,13 @@ def build_cfs_gpkg_from_rasters(
     pending_metadata: List[Dict[str, str]] = []
 
     def flush_pending() -> None:
-        """Persist buffered CSV/metadata rows in batches for speed."""
+        """Flush buffered CSV rows to disk.
+
+        GPKG blocks are intentionally left in pending_gpkg_blocks/pending_metadata
+        so they can be written in a single batch at the end via _write_gpkg_batch().
+        This avoids the per-checkpoint GDAL open/write/close overhead for the
+        non-spatial attribute layer.
+        """
         if pending_csv_blocks:
             csv_block = pd.concat(pending_csv_blocks, ignore_index=True)
             if area_type == "subcountry":
@@ -1245,6 +1346,8 @@ def build_cfs_gpkg_from_rasters(
             )
             pending_csv_blocks.clear()
 
+    def _write_gpkg_batch() -> None:
+        """Write all accumulated GPKG attribute and metadata blocks in one GDAL call each."""
         if write_gpkg and gpckg_path and pending_gpkg_blocks:
             gpkg_block = pd.concat(pending_gpkg_blocks, ignore_index=True)
             write_df(
@@ -1295,20 +1398,14 @@ def build_cfs_gpkg_from_rasters(
                 )
 
                 # Check if the result is empty and thus skip
-                if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty) or gdf_flow is None or getattr(gdf_flow, "empty", False):
+                if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty):
                     if logger is not None:
                         logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
                     continue
 
-                # Align CRS
-                if gdf_flow.crs != master_gdf.crs:
-                    if logger is not None:
-                        logger.info("Result gdf aligned with master_gdf")
-                    gdf_flow = gdf_flow.set_crs(master_gdf.crs, allow_override=True)
-
-                # Ensure flow results include the expected join key
-                if master_key not in gdf_flow.columns:
-                    raise KeyError(f"master_key '{master_key}' not found in result gdf. Available: {list(gdf_flow.columns)}")
+                # Ensure the result DataFrame contains the key needed for the join
+                if result_key not in df_flow.columns:
+                    raise KeyError(f"result_key '{result_key}' not found in result df. Available: {list(df_flow.columns)}")
 
                 # Merge onto master identifiers so all regions are represented
                 flow_values = master_id_df.merge(
@@ -1380,8 +1477,9 @@ def build_cfs_gpkg_from_rasters(
                     processed_since_flush = 0
 
             except Exception:
-                # Persist work completed so far before bubbling up the failure.
+                # Persist CSV progress and attempt GPKG save before bubbling up the failure.
                 flush_pending()
+                _write_gpkg_batch()
                 raise
 
     if hasattr(progress_iter, "close"):
@@ -1389,8 +1487,9 @@ def build_cfs_gpkg_from_rasters(
     elif hasattr(progress_iter, "update"):
         progress_iter.update(0)
 
-    # Final flush at successful completion
+    # Final CSV flush then single GPKG batch write
     flush_pending()
+    _write_gpkg_batch()
 
     # Load current CSV snapshot (includes prior progress when resuming)
     if os.path.exists(csv_path):
