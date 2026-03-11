@@ -857,8 +857,33 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     base_transform = raster.rio.transform()
     base_pixel_area = _pixel_area_from_transform(base_transform)
 
+    # Pre-extract numpy array and metadata once (avoids xarray overhead per region)
+    full_arr = raster.values[raster_band - 1]  # shape (H, W)
+    nodata = _resolve_nodata(raster)
+    full_H, full_W = full_arr.shape
+    inv_transform = ~base_transform
+
+    # Free the xarray DataArray – only the numpy array is needed from here
+    del raster
+
     # Reproject the shapefile to the raster's (equal-area) CRS
     shp = shp.to_crs(raster_crs)
+
+    # Pre-filter geometries to those overlapping the raster extent
+    raster_box = box(
+        base_transform.c,
+        base_transform.f + base_transform.e * full_H,
+        base_transform.c + base_transform.a * full_W,
+        base_transform.f,
+    )
+    overlap_idx = shp.sindex.query(raster_box, predicate="intersects")
+    if len(overlap_idx) < len(shp):
+        if log:
+            log.debug(
+                "Pre-filtered to %d/%d geometries overlapping raster extent",
+                len(overlap_idx), len(shp),
+            )
+        shp = shp.iloc[overlap_idx]
 
     results = []
 
@@ -887,26 +912,26 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             if log:
                 log.debug("Calculating %s", region_text)
 
-            # Clip quickly to region bounds; fall back to precise clipping if needed
+            # Compute pixel-space window from geometry bounds via inverse transform
             minx, miny, maxx, maxy = geom.bounds
-            try:
-                window = raster.rio.window(minx, miny, maxx, maxy)
-                masked = raster.rio.isel_window(window)
-                if masked.size == 0 or masked.rio.width == 0 or masked.rio.height == 0:
-                    if log:
-                        log.debug("Window outside raster for %s. Skipping...", region_text)
-                    continue
-            except Exception:
-                masked = raster.rio.clip([geom], drop=True)
+            col_start_f, row_start_f = inv_transform * (minx, maxy)
+            col_end_f, row_end_f = inv_transform * (maxx, miny)
 
-            # Extract band given as ndarray; masked is xarray.DataArray with shape (band, y, x)
-            arr = masked.values[raster_band-1]  # (H, W)
-            # nodata from masked raster (with fallback to attrs/encoded values)
-            nodata = _resolve_nodata(masked)
+            col_off = max(0, int(np.floor(min(col_start_f, col_end_f))))
+            row_off = max(0, int(np.floor(min(row_start_f, row_end_f))))
+            col_end = min(full_W, int(np.ceil(max(col_start_f, col_end_f))))
+            row_end = min(full_H, int(np.ceil(max(row_start_f, row_end_f))))
+
+            if col_end <= col_off or row_end <= row_off:
+                if log:
+                    log.debug("Window outside raster for %s. Skipping...", region_text)
+                continue
+
+            arr = full_arr[row_off:row_end, col_off:col_end].astype(np.float64, copy=True)
+            transform = base_transform * Affine.translation(col_off, row_off)
 
             # Build validity mask for data values (finite and not nodata)
             if nodata is not None:
-                # Exclude fill/nodata values from stats to avoid contaminating averages.
                 valid = np.isfinite(arr) & (arr != nodata)
             else:
                 valid = np.isfinite(arr)
@@ -915,9 +940,6 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
                 if log:
                     log.debug("No valid data for %s. Skipping...", region_text)
                 continue
-
-            # Transform for the clipped raster
-            transform = masked.rio.transform()
 
             # Fractional cover computation
             H, W = arr.shape
@@ -1074,6 +1096,7 @@ def build_cfs_gpkg_from_rasters(
     logger: Optional[logging.Logger] = build_logger,  # pass a logger or None
     write_gpkg: bool = True,         # optionally skip GeoPackage output entirely
     checkpoint_every: int = 0,       # flush CSV progress every N rasters (0=flush only at end/failure)
+    max_workers: int = 1,            # >1 enables parallel raster processing via ThreadPoolExecutor
 ) -> Tuple[Optional[str], pd.DataFrame]:
     """
     Process all rasters in a folder into a single GeoPackage layer (wide format)
@@ -1377,110 +1400,137 @@ def build_cfs_gpkg_from_rasters(
 
     processed_since_flush = 0
 
-    # Iterate through files
+    # --- helpers for the per-raster loop -----------------------------------
+    def _compute_raster(file):
+        """Run the CF calculator for a single raster. Returns (file, flow_name, df_flow)."""
+        raster_path = os.path.join(input_folder, file)
+        flow_name = _flow_name_from_file(file)
+        if logger:
+            logger.info("Calculating %s for %s...", cf_name, flow_name)
+        df_flow, _ = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
+            raster_input_filepath=raster_path,
+            cf_name=cf_name,
+            cf_unit=cf_unit,
+            flow_name=flow_name,
+            area_type=area_type,
+            **calc_kwargs
+        )
+        return file, flow_name, df_flow
+
+    def _accumulate(file, flow_name, df_flow):
+        """Merge one raster's results onto master and buffer for CSV/GPKG output."""
+        nonlocal processed_since_flush, attribute_first_write, schema_cols, total_rows
+
+        if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty):
+            if logger is not None:
+                logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
+            return
+
+        if result_key not in df_flow.columns:
+            raise KeyError(f"result_key '{result_key}' not found in result df. Available: {list(df_flow.columns)}")
+
+        flow_values = master_id_df.merge(
+            df_flow[[result_key, "cf", "cf_median", "cf_std"]],
+            how="left",
+            left_on=master_key,
+            right_on=result_key,
+        )
+
+        if (result_key in flow_values.columns) and (master_key != result_key):
+            flow_values = flow_values.drop(columns=result_key)
+
+        flow_values.insert(1, "flow_name", flow_name)
+
+        for col in ("cf", "cf_median", "cf_std"):
+            if col in flow_values.columns:
+                flow_values[col] = flow_values[col].astype("float32")
+
+        if add_source_file_name:
+            flow_values["_source_file"] = file
+
+        metadata_entry = {
+            "flow_name": flow_name,
+            "impact_category": cf_name,
+            "unit": cf_unit,
+        }
+        if add_source_file_name:
+            metadata_entry["source_file"] = file
+
+        if write_gpkg:
+            if attribute_first_write:
+                base_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
+                extras = [c for c in flow_values.columns if c not in base_cols]
+                schema_cols = [c for c in base_cols + extras if c in flow_values.columns]
+                attribute_first_write = False
+
+            if schema_cols is None:
+                raise RuntimeError("GeoPackage schema not initialized before writing.")
+            for c in schema_cols:
+                if c not in flow_values.columns:
+                    flow_values[c] = pd.NA
+            flow_values = flow_values[schema_cols]
+
+            pending_gpkg_blocks.append(flow_values)
+            total_rows += len(flow_values)
+
+        base_metrics = flow_values[[master_key, "flow_name", "cf", "cf_median", "cf_std"]]
+        flow_results_df = base_metrics.melt(
+            id_vars=[master_key, "flow_name"],
+            value_vars=["cf", "cf_median", "cf_std"],
+            var_name="metric",
+            value_name="value",
+        )
+        flow_results_df["metric"] = flow_results_df["metric"].replace({
+            "cf": "cf_mean",
+            "cf_median": "cf_median",
+            "cf_std": "cf_std",
+        })
+
+        pending_csv_blocks.append(flow_results_df)
+        pending_metadata.append(metadata_entry)
+
+        processed_since_flush += 1
+        if checkpoint_every > 0 and processed_since_flush >= checkpoint_every:
+            flush_pending()
+            processed_since_flush = 0
+
+    # --- main loop (sequential or parallel) --------------------------------
     with logging_context:
-        for file in progress_iter:
-            try:
-                raster_path = os.path.join(input_folder, file)
-                flow_name = _flow_name_from_file(file)
-
-                if logger:
-                    logger.info(f"Calculating {cf_name} for {flow_name}...")
-
-                # Run calculator → (df, gdf)
-                df_flow, gdf_flow = calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
-                    raster_input_filepath=raster_path,
-                    cf_name=cf_name,
-                    cf_unit=cf_unit,
-                    flow_name=flow_name,
-                    area_type=area_type,
-                    **calc_kwargs
-                )
-
-                # Check if the result is empty and thus skip
-                if df_flow is None or (isinstance(df_flow, pd.DataFrame) and df_flow.empty):
-                    if logger is not None:
-                        logger.info("No results for flow '%s' (file=%s). Skipping...", flow_name, file)
-                    continue
-
-                # Ensure the result DataFrame contains the key needed for the join
-                if result_key not in df_flow.columns:
-                    raise KeyError(f"result_key '{result_key}' not found in result df. Available: {list(df_flow.columns)}")
-
-                # Merge onto master identifiers so all regions are represented
-                flow_values = master_id_df.merge(
-                    df_flow[[result_key, "cf", "cf_median", "cf_std"]],
-                    how="left",
-                    left_on=master_key,
-                    right_on=result_key,
-                )
-
-                if (result_key in flow_values.columns) and (master_key != result_key):
-                    flow_values = flow_values.drop(columns=result_key)
-
-                flow_values.insert(1, "flow_name", flow_name)
-
-                for col in ("cf", "cf_median", "cf_std"):
-                    if col in flow_values.columns:
-                        flow_values[col] = flow_values[col].astype("float32")
-
-                if add_source_file_name:
-                    flow_values["_source_file"] = file
-
-                metadata_entry = {
-                    "flow_name": flow_name,
-                    "impact_category": cf_name,
-                    "unit": cf_unit,
+        if max_workers > 1:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_file = {
+                    executor.submit(_compute_raster, f): f for f in file_list
                 }
-                if add_source_file_name:
-                    metadata_entry["source_file"] = file
-
-                if write_gpkg:
-                    # Initialize schema for attribute layer on first raster seen
-                    if attribute_first_write:
-                        base_cols = [master_key, "flow_name", "cf", "cf_median", "cf_std"]
-                        extras = [c for c in flow_values.columns if c not in base_cols]
-                        schema_cols = [c for c in base_cols + extras if c in flow_values.columns]
-                        attribute_first_write = False
-
-                    # Align columns to schema for stability across flows
-                    if schema_cols is None:
-                        raise RuntimeError("GeoPackage schema not initialized before writing.")
-                    for c in schema_cols:
-                        if c not in flow_values.columns:
-                            flow_values[c] = pd.NA
-                    flow_values = flow_values[schema_cols]
-
-                    pending_gpkg_blocks.append(flow_values)
-                    total_rows += len(flow_values)
-
-                # Long-format rows for CSV export
-                base_metrics = flow_values[[master_key, "flow_name", "cf", "cf_median", "cf_std"]]
-                flow_results_df = base_metrics.melt(
-                    id_vars=[master_key, "flow_name"],
-                    value_vars=["cf", "cf_median", "cf_std"],
-                    var_name="metric",
-                    value_name="value",
+                pbar = tqdm(
+                    total=len(future_to_file),
+                    desc=f"Processing rasters ({layer_name})",
+                    unit="raster",
+                    dynamic_ncols=True,
+                    disable=not file_list,
                 )
-                flow_results_df["metric"] = flow_results_df["metric"].replace({
-                    "cf": "cf_mean",
-                    "cf_median": "cf_median",
-                    "cf_std": "cf_std",
-                })
-
-                pending_csv_blocks.append(flow_results_df)
-                pending_metadata.append(metadata_entry)
-
-                processed_since_flush += 1
-                if checkpoint_every > 0 and processed_since_flush >= checkpoint_every:
+                try:
+                    for future in as_completed(future_to_file):
+                        try:
+                            file, flow_name, df_flow = future.result()
+                            _accumulate(file, flow_name, df_flow)
+                        except Exception:
+                            for f in future_to_file:
+                                f.cancel()
+                            flush_pending()
+                            _write_gpkg_batch()
+                            raise
+                        pbar.update(1)
+                finally:
+                    pbar.close()
+        else:
+            for file in progress_iter:
+                try:
+                    file, flow_name, df_flow = _compute_raster(file)
+                    _accumulate(file, flow_name, df_flow)
+                except Exception:
                     flush_pending()
-                    processed_since_flush = 0
-
-            except Exception:
-                # Persist CSV progress and attempt GPKG save before bubbling up the failure.
-                flush_pending()
-                _write_gpkg_batch()
-                raise
+                    _write_gpkg_batch()
+                    raise
 
     if hasattr(progress_iter, "close"):
         progress_iter.close()
