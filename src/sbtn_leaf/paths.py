@@ -58,9 +58,10 @@ def examples_dir() -> Path:
     return _EXAMPLES_DIR
 
 def LEAFs_dir() -> Path:
-    """Return the absolute path to the ``examples`` directory."""
+    """Return the absolute path to the ``LEAFs`` directory."""
 
     return _LEAFS_DIR
+
 
 @overload
 def data_path(*parts: PathLike) -> Path:
@@ -90,6 +91,36 @@ def data_path(*parts: PathLike | Iterable[PathLike]) -> Path:
         parts_iterable = parts
 
     return _DATA_DIR.joinpath(*map(Path, parts_iterable))
+
+
+@overload
+def leaf_path(*parts: PathLike) -> Path:
+    ...
+
+
+@overload
+def leaf_path(parts: Iterable[PathLike]) -> Path:
+    ...
+
+
+def leaf_path(*parts: PathLike | Iterable[PathLike]) -> Path:
+    """Return a path inside the repository ``LEAFs`` directory.
+
+    Parameters
+    ----------
+    parts:
+        Optional path segments that will be joined beneath ``LEAFs``.  The
+        helper accepts either variadic positional arguments or a single
+        iterable for convenience.  ``Path`` objects are returned to maximise
+        compatibility with consumers that accept ``os.PathLike`` values.
+    """
+
+    if len(parts) == 1 and isinstance(parts[0], Iterable) and not isinstance(parts[0], (str, bytes, Path)):
+        parts_iterable = parts[0]
+    else:
+        parts_iterable = parts
+
+    return _LEAFS_DIR.joinpath(*map(Path, parts_iterable))
 
 
 def project_path(*parts: PathLike) -> Path:
