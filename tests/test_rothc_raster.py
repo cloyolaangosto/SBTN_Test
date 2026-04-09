@@ -373,7 +373,7 @@ def test_run_rothc_forest_handles_single_band_age(monkeypatch, tmp_path):
 
     monkeypatch.setattr(
         "sbtn_leaf.RothC_Raster._load_environmental_data",
-        lambda *_: (tmp, rain, soc0, iom, clay, sand),
+        lambda *_, **__: (tmp, rain, soc0, iom, clay, sand),
     )
     monkeypatch.setattr(
         "sbtn_leaf.RothC_Raster._load_forest_data",
@@ -461,7 +461,7 @@ def test_run_rothc_forest_passes_nan_age_through_litter(monkeypatch, tmp_path):
 
     monkeypatch.setattr(
         "sbtn_leaf.RothC_Raster._load_environmental_data",
-        lambda *_: (tmp, rain, soc0, iom, clay, sand),
+        lambda *_, **__: (tmp, rain, soc0, iom, clay, sand),
     )
     monkeypatch.setattr("sbtn_leaf.RothC_Raster.save_annual_results", lambda *_, **__: None)
 
