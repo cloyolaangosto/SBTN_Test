@@ -2627,6 +2627,7 @@ def prepare_crop_scenarios_PET_PlantCover_only(csv_filepath: str, override_param
 
         # Check if we've already seen this LU for this crop. If yes, skip all that follows
         if lu_hash in seen_hashes_by_crop[crop_name]:
+            print(f"  [SKIP] {crop_name} | {row['crop_practice_string']} → same LU map as a previously seen scenario (hash {lu_hash[:8]}…)")
             continue
 
         ### This only happens if it has not been seen ###
@@ -2657,6 +2658,7 @@ def prepare_crop_scenarios_PET_PlantCover_only(csv_filepath: str, override_param
 
         # if this LU hash is already seen for this crop, skip it
         if lu_hash in seen_hashes_by_crop[crop_name]:
+            print(f"  [SKIP] {crop_name} | {row['crop_practice_string']} → same LU map as a previously seen scenario (hash {lu_hash[:8]}…)")
             continue
 
         # otherwise, this is a new LU for this crop → keep it
