@@ -14,8 +14,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import polars as pl
 from tqdm.auto import trange
 from pathlib import Path
+from collections import OrderedDict
 import json
 import ast
+import threading
 
 from sbtn_leaf.RothC_Core import RMF_Tmp, RMF_Moist, RMF_PC, RMF_TRM, _partition_to_bio_hum
 import sbtn_leaf.cropcalcs as cropcalcs
@@ -24,6 +26,75 @@ from sbtn_leaf.paths import data_path, project_path
 PathLike = Union[str, Path]
 
 _BASE_YEAR = 2016
+
+
+# -----------------------------------------------------------------------------
+# In-process caches to avoid redundant raster I/O and residue recomputation
+# across scenarios sharing inputs. Scoped to the module so multiple scenarios
+# in the same Python session can reuse loaded payloads.
+# -----------------------------------------------------------------------------
+class _BoundedCache:
+    """Tiny thread-safe LRU cache for heavy numpy payloads.
+
+    Uses :class:`collections.OrderedDict` (not :func:`functools.lru_cache`)
+    because we need bounded size *and* values that are not hashable.
+    """
+
+    def __init__(self, maxsize: int = 4):
+        self._maxsize = maxsize
+        self._data: "OrderedDict[Any, Any]" = OrderedDict()
+        self._lock = threading.Lock()
+
+    def get(self, key):
+        with self._lock:
+            if key not in self._data:
+                return None
+            self._data.move_to_end(key)
+            return self._data[key]
+
+    def put(self, key, value):
+        with self._lock:
+            if key in self._data:
+                self._data.move_to_end(key)
+                self._data[key] = value
+                return
+            self._data[key] = value
+            while len(self._data) > self._maxsize:
+                self._data.popitem(last=False)
+
+    def clear(self):
+        with self._lock:
+            self._data.clear()
+
+
+# Conservative defaults — tune up if memory allows.
+_ENV_CACHE = _BoundedCache(maxsize=2)
+_CROP_CACHE = _BoundedCache(maxsize=4)
+_RESIDUE_CACHE = _BoundedCache(maxsize=8)
+
+# Serialize the (expensive, stochastic) residue compute path so concurrent
+# cache misses do not interleave NumPy global-RNG state.
+_RESIDUE_COMPUTE_LOCK = threading.Lock()
+
+
+def _cache_key_path(p) -> Optional[str]:
+    """Return a stable hashable key for a path-like or ``None``."""
+    if p is None:
+        return None
+    try:
+        return str(_as_path(p).resolve())
+    except Exception:
+        return str(_as_path(p))
+
+
+def _clear_rothc_raster_caches() -> None:
+    """Drop cached environmental rasters, crop rasters, and residue arrays.
+
+    Useful in long-running notebooks to free memory between large runs.
+    """
+    _ENV_CACHE.clear()
+    _CROP_CACHE.clear()
+    _RESIDUE_CACHE.clear()
 
 
 def _as_path(value: PathLike) -> Path:
@@ -357,6 +428,99 @@ def raster_rothc_annual_only(
 TRMHandler = Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
 
 
+def _cached_calculate_monthly_residues(
+    *,
+    lu_fp,
+    crop_name,
+    crop_type,
+    ylds_crop_raster,
+    irr_yield_scaling,
+    ylds_all_fp,
+    ylds_irr_fp,
+    ylds_rf_fp,
+    random_runs,
+    outlier_strategy,
+    percentile_bounds,
+    k_sd,
+    ylds_src,
+    apply_local_zscore,
+    fao_max_ratio,
+    yield_global_percentile_cap,
+    use_cache: bool,
+):
+    """Memoizing wrapper around :func:`cropcalcs.calculate_monthly_residues_array`.
+
+    The underlying call is deterministic given its inputs, so scenarios sharing
+    crop/lu/yield inputs but differing only in tillage or practice string can
+    reuse the cached baseline residue cube and ``yield_result``. The returned
+    ``c_inp`` is always a fresh copy so downstream (non-in-place) mutation
+    cannot poison cached entries.
+    """
+    pb_key = tuple(percentile_bounds) if percentile_bounds is not None else None
+    key = (
+        "residues",
+        _cache_key_path(lu_fp),
+        crop_name,
+        crop_type,
+        _cache_key_path(ylds_crop_raster),
+        irr_yield_scaling,
+        _cache_key_path(ylds_all_fp),
+        _cache_key_path(ylds_irr_fp),
+        _cache_key_path(ylds_rf_fp),
+        int(random_runs),
+        outlier_strategy,
+        pb_key,
+        None if k_sd is None else float(k_sd),
+        ylds_src,
+        bool(apply_local_zscore),
+        float(fao_max_ratio),
+        None if yield_global_percentile_cap is None else float(yield_global_percentile_cap),
+    )
+
+    if use_cache:
+        hit = _RESIDUE_CACHE.get(key)
+        if hit is not None:
+            c_inp_cached, yields_cached = hit
+            return np.array(c_inp_cached, copy=True), yields_cached
+
+    # Serialize the expensive stochastic compute path so concurrent misses
+    # do not race on the NumPy global RNG. Cache hits do not take this lock.
+    with _RESIDUE_COMPUTE_LOCK:
+        # Double-check inside the lock — another thread may have populated it.
+        if use_cache:
+            hit = _RESIDUE_CACHE.get(key)
+            if hit is not None:
+                c_inp_cached, yields_cached = hit
+                return np.array(c_inp_cached, copy=True), yields_cached
+
+        result = cropcalcs.calculate_monthly_residues_array(
+            lu_fp=lu_fp,
+            crop_name=crop_name,
+            crop_type=crop_type,
+            ylds_crop_raster=ylds_crop_raster,
+            irr_yield_scaling=irr_yield_scaling,
+            ylds_all_fp=ylds_all_fp,
+            ylds_irr_fp=ylds_irr_fp,
+            ylds_rf_fp=ylds_rf_fp,
+            random_runs=random_runs,
+            print_outputs=False,
+            outlier_strategy=outlier_strategy,
+            percentile_bounds=percentile_bounds,
+            k_sd=k_sd,
+            ylds_src=ylds_src,
+            apply_local_zscore=apply_local_zscore,
+            fao_max_ratio=fao_max_ratio,
+            yield_global_percentile_cap=yield_global_percentile_cap,
+        )
+        c_inp_raw, yields_result = result
+        c_inp_arr = np.squeeze(np.asarray(c_inp_raw))
+
+        if use_cache:
+            _RESIDUE_CACHE.put(key, (c_inp_arr, yields_result))
+
+    return np.array(c_inp_arr, copy=True), yields_result
+
+
 def _raster_rothc_annual_results(
     *,
     n_years: int,
@@ -397,6 +561,7 @@ def _raster_rothc_annual_results(
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
     yield_global_percentile_cap: float | None = None,
+    cache_residues: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Shared implementation for baseline and reduced tillage raster RothC runs."""
 
@@ -429,27 +594,25 @@ def _raster_rothc_annual_results(
             else:
                 print(f"        Calculating baseline residue inputs for {crop_type} {crop_name} using {residue_runs} stochastic runs")
 
-                c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
+                c_inp, yields_results = _cached_calculate_monthly_residues(
                     lu_fp=commodity_lu_fp,
                     crop_name=crop_name,
                     crop_type=crop_type,
-                    ylds_crop_raster = ylds_crop_raster,
-                    irr_yield_scaling = irr_yield_scaling,
-                    ylds_all_fp = ylds_all_fp,
-                    ylds_irr_fp = ylds_irr_fp,
-                    ylds_rf_fp = ylds_rf_fp,
+                    ylds_crop_raster=ylds_crop_raster,
+                    irr_yield_scaling=irr_yield_scaling,
+                    ylds_all_fp=ylds_all_fp,
+                    ylds_irr_fp=ylds_irr_fp,
+                    ylds_rf_fp=ylds_rf_fp,
                     random_runs=residue_runs,
-                    print_outputs= False,
-                    outlier_strategy = outlier_strategy,
-                    percentile_bounds = percentile_bound,
-                    k_sd = k_sd,
-                    ylds_src = ylds_src,
-                    apply_local_zscore = apply_local_zscore,
-                    fao_max_ratio = fao_max_ratio,
-                    yield_global_percentile_cap = yield_global_percentile_cap,
+                    outlier_strategy=outlier_strategy,
+                    percentile_bounds=percentile_bound,
+                    k_sd=k_sd,
+                    ylds_src=ylds_src,
+                    apply_local_zscore=apply_local_zscore,
+                    fao_max_ratio=fao_max_ratio,
+                    yield_global_percentile_cap=yield_global_percentile_cap,
+                    use_cache=cache_residues,
                 )
-                c_inp = c_inp_inputs[0]
-                yields_results = c_inp_inputs[1]
 
             c_inp = np.squeeze(np.asarray(c_inp))
     elif commodity_type == "permanent_crop":
@@ -458,7 +621,7 @@ def _raster_rothc_annual_results(
 
         # initialize c_inp
         print(f"        Calculating baseline residue inputs for {crop_type} {crop_name}")
-        c_inp_inputs = cropcalcs.calculate_monthly_residues_array(
+        c_inp, yields_results = _cached_calculate_monthly_residues(
             lu_fp=commodity_lu_fp,
             crop_name=crop_name,
             crop_type=crop_type,
@@ -468,16 +631,15 @@ def _raster_rothc_annual_results(
             ylds_irr_fp=ylds_irr_fp,
             ylds_rf_fp=ylds_rf_fp,
             random_runs=residue_runs,
-            outlier_strategy = outlier_strategy,
-            percentile_bounds = percentile_bound,
-            k_sd = k_sd,
-            ylds_src = ylds_src,
-            apply_local_zscore = apply_local_zscore,
-            fao_max_ratio = fao_max_ratio,
-            yield_global_percentile_cap = yield_global_percentile_cap,
+            outlier_strategy=outlier_strategy,
+            percentile_bounds=percentile_bound,
+            k_sd=k_sd,
+            ylds_src=ylds_src,
+            apply_local_zscore=apply_local_zscore,
+            fao_max_ratio=fao_max_ratio,
+            yield_global_percentile_cap=yield_global_percentile_cap,
+            use_cache=cache_residues,
         )
-        c_inp = c_inp_inputs[0]
-        yields_results = c_inp_inputs[1]
         c_inp = np.squeeze(np.asarray(c_inp))
     else: # forest type
         dpm_rpm = 0.25
@@ -683,6 +845,7 @@ def raster_rothc_annual_results(
     apply_local_zscore: bool = False,
     fao_max_ratio: float = 3.0,
     yield_global_percentile_cap: float | None = None,
+    cache_residues: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Vectorized RothC that returns annual SOC and CO2.
@@ -746,6 +909,7 @@ def raster_rothc_annual_results(
         apply_local_zscore = apply_local_zscore,
         fao_max_ratio = fao_max_ratio,
         yield_global_percentile_cap = yield_global_percentile_cap,
+        cache_residues=cache_residues,
     )
 
 
@@ -803,6 +967,97 @@ def save_annual_results(
 
 
 # Function to prepare all data
+def _load_environmental_arrays(
+    *,
+    tmp_fp: Optional[PathLike] = None,
+    rain_fp: Optional[PathLike] = None,
+    clay_fp: Optional[PathLike] = None,
+    soc0_fp: Optional[PathLike] = None,
+    sand_fp: Optional[PathLike] = None,
+    use_cache: bool = True,
+) -> Dict[str, np.ndarray]:
+    """Return unmasked environmental arrays as a dict of NumPy arrays.
+
+    Does NOT apply any land-use mask — masking is cheap and scenario-specific,
+    so the cached payload stays reusable across scenarios that share
+    environmental paths but differ in ``lu_fp``. Use
+    :func:`_apply_lu_mask_to_env` to obtain a masked per-scenario view.
+
+    Cached on the tuple of resolved paths when ``use_cache`` is ``True``.
+    """
+    tmp_p = _resolve_optional_path(tmp_fp, "soil_weather", "uhth_monthly_avg_temp_celsius.tif")
+    rain_p = _resolve_optional_path(rain_fp, "soil_weather", "uhth_monthly_avg_precip.tif")
+    clay_p = _resolve_optional_path(clay_fp, "soil_weather", "uhth_clay_15-30cm_mean_perc.tif")
+    soc0_p = _resolve_optional_path(soc0_fp, "soil_weather", "uhth_soc_0-30cm_mean.tif")
+    sand_p = _resolve_optional_path(sand_fp, "soil_weather", "uhth_sand_15-30cm_mean_perc.tif")
+
+    key = (
+        _cache_key_path(tmp_p),
+        _cache_key_path(rain_p),
+        _cache_key_path(clay_p),
+        _cache_key_path(soc0_p),
+        _cache_key_path(sand_p),
+    )
+
+    if use_cache:
+        hit = _ENV_CACHE.get(key)
+        if hit is not None:
+            return hit
+
+    tmp = rxr.open_rasterio(tmp_p, masked=True)
+    rain = rxr.open_rasterio(rain_p, masked=True)
+    clay = rxr.open_rasterio(clay_p, masked=False).squeeze()
+    soc0 = rxr.open_rasterio(soc0_p, masked=False).squeeze()
+    sand = rxr.open_rasterio(sand_p, masked=False).squeeze()
+
+    tmp = tmp.rename({'band': 'time'})
+    rain = rain.rename({'band': 'time'})
+
+    soc0_np = np.asarray(soc0.values)
+    with np.errstate(invalid="ignore"):
+        iom_np = 0.049 * soc0_np ** 1.139
+
+    env = {
+        "tmp": np.asarray(tmp.values),
+        "rain": np.asarray(rain.values),
+        "soc0": soc0_np,
+        "iom": iom_np,
+        "clay": np.asarray(clay.values),
+        "sand": np.asarray(sand.values),
+    }
+
+    # Drop xarray handles promptly; the numpy payload is independent.
+    del tmp, rain, clay, soc0, sand
+
+    if use_cache:
+        _ENV_CACHE.put(key, env)
+    return env
+
+
+def _apply_lu_mask_to_env(
+    env: Dict[str, np.ndarray], lu_mask: np.ndarray
+) -> Dict[str, np.ndarray]:
+    """Return a per-scenario masked view of an ``_load_environmental_arrays`` dict.
+
+    Non land-use pixels become NaN — matches the behaviour of
+    ``xarray.DataArray.where(lu_mask)`` without mutating the cached arrays.
+    Preserves each array's dtype to avoid drift vs. the legacy path.
+    """
+    lu_mask = np.asarray(lu_mask, dtype=bool)
+    out: Dict[str, np.ndarray] = {}
+    for name, arr in env.items():
+        arr = np.asarray(arr)
+        # Convert integer dtypes to float so NaN is representable.
+        if not np.issubdtype(arr.dtype, np.floating):
+            arr = arr.astype(np.float32, copy=False)
+        if arr.ndim == 3:
+            mask = np.broadcast_to(lu_mask, arr.shape)
+        else:
+            mask = lu_mask
+        out[name] = np.where(mask, arr, np.array(np.nan, dtype=arr.dtype))
+    return out
+
+
 def _load_environmental_data(
     lu_rp: PathLike,
     *,
@@ -811,71 +1066,42 @@ def _load_environmental_data(
     clay_fp: Optional[PathLike] = None,
     soc0_fp: Optional[PathLike] = None,
     sand_fp: Optional[PathLike] = None,
+    use_cache: bool = True,
 ):
-    # Loads data
-    tmp = rxr.open_rasterio(
-        _resolve_optional_path(
-            tmp_fp,
-            "soil_weather",
-            "uhth_monthly_avg_temp_celsius.tif",
-        ),
-        masked=True,
-    )  # in °C
-    rain = rxr.open_rasterio(
-        _resolve_optional_path(
-            rain_fp,
-            "soil_weather",
-            "uhth_monthly_avg_precip.tif",
-        ),
-        masked=True,
+    """Return ``(tmp, rain, soc0, iom, clay, sand)`` masked by ``lu_rp``.
+
+    Now delegates to the cached :func:`_load_environmental_arrays` and
+    :func:`_apply_lu_mask_to_env` helpers so scenarios sharing the same
+    environmental paths hit the in-process cache. Result arrays are wrapped as
+    minimal :class:`xarray.DataArray` instances (no coords) so legacy callers
+    that do ``tmp.values`` continue to work unchanged. Test suites may still
+    monkeypatch this function directly; callers should accept keyword
+    arguments via ``**kwargs`` to stay forward-compatible with ``use_cache``.
+    """
+    env = _load_environmental_arrays(
+        tmp_fp=tmp_fp,
+        rain_fp=rain_fp,
+        clay_fp=clay_fp,
+        soc0_fp=soc0_fp,
+        sand_fp=sand_fp,
+        use_cache=use_cache,
     )
-    clay = rxr.open_rasterio(
-        _resolve_optional_path(
-            clay_fp,
-            "soil_weather",
-            "uhth_clay_15-30cm_mean_perc.tif",
-        ),
-        masked=False,
-    ).squeeze()
-    soc0 = rxr.open_rasterio(
-        _resolve_optional_path(
-            soc0_fp,
-            "soil_weather",
-            "uhth_soc_0-30cm_mean.tif",
-        ),
-        masked=False,
-    ).squeeze()
-    sand = rxr.open_rasterio(
-        _resolve_optional_path(
-            sand_fp,
-            "soil_weather",
-            "uhth_sand_15-30cm_mean_perc.tif",
-        ),
-        masked=False,
-    ).squeeze()
+
     lu_raster = rxr.open_rasterio(_as_path(lu_rp), masked=False).squeeze()
+    lu_mask_np = np.asarray(lu_raster.values) == 1
+    del lu_raster
 
-    # Creates IOM
-    iom = 0.049 * soc0**1.139
-    iom.attrs["units"]       = "t C/ha"
-    iom.attrs["description"] = "IOM derived from SOC_initial"
+    masked = _apply_lu_mask_to_env(env, lu_mask_np)
 
-    # Rename bands
-    tmp  = tmp.rename({'band': 'time'})
-    rain = rain.rename({'band': 'time'})
+    def _wrap(arr: np.ndarray, ndim_dims):
+        return xr.DataArray(arr, dims=ndim_dims)
 
-    # Mask data to land use requirementes
-    lu_mask = (lu_raster==1)
-
-    # Single‐band rasters
-    clay   = clay.where(lu_mask)
-    soc0   = soc0.where(lu_mask)
-    iom    = iom.where(lu_mask)
-    sand   = sand.where(lu_mask)
-
-    # Multiband rasters (‘time’ × y × x)
-    tmp    = tmp.where(lu_mask)
-    rain   = rain.where(lu_mask)
+    tmp = _wrap(masked["tmp"], ("time", "y", "x"))
+    rain = _wrap(masked["rain"], ("time", "y", "x"))
+    soc0 = _wrap(masked["soc0"], ("y", "x"))
+    iom = _wrap(masked["iom"], ("y", "x"))
+    clay = _wrap(masked["clay"], ("y", "x"))
+    sand = _wrap(masked["sand"], ("y", "x"))
 
     return tmp, rain, soc0, iom, clay, sand
 
@@ -924,6 +1150,79 @@ def _load_crop_data(
         fym = xr.zeros_like(pc).where(lu_mask)
 
     return lu_raster, evap, pc, irr, pr, fym
+
+
+def _load_crop_arrays(
+    *,
+    lu_fp: PathLike,
+    evap_fp: PathLike,
+    pc_fp: PathLike,
+    irr_fp: Optional[PathLike],
+    pr_fp: Optional[PathLike],
+    fym_fp: Optional[PathLike],
+    use_cache: bool = True,
+) -> Tuple[xr.DataArray, Dict[str, np.ndarray]]:
+    """Return (lu_raster_xr, {'evap','pc','irr','c_inp','fym'}) as NumPy arrays.
+
+    ``lu_raster_xr`` is retained because :func:`save_annual_results` needs
+    ``.y``, ``.x``, ``.rio.crs`` and ``.rio.transform()`` as the spatial
+    reference for the output GeoTIFF. The numpy dict mirrors the legacy
+    ``.where(lu_mask).fillna(0)`` semantics without the xarray overhead and
+    is cached across scenarios that share the same input paths.
+    """
+    key = (
+        _cache_key_path(lu_fp),
+        _cache_key_path(evap_fp),
+        _cache_key_path(pc_fp),
+        _cache_key_path(irr_fp),
+        _cache_key_path(pr_fp),
+        _cache_key_path(fym_fp),
+    )
+
+    if use_cache:
+        hit = _CROP_CACHE.get(key)
+        if hit is not None:
+            return hit
+
+    lu_raster = rxr.open_rasterio(_as_path(lu_fp), masked=False).squeeze()
+    lu_mask_np = np.asarray(lu_raster.values) == 1
+
+    def _open_masked(path, like_shape=None):
+        if path is None:
+            if like_shape is None:
+                return None
+            return np.zeros(like_shape, dtype=np.float32)
+        da = rxr.open_rasterio(_as_path(path), masked=True)
+        if "band" in da.dims:
+            da = da.rename({"band": "time"})
+        arr = np.asarray(da.values, dtype=np.float32)
+        if arr.ndim == 3:
+            mask = np.broadcast_to(lu_mask_np, arr.shape)
+        else:
+            mask = lu_mask_np
+        out = np.where(mask, arr, 0.0)
+        # Replace any NaN introduced by masked reads with 0 (mirrors .fillna(0)).
+        np.nan_to_num(out, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+        return out.astype(np.float32, copy=False)
+
+    evap_np = _open_masked(evap_fp)
+    pc_np = _open_masked(pc_fp)
+    irr_np = _open_masked(irr_fp, like_shape=pc_np.shape)
+    pr_np = _open_masked(pr_fp, like_shape=pc_np.shape)
+    fym_np = _open_masked(fym_fp, like_shape=pc_np.shape)
+
+    arrays = {
+        "evap": evap_np,
+        "pc": pc_np,
+        "irr": irr_np,
+        "c_inp": pr_np,
+        "fym": fym_np,
+    }
+
+    payload = (lu_raster, arrays)
+    if use_cache:
+        _CROP_CACHE.put(key, payload)
+    return payload
 
 
 def _load_forest_data(lu_fp: PathLike, evap_fp: PathLike, age_fp: PathLike):
@@ -1088,6 +1387,7 @@ def _run_rothc_scenario(
     max_annual_soc_gain: float | None = 5.0,
     max_soc_tc_ha: float | None = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
+    cache_env: bool = True,
 ):
     """Shared workflow for RothC scenario execution and persistence."""
 
@@ -1095,17 +1395,33 @@ def _run_rothc_scenario(
     runner_kwargs = runner_kwargs or {}
 
     print("    Loading environmental data...")
-    tmp, rain, soc0, iom, clay, sand = _load_environmental_data(
-        lu_fp, **(env_overrides or {})
-    )
+    # Route through `_load_environmental_data` so tests (and any external
+    # code) can monkeypatch it. The real implementation hits the cached
+    # `_load_environmental_arrays` under the hood; a monkeypatched lambda
+    # that predates ``use_cache`` keeps working as long as it accepts ``**kwargs``.
+    try:
+        tmp_da, rain_da, soc0_da, iom_da, clay_da, sand_da = _load_environmental_data(
+            lu_fp,
+            **(env_overrides or {}),
+            use_cache=cache_env,
+        )
+    except TypeError:
+        # Legacy monkeypatched stub without ``use_cache``/``**kwargs`` support.
+        tmp_da, rain_da, soc0_da, iom_da, clay_da, sand_da = _load_environmental_data(
+            lu_fp,
+            **(env_overrides or {}),
+        )
+
+    def _to_np(val):
+        return np.asarray(val.values) if hasattr(val, "values") else np.asarray(val)
 
     env_arrays = {
-        "tmp": np.asarray(tmp.values),
-        "rain": np.asarray(rain.values),
-        "soc0": np.asarray(soc0.values),
-        "iom": np.asarray(iom.values),
-        "clay": np.asarray(clay.values),
-        "sand": np.asarray(sand.values),
+        "tmp": _to_np(tmp_da),
+        "rain": _to_np(rain_da),
+        "soc0": _to_np(soc0_da),
+        "iom": _to_np(iom_da),
+        "clay": _to_np(clay_da),
+        "sand": _to_np(sand_da),
     }
 
     if loader_message:
@@ -1202,6 +1518,9 @@ def run_RothC_crops(
     max_soc_tc_ha: float = 500.0,
     soc_global_percentile_cap: float | None = 99.5,
     result_basename: Optional[str] = None,
+    cache_env: bool = True,
+    cache_crop: bool = True,
+    cache_residues: bool = True,
 ):
     def _crop_loader(
         *,
@@ -1212,20 +1531,21 @@ def run_RothC_crops(
         pr_fp: Optional[str],
         fym_fp: Optional[str],
     ) -> Tuple[xr.DataArray, Dict[str, Any]]:
-        lu_raster, evap, pc, irr, pr, fym = _load_crop_data(
-            _as_path(lu_fp),
-            _as_path(evap_fp),
-            _as_path(pc_fp),
-            None if irr_fp is None else _as_path(irr_fp),
-            None if pr_fp  is None else _as_path(pr_fp),
-            None if fym_fp is None else _as_path(fym_fp),
+        lu_raster, arrays = _load_crop_arrays(
+            lu_fp=_as_path(lu_fp),
+            evap_fp=_as_path(evap_fp),
+            pc_fp=_as_path(pc_fp),
+            irr_fp=None if irr_fp is None else _as_path(irr_fp),
+            pr_fp=None if pr_fp is None else _as_path(pr_fp),
+            fym_fp=None if fym_fp is None else _as_path(fym_fp),
+            use_cache=cache_crop,
         )
         return lu_raster, {
-            "evap": evap,
-            "pc": pc,
-            "irr": irr,
-            "c_inp": pr,
-            "fym": fym,
+            "evap": arrays["evap"],
+            "pc": arrays["pc"],
+            "irr": arrays["irr"],
+            "c_inp": arrays["c_inp"],
+            "fym": arrays["fym"],
         }
 
     def _crop_runner(
@@ -1248,13 +1568,22 @@ def run_RothC_crops(
         apply_local_zscore: bool = False,
         fao_max_ratio: float = 3.0,
         yield_global_percentile_cap: float | None = None,
+        cache_residues: bool = True,
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        evap_a = np.asarray(scenario["evap"].values)
-        pc_a = np.asarray(scenario["pc"].values)
-        irr_val = scenario.get("irr")
-        irr_a = np.asarray(irr_val.values) if hasattr(irr_val, "values") else np.asarray(irr_val) if irr_val is not None else None
-        c_inp_a = np.asarray(scenario["c_inp"].values)
-        fym_a = np.asarray(scenario["fym"].values)
+        # Loader now returns NumPy arrays directly; only defend against legacy
+        # xarray-valued scenarios that might slip through.
+        def _as_np(v):
+            if v is None:
+                return None
+            if hasattr(v, "values"):
+                return np.asarray(v.values)
+            return np.asarray(v)
+
+        evap_a = _as_np(scenario["evap"])
+        pc_a = _as_np(scenario["pc"])
+        irr_a = _as_np(scenario.get("irr"))
+        c_inp_a = _as_np(scenario["c_inp"])
+        fym_a = _as_np(scenario["fym"])
 
         base_kwargs = dict(
             n_years=n_years,
@@ -1267,22 +1596,23 @@ def run_RothC_crops(
             c_inp=c_inp_a,
             fym=fym_a,
             commodity_type=commodity_type,
-            residue_runs = residue_runs,
+            residue_runs=residue_runs,
             commodity_lu_fp=lu_fp,
             crop_name=crop_name,
-            ylds_crop_raster = ylds_crop_raster,
-            practices_string_id = practices_string_id,
-            irr_yield_scaling = irr_yield_scaling,
-            ylds_all_fp = ylds_all_fp,
-            ylds_irr_fp = ylds_irr_fp,
-            ylds_rf_fp = ylds_rf_fp,
-            outlier_strategy = outlier_strategy,
-            percentile_bound = percentile_bound,
-            k_sd = k_sd,
-            ylds_src = ylds_src,
-            apply_local_zscore = apply_local_zscore,
-            fao_max_ratio = fao_max_ratio,
-            yield_global_percentile_cap = yield_global_percentile_cap,
+            ylds_crop_raster=ylds_crop_raster,
+            practices_string_id=practices_string_id,
+            irr_yield_scaling=irr_yield_scaling,
+            ylds_all_fp=ylds_all_fp,
+            ylds_irr_fp=ylds_irr_fp,
+            ylds_rf_fp=ylds_rf_fp,
+            outlier_strategy=outlier_strategy,
+            percentile_bound=percentile_bound,
+            k_sd=k_sd,
+            ylds_src=ylds_src,
+            apply_local_zscore=apply_local_zscore,
+            fao_max_ratio=fao_max_ratio,
+            yield_global_percentile_cap=yield_global_percentile_cap,
+            cache_residues=cache_residues,
         )
 
         if irr_a is not None:
@@ -1293,7 +1623,7 @@ def run_RothC_crops(
             base_kwargs["sand"] = env["sand"]
 
         return raster_rothc_annual_results(**base_kwargs)
-    
+
     # Creating results_basename
     if result_basename is None:
         if commodity_type == "permanent_crop":
@@ -1332,6 +1662,7 @@ def run_RothC_crops(
             "apply_local_zscore": apply_local_zscore,
             "fao_max_ratio": fao_max_ratio,
             "yield_global_percentile_cap": yield_global_percentile_cap,
+            "cache_residues": cache_residues,
         },
         loader_message="    Loading crop data...",
         save_CO2=save_CO2,
@@ -1340,6 +1671,7 @@ def run_RothC_crops(
         max_annual_soc_gain=max_annual_soc_gain,
         max_soc_tc_ha=max_soc_tc_ha,
         soc_global_percentile_cap=soc_global_percentile_cap,
+        cache_env=cache_env,
     )
 
 # Forest version
@@ -1574,7 +1906,37 @@ def run_RothC_grassland(
 
 
 
-def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files: bool = False, run_test: bool = False, scenario_sheet_name = "scenarios", add_filter_descrip: bool = False):
+def run_rothc_crops_scenarios_from_excel(
+    excel_filepath: PathLike,
+    all_new_files: bool = False,
+    run_test: bool = False,
+    scenario_sheet_name="scenarios",
+    add_filter_descrip: bool = False,
+    *,
+    max_workers: int = 1,
+    cache_env: bool = True,
+    cache_crop: bool = True,
+    cache_residues: bool = True,
+):
+    """Run a batch of cropland RothC scenarios defined in an Excel sheet.
+
+    Parameters
+    ----------
+    excel_filepath, all_new_files, run_test, scenario_sheet_name, add_filter_descrip
+        See existing usage — unchanged.
+    max_workers : int, default 1
+        When > 1, scenarios are dispatched to a :class:`ThreadPoolExecutor` so
+        raster I/O and the NumPy-vectorized RothC loop overlap. Each worker
+        multiplies peak memory roughly by 1x — recommend ``<= 2`` for global
+        rasters, ``<= 4`` for regional.
+    cache_env, cache_crop, cache_residues : bool, default True
+        Opt out of the in-process caches for environmental rasters, crop
+        rasters, and baseline residue arrays respectively. Cached payloads are
+        reused across scenarios that share input paths, avoiding redundant
+        raster reads and expensive stochastic residue recomputation. Use
+        :func:`_clear_rothc_raster_caches` to free memory between runs.
+    """
+
     # 1) Read & cast your CSV exactly as before
     scenarios = (
         pl.read_excel(_resolve_data_path(excel_filepath), has_header=True, sheet_name=scenario_sheet_name)
@@ -1590,21 +1952,16 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
     # 2) Turn into a list of dicts once (so we know the total count)
     scenario_list = scenarios.to_dicts()
 
-    # 3) Iterate with tqdm
-    for scenario in scenario_list:
+    def _process_one(scenario: Dict[str, Any]):
         scenario = _normalize_scenario_paths(scenario)
-        file_fnw = None
         file_fnw = scenario.get("force_new_file")
 
         # Checks if it's annual or permanent crop
         if scenario["commodity_type"] == "permanent_crop":
             crop_type_string = "Permanent"
-        else:
-            crop_type_string = "Annual"
-        
-        if scenario.get("commodity_type") == "permanent_crop":
             scenario_description = scenario.get("irr_yield_scaling")
         else:
+            crop_type_string = "Annual"
             scenario_description = scenario.get("practices_string_id")
         scn_string_text = f"{crop_type_string} crop - {scenario['crop_name']} - {scenario_description}"
 
@@ -1625,40 +1982,56 @@ def run_rothc_crops_scenarios_from_excel(excel_filepath: PathLike, all_new_files
 
         if manual_basename:
             output_string = manual_basename
-        else:
-            # Builds output string
-            if add_filter_descrip:
-                filter_descrip = scenario.get("outlier_strategy")
-                if scenario["outlier_strategy"] in ("log_winsor", "ratio_percentile"):
-                    filter_fig = scenario["percentile_bound"]
-                else:
-                    filter_fig = scenario["k_sd"]
-                output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
+        elif add_filter_descrip:
+            filter_descrip = scenario.get("outlier_strategy")
+            if scenario["outlier_strategy"] in ("log_winsor", "ratio_percentile"):
+                filter_fig = scenario["percentile_bound"]
             else:
-                output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
-
-
+                filter_fig = scenario["k_sd"]
+            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_{filter_descrip}_{filter_fig}_SOC.tif"
+        else:
+            output_string = f"{scenario['crop_name']}_{scenario_description}_{_BASE_YEAR + scenario['n_years']}y_SOC.tif"
 
         output_path = output_folder / output_string
 
         # Remove 'force_new_file' so it's not forwarded to run_RothC_crops
         scenario.pop("force_new_file", None)
 
-        if all_new_files:
+        run_kwargs = dict(
+            scenario,
+            result_basename=output_string,
+            cache_env=cache_env,
+            cache_crop=cache_crop,
+            cache_residues=cache_residues,
+        )
+
+        if all_new_files or (file_fnw is True):
             print(f"Running {scn_string_text}")
-            run_RothC_crops(**scenario, result_basename=output_string)
-        elif file_fnw is not None and file_fnw is True:
-            print(f"Running {scn_string_text}")
-            run_RothC_crops(**scenario, result_basename=output_string)
+            run_RothC_crops(**run_kwargs)
         else:
             if output_path.exists():
                 print(f"{scn_string_text} already exists. Skipping...")
-                continue
-            else:
-                print(f"Running {scn_string_text}")
-                run_RothC_crops(**scenario, result_basename=output_string)
+                return scn_string_text, "skipped"
+            print(f"Running {scn_string_text}")
+            run_RothC_crops(**run_kwargs)
 
         print(f"{scn_string_text} calculated. Continuing...\n\n")
+        return scn_string_text, "ok"
+
+    if max_workers is None or max_workers <= 1:
+        for scenario in scenario_list:
+            _process_one(scenario)
+    else:
+        # Threads are safe: NumPy / rasterio release the GIL, the module-level
+        # caches are lock-protected, and each scenario writes to a distinct
+        # output path. Pass a shallow dict copy per worker so dict mutations
+        # inside _process_one do not alias the input list.
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(_process_one, dict(s)) for s in scenario_list]
+            for fut in as_completed(futures):
+                fut.result()  # propagate exceptions
 
 
 def run_rothc_grassland_scenarios_from_excel(excel_filepath: PathLike, force_new_files: bool = False, run_test: bool = False):
