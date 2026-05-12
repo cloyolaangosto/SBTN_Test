@@ -27,6 +27,7 @@ import xarray as xr
 import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from scipy import ndimage
 
 from pyogrio import list_layers as list_gpkg_layers
 from pyogrio import read_dataframe as read_df
@@ -3046,6 +3047,202 @@ def filter_output_raster(
             data[bi] = np.where(finite, np.minimum(data[bi], cap), data[bi])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    with rasterio.open(output_path, "w", **profile) as dst:
+        dst.write(data)
+        dst.update_tags(**tags)
+
+    return str(output_path)
+
+
+def _apply_log_winsor(array: np.ndarray, bounds: Tuple[float, float]) -> np.ndarray:
+    """Winsorize *array* in log1p space then invert back to original scale.
+
+    Only finite values are modified; NaN/Inf pass through unchanged.
+    Values must be > -1 (required for log1p).
+    """
+    q_lo, q_hi = bounds
+    if not (0 <= q_lo < q_hi <= 100):
+        raise ValueError("log_winsor_bounds must satisfy 0 <= lo < hi <= 100")
+
+    result = array.copy().astype("float32", copy=False)
+    valid = np.isfinite(array)
+
+    if not np.any(valid):
+        return result
+
+    vals = array[valid].astype("float64", copy=False)
+    if np.nanmin(vals) <= -1.0:
+        raise ValueError(
+            f"log_winsor requires all finite values > -1; found min={np.nanmin(vals)}"
+        )
+
+    log_vals = np.log1p(vals)
+    lo, hi = np.percentile(log_vals, [q_lo, q_hi])
+    clipped = np.expm1(np.clip(log_vals, lo, hi))
+    result[valid] = clipped.astype("float32", copy=False)
+    return result
+
+
+def _apply_local_zscore(
+    array: np.ndarray,
+    *,
+    local_window: int,
+    local_k: float,
+    local_min_neighbors: int,
+) -> np.ndarray:
+    """Clip *array* to ±local_k local standard deviations within a sliding window.
+
+    Pixels with fewer than *local_min_neighbors* valid neighbors in the window
+    are left unchanged.  NaN/Inf pixels are never modified.
+    """
+    if local_window <= 0 or local_window % 2 == 0:
+        raise ValueError("local_window must be a positive odd integer")
+
+    valid = np.isfinite(array)
+    if not np.any(valid):
+        return array.copy()
+
+    val = np.where(valid, array, 0.0).astype("float32", copy=False)
+    val2 = np.where(valid, array * array, 0.0).astype("float32", copy=False)
+    valid_f = valid.astype("float32", copy=False)
+
+    size = (local_window, local_window)
+    win_area = local_window * local_window
+
+    neighbor_count = ndimage.uniform_filter(valid_f, size=size, mode="nearest") * win_area
+    sum_local = ndimage.uniform_filter(val, size=size, mode="nearest") * win_area
+    sumsq_local = ndimage.uniform_filter(val2, size=size, mode="nearest") * win_area
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        local_mean = np.divide(sum_local, neighbor_count, where=neighbor_count > 0)
+        local_var = (
+            np.divide(sumsq_local, neighbor_count, where=neighbor_count > 0)
+            - local_mean * local_mean
+        )
+
+    local_std = np.sqrt(np.maximum(local_var, 0.0))
+    enough = neighbor_count >= local_min_neighbors
+
+    lower = local_mean - local_k * local_std
+    upper = local_mean + local_k * local_std
+
+    result = array.copy()
+    clip_mask = valid & enough
+    result[clip_mask] = np.clip(array[clip_mask], lower[clip_mask], upper[clip_mask])
+    return result
+
+
+def filter_raster_outliers(
+    input_path,
+    output_path=None,
+    *,
+    log_winsor_bounds: Optional[Tuple[float, float]] = None,
+    apply_local_zscore: bool = False,
+    local_window: int = 11,
+    local_k: float = 2.5,
+    local_min_neighbors: int = 20,
+    global_percentile_cap: Optional[float] = None,
+    bands: Optional[List[int]] = None,
+    overwrite: bool = False,
+) -> str:
+    """Filter outliers from a raster using log winsorization and/or local z-score clipping.
+
+    Reads the input GeoTIFF, applies the requested filters in order:
+      1. ``log_winsor_bounds`` — winsorize each band in log1p space, then invert.
+      2. ``apply_local_zscore`` — spatially clip each pixel to ±local_k local
+         standard deviations within a sliding ``local_window × local_window`` kernel.
+      3. ``global_percentile_cap`` — cap all finite values at this percentile
+         (applied across all selected bands after the above steps).
+
+    Parameters
+    ----------
+    input_path : path-like
+        Path to the input GeoTIFF.
+    output_path : path-like or None
+        Destination path.  When *None*, overwrites *input_path* (requires
+        ``overwrite=True``).
+    log_winsor_bounds : (lo, hi) or None
+        Percentile pair in [0, 100] used to winsorize in log1p space.
+        All finite values must be > -1.  Example: ``(0.5, 99.5)``.
+    apply_local_zscore : bool
+        When *True*, apply a spatial local z-score clip after log winsorization.
+    local_window : int
+        Odd kernel size (pixels) for the local z-score sliding window.
+    local_k : float
+        Number of local standard deviations defining the clip bounds.
+    local_min_neighbors : int
+        Minimum valid neighbors a pixel must have before local clipping is applied.
+    global_percentile_cap : float or None
+        If set, cap all finite values at this percentile across selected bands.
+        Applied last, after all other filters.
+    bands : list[int] or None
+        0-based band indices to process.  *None* means all bands.
+    overwrite : bool
+        Must be *True* to allow in-place overwrite when *output_path* is None.
+
+    Returns
+    -------
+    str
+        Path of the written output file.
+    """
+    input_path = Path(input_path)
+    if output_path is None:
+        if not overwrite:
+            raise ValueError(
+                "output_path is None — set overwrite=True to overwrite the input file"
+            )
+        output_path = input_path
+    else:
+        output_path = Path(output_path)
+
+    if apply_local_zscore and local_window % 2 == 0:
+        raise ValueError("local_window must be a positive odd integer")
+
+    with rasterio.open(input_path) as src:
+        profile = src.profile.copy()
+        data = src.read().astype("float32")
+        nodata = src.nodata
+        tags = src.tags()
+
+    # Replace nodata with NaN so filters can ignore them uniformly
+    if nodata is not None:
+        data[data == nodata] = np.nan
+
+    n_bands = data.shape[0]
+    band_indices = list(range(n_bands)) if bands is None else list(bands)
+
+    for bi in band_indices:
+        band = data[bi]
+
+        if log_winsor_bounds is not None:
+            band = _apply_log_winsor(band, log_winsor_bounds)
+
+        if apply_local_zscore:
+            band = _apply_local_zscore(
+                band,
+                local_window=local_window,
+                local_k=local_k,
+                local_min_neighbors=local_min_neighbors,
+            )
+
+        data[bi] = band
+
+    if global_percentile_cap is not None:
+        all_finite = np.concatenate(
+            [data[bi][np.isfinite(data[bi])].ravel() for bi in band_indices]
+        )
+        if all_finite.size > 0:
+            cap_val = np.nanpercentile(all_finite, global_percentile_cap)
+            for bi in band_indices:
+                finite = np.isfinite(data[bi])
+                data[bi] = np.where(finite, np.minimum(data[bi], cap_val), data[bi])
+
+    # Restore nodata
+    if nodata is not None:
+        data[~np.isfinite(data)] = nodata
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    profile.update(dtype="float32")
     with rasterio.open(output_path, "w", **profile) as dst:
         dst.write(data)
         dst.update_tags(**tags)
