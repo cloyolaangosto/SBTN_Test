@@ -1715,6 +1715,253 @@ def _apply_outlier_filter(
 
     return val[keep], wghts[keep]
 
+
+def apply_zone_outlier_filter(
+    arrays: Union[np.ndarray, List[np.ndarray]],
+    zone_array: np.ndarray,
+    fao_gdf: gpd.GeoDataFrame,
+    zone_avg_col: str,
+    *,
+    strategy: str,
+    percentile_bounds: Optional[Tuple[float, float]] = None,
+    k_sd: Optional[float] = None,
+    fao_max_ratio: Optional[float] = None,
+    global_percentile_cap: Optional[float] = None,
+    apply_local_zscore: bool = False,
+    local_window: int = 5,
+    local_k: float = 3.0,
+    local_min_neighbors: int = 5,
+) -> Union[np.ndarray, List[np.ndarray]]:
+    """Apply the same zone-based outlier filtering used in ``run_rothc_crops_scenarios_from_excel``.
+
+    Each pixel is clipped within its FAO zone according to *strategy*.  This
+    mirrors ``cropcalcs._filter_yields_by_zone`` but operates on arbitrary 2-D
+    raster arrays rather than yield-specific data.
+
+    Parameters
+    ----------
+    arrays:
+        A single 2-D ``np.ndarray`` or a list of them (same shape, same zone
+        grid).  All arrays are filtered independently with shared zone
+        statistics; a single array is returned as a single array.
+    zone_array:
+        2-D integer array (same H×W as each element of *arrays*) where each
+        pixel contains the ``zone_id`` of the FAO zone it belongs to.  Pixels
+        with no matching zone are left as NaN in the output.
+    fao_gdf:
+        GeoDataFrame with one row per zone.  Must contain a ``zone_id`` column
+        (integer) and the column named by *zone_avg_col*.
+    zone_avg_col:
+        Column in *fao_gdf* holding the per-zone reference average (e.g.
+        ``"avg_yield"``).  Used by ``ratio_percentile`` and as the denominator
+        for ``fao_max_ratio``.
+    strategy:
+        Zone-level clipping rule.  One of:
+
+        * ``"sd"`` — clip to ``mean ± k_sd * std`` within each zone.
+          Requires *k_sd*.
+        * ``"ratio_percentile"`` — clip by the *percentile_bounds* percentiles
+          of ``(value / zone_avg)`` within each zone.  Requires
+          *percentile_bounds* and a valid *zone_avg_col*.
+        * ``"log_winsor"`` — winsorise in log1p-space within each zone using
+          *percentile_bounds* as percentile cut-points (0–100 scale), then
+          invert.  Requires *percentile_bounds*.
+        * ``"local_zscore"`` — skip zone clipping; apply only the spatial
+          local z-score second pass.  Enables *apply_local_zscore*
+          automatically.
+        * ``"none"`` — no clipping; useful when only *fao_max_ratio* or
+          *global_percentile_cap* is needed.
+    percentile_bounds:
+        ``(lo, hi)`` percentiles in the **0–100** range, used by
+        ``ratio_percentile`` and ``log_winsor``.
+    k_sd:
+        Number of standard deviations for the ``"sd"`` strategy.
+    fao_max_ratio:
+        If set, additionally cap each pixel at ``fao_max_ratio * zone_avg``
+        regardless of the primary strategy.
+    global_percentile_cap:
+        If set, apply a cross-zone upper cap at this percentile of all finite
+        values in each array after zone filtering.
+    apply_local_zscore:
+        Apply a spatial local z-score clipping pass after zone filtering.
+    local_window:
+        Side length (odd integer) of the square neighbourhood window for local
+        z-score clipping.
+    local_k:
+        Number of local standard deviations used as the clipping threshold.
+    local_min_neighbors:
+        Minimum number of finite neighbours required to apply local clipping at
+        a pixel.
+
+    Returns
+    -------
+    np.ndarray or list[np.ndarray]
+        Filtered array(s) in ``float32``, with the same shape as the inputs.
+        NaN is preserved for pixels that were NaN on input or fall outside all
+        known zones.
+    """
+    from scipy import ndimage as _ndimage
+
+    # --- normalise input ---
+    single = isinstance(arrays, np.ndarray)
+    arr_list: List[np.ndarray] = [arrays] if single else list(arrays)
+
+    if strategy == "local_zscore":
+        apply_local_zscore = True
+
+    # --- validate strategy params ---
+    if strategy == "ratio_percentile":
+        if percentile_bounds is None:
+            raise ValueError("percentile_bounds required for ratio_percentile")
+    elif strategy == "log_winsor":
+        if percentile_bounds is None:
+            raise ValueError("percentile_bounds required for log_winsor")
+        q_lo, q_hi = percentile_bounds
+        if not (0 <= q_lo < q_hi <= 100):
+            raise ValueError("percentile_bounds must satisfy 0 <= lo < hi <= 100")
+    elif strategy == "sd":
+        if k_sd is None:
+            raise ValueError("k_sd required for sd strategy")
+    elif strategy not in ("none", "local_zscore"):
+        raise ValueError(
+            f"Unknown strategy {strategy!r}. "
+            "Choose from: 'sd', 'ratio_percentile', 'log_winsor', 'local_zscore', 'none'"
+        )
+
+    if apply_local_zscore:
+        if local_window <= 0 or local_window % 2 == 0:
+            raise ValueError("local_window must be a positive odd integer")
+
+    # --- initialise outputs as NaN ---
+    out_arrays = [np.full_like(a, np.nan, dtype="float32") for a in arr_list]
+
+    # --- zone-based clipping ---
+    if strategy not in ("none", "local_zscore"):
+        for _, row in fao_gdf.iterrows():
+            zid = int(row["zone_id"])
+            zone_avg = row[zone_avg_col]
+            zid_mask = zone_array == zid
+
+            for i, array in enumerate(arr_list):
+                valid_zone = zid_mask & np.isfinite(array)
+                vals = array[valid_zone]
+                if vals.size == 0:
+                    continue
+
+                if strategy == "ratio_percentile":
+                    if not (np.isfinite(zone_avg) and zone_avg > 0):
+                        continue
+                    ratios = vals / zone_avg
+                    low_r, high_r = np.nanpercentile(ratios, [percentile_bounds[0], percentile_bounds[1]])
+                    min_val = low_r * zone_avg
+                    max_val = high_r * zone_avg
+
+                elif strategy == "sd":
+                    zone_mean = np.nanmean(vals)
+                    zone_std = np.nanstd(vals)
+                    min_val = max(0.0, zone_mean - k_sd * zone_std)
+                    max_val = zone_mean + k_sd * zone_std
+
+                elif strategy == "log_winsor":
+                    if np.nanmin(vals) <= -1.0:
+                        raise ValueError(
+                            f"log_winsor requires values > -1 for log1p; "
+                            f"found min={np.nanmin(vals):.4g} in zone {zid}"
+                        )
+                    log_vals = np.log1p(vals.astype("float64", copy=False))
+                    lo, hi = np.percentile(log_vals, [percentile_bounds[0], percentile_bounds[1]])
+                    min_val = np.expm1(lo)
+                    max_val = np.expm1(hi)
+
+                # optional FAO-ratio absolute cap on top of strategy bounds
+                if fao_max_ratio is not None and np.isfinite(zone_avg) and zone_avg > 0:
+                    max_val = min(max_val, fao_max_ratio * zone_avg)
+
+                clipped = np.clip(array, min_val, max_val).astype("float32", copy=False)
+                out_arrays[i][valid_zone] = clipped[valid_zone]
+
+    elif strategy == "local_zscore":
+        # no zone clipping — copy through, applying fao_max_ratio cap per zone if set
+        for _, row in fao_gdf.iterrows():
+            zid = int(row["zone_id"])
+            zone_avg = row[zone_avg_col]
+            zid_mask = zone_array == zid
+            for i, array in enumerate(arr_list):
+                m = zid_mask & np.isfinite(array)
+                if not np.any(m):
+                    continue
+                if fao_max_ratio is not None and np.isfinite(zone_avg) and zone_avg > 0:
+                    capped = np.minimum(array, fao_max_ratio * zone_avg)
+                    out_arrays[i][m] = capped[m].astype("float32", copy=False)
+                else:
+                    out_arrays[i][m] = array[m].astype("float32", copy=False)
+
+    else:  # "none"
+        if fao_max_ratio is not None:
+            for _, row in fao_gdf.iterrows():
+                zid = int(row["zone_id"])
+                zone_avg = row[zone_avg_col]
+                zid_mask = zone_array == zid
+                for i, array in enumerate(arr_list):
+                    m = zid_mask & np.isfinite(array)
+                    if not np.any(m):
+                        continue
+                    if np.isfinite(zone_avg) and zone_avg > 0:
+                        out_arrays[i][m] = np.minimum(
+                            array[m], fao_max_ratio * zone_avg
+                        ).astype("float32", copy=False)
+                    else:
+                        out_arrays[i][m] = array[m].astype("float32", copy=False)
+        else:
+            for i, array in enumerate(arr_list):
+                m = np.isfinite(array)
+                out_arrays[i][m] = array[m].astype("float32", copy=False)
+
+    # --- optional cross-zone global percentile cap ---
+    if global_percentile_cap is not None:
+        for i in range(len(out_arrays)):
+            finite_vals = out_arrays[i][np.isfinite(out_arrays[i])]
+            if finite_vals.size > 0:
+                cap_val = np.nanpercentile(finite_vals, global_percentile_cap)
+                finite_mask = np.isfinite(out_arrays[i])
+                out_arrays[i] = np.where(
+                    finite_mask, np.minimum(out_arrays[i], cap_val), out_arrays[i]
+                ).astype("float32", copy=False)
+
+    # --- optional second-stage spatial local z-score ---
+    if apply_local_zscore:
+        def _local_zscore_clip(array: np.ndarray) -> np.ndarray:
+            valid = np.isfinite(array)
+            if not np.any(valid):
+                return array
+            val = np.where(valid, array, 0.0).astype("float32", copy=False)
+            val2 = np.where(valid, array * array, 0.0).astype("float32", copy=False)
+            valid_f = valid.astype("float32", copy=False)
+            size = (local_window, local_window)
+            win_area = local_window * local_window
+            neighbor_count = _ndimage.uniform_filter(valid_f, size=size, mode="nearest") * win_area
+            sum_local = _ndimage.uniform_filter(val, size=size, mode="nearest") * win_area
+            sumsq_local = _ndimage.uniform_filter(val2, size=size, mode="nearest") * win_area
+            with np.errstate(invalid="ignore", divide="ignore"):
+                local_mean = np.divide(sum_local, neighbor_count, where=neighbor_count > 0)
+                local_var = (
+                    np.divide(sumsq_local, neighbor_count, where=neighbor_count > 0)
+                    - local_mean * local_mean
+                )
+            local_std = np.sqrt(np.maximum(local_var, 0.0))
+            enough = neighbor_count >= local_min_neighbors
+            lower = local_mean - local_k * local_std
+            upper = local_mean + local_k * local_std
+            result = array.copy()
+            clip_mask = valid & enough
+            result[clip_mask] = np.clip(array[clip_mask], lower[clip_mask], upper[clip_mask])
+            return result
+
+        out_arrays = [_local_zscore_clip(a) for a in out_arrays]
+
+    return out_arrays[0] if single else out_arrays
+
+
 def _pixel_area_from_transform(transform: Affine) -> float:
     """
     Pixel area for north-up rasters in projected meters CRS.
