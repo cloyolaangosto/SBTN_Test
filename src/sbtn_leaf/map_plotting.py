@@ -278,7 +278,8 @@ def _create_plt_choropleth(
     divergence_center: Optional[float] = None,
     raster_crs=None,
     plt_show: bool = True,
-    truncate_one_sided: bool = False
+    truncate_one_sided: bool = False,
+    quantiles_are_percentiles: Optional[bool] = None,
 ):
     """
     Plot the raster in its native CRS.
@@ -286,7 +287,10 @@ def _create_plt_choropleth(
     - base_shp (world boundaries) is reprojected to the raster CRS before overlay.
     - Axes are labeled as projected coordinates, not "Longitude/Latitude".
     - When ``truncate_one_sided`` is ``True``, one-sided data (all positive or all negative) uses the corresponding half of the colormap. When ``False`` (default), the full colormap is used while keeping the same normalization.
-    - ``quantiles`` can be an int (number of bins) or an explicit sequence of bin edges. If all provided edges fall between 0 and 100, they are interpreted as percentiles of the data.
+    - ``quantiles`` can be an int (number of bins) or an explicit sequence of bin edges.
+    - ``quantiles_are_percentiles``: ``True`` always converts edges to percentiles,
+      ``False`` always uses them as actual data values, ``None`` (default) applies
+      the heuristic (treat as percentiles when all values fall in [0, 100]).
     """
 
     # 1) Optionally filter base_shp by region (still in its own CRS at this point)
@@ -324,7 +328,8 @@ def _create_plt_choropleth(
         edges = np.asarray(quantiles, dtype=float)
         if edges.ndim != 1 or edges.size < 2:
             raise ValueError("quantiles must be a 1D sequence with at least two entries.")
-        if np.all((edges >= 0) & (edges <= 100)):
+        treat_as_pct = quantiles_are_percentiles if quantiles_are_percentiles is not None else bool(np.all((edges >= 0) & (edges <= 100)))
+        if treat_as_pct:
             edges = np.percentile(values, edges)
         quantile_edges = edges
 
@@ -514,17 +519,21 @@ def _resolve_quantile_edges(
     quantiles: Union[int, Sequence[float]],
     vmin: float,
     vmax: float,
+    quantiles_are_percentiles: Optional[bool] = None,
 ) -> np.ndarray:
     """Return bin edges for a quantile-based BoundaryNorm.
 
     If *quantiles* is an integer, returns that many evenly-spaced edges
-    between *vmin* and *vmax*.  If it is a sequence, values in [0, 100]
-    are treated as percentiles of *vals*; otherwise they are used as-is.
+    between *vmin* and *vmax*.  If it is a sequence, *quantiles_are_percentiles*
+    controls interpretation: ``True`` always converts to percentiles, ``False``
+    always uses the values as-is, and ``None`` (default) falls back to the
+    heuristic (treat as percentiles when all values fall in [0, 100]).
     """
     if isinstance(quantiles, (int, np.integer)):
         return np.linspace(vmin, vmax, int(quantiles) + 1)
     q = np.asarray(quantiles, dtype=float)
-    return np.percentile(vals, q) if np.all((q >= 0) & (q <= 100)) else q
+    treat_as_pct = quantiles_are_percentiles if quantiles_are_percentiles is not None else bool(np.all((q >= 0) & (q <= 100)))
+    return np.percentile(vals, q) if treat_as_pct else q
 
 
 def plot_raster_on_world_extremes_cutoff(
@@ -537,6 +546,7 @@ def plot_raster_on_world_extremes_cutoff(
     p_min: Optional[float] = None,
     p_max: Optional[float] = None,
     quantiles: Optional[Union[int, Sequence[float]]] = None,
+    quantiles_are_percentiles: Optional[bool] = None,
     region: Optional[str] = None,
     cmap: str = 'viridis',
     divergence_center: Optional[float] = None,
@@ -605,6 +615,7 @@ def plot_raster_on_world_extremes_cutoff(
         region=region,
         label_title=label_title,
         quantiles=quantiles,
+        quantiles_are_percentiles=quantiles_are_percentiles,
         cmap=cmap,
         n_categories=n_categories,
         base_shp=base_shp,
@@ -671,6 +682,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
     p_min: Optional[float] = None,
     p_max: Optional[float] = None,
     quantiles: Optional[Union[int, Sequence[float]]] = None,
+    quantiles_are_percentiles: Optional[bool] = None,
     region: Optional[str] = None,
     cmap: str = 'viridis',
     divergence_center: Optional[float] = None,
@@ -757,7 +769,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
         global_max = float(np.max(combined)) if max_val is None else float(max_val)
 
         if quantiles is not None:
-            edges = _resolve_quantile_edges(combined, quantiles, global_min, global_max)
+            edges = _resolve_quantile_edges(combined, quantiles, global_min, global_max, quantiles_are_percentiles)
             shared_norm = BoundaryNorm(edges, ncolors=shared_cmap.N)
         elif resolved_divergence is not None:
             shared_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=global_min, vmax=global_max)
@@ -786,7 +798,7 @@ def plot_n_rasters_on_world_extremes_cutoff(
                 local_max = float(np.max(vals)) if max_val is None else float(max_val)
 
                 if quantiles is not None:
-                    edges = _resolve_quantile_edges(vals, quantiles, local_min, local_max)
+                    edges = _resolve_quantile_edges(vals, quantiles, local_min, local_max, quantiles_are_percentiles)
                     local_norm = BoundaryNorm(edges, ncolors=local_cmap.N)
                 elif resolved_divergence is not None:
                     local_norm = TwoSlopeNorm(vcenter=float(resolved_divergence), vmin=local_min, vmax=local_max)
