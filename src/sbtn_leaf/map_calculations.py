@@ -2275,6 +2275,7 @@ def create_binary_mask(input_path, output_path, binary_value = 1, band=1, src_no
             valid = (data != nodata)
 
         # Create a binary mask: 1 for valid, 0 for no_data.
+        print(binary_value)
         binary = np.where(valid, binary_value, dst_nodata).astype(np.float32)
     
     # Update metadata for output:
