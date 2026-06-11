@@ -1208,6 +1208,23 @@ def build_cfs_gpkg_from_rasters(
     if getattr(master_gdf, "geometry", None) is None:
         raise ValueError("master_gdf has no geometry column set.")
 
+    # Collapse duplicate master_key rows to one geometry per key. A non-unique
+    # key makes the left-join below (left_on=master_key) broadcast an
+    # overlapping polygon's CF onto every same-keyed polygon — including ones
+    # with no raster overlap — and produces duplicate (Cartesian) rows.
+    if master_gdf[master_key].duplicated().any():
+        dup_keys = master_gdf.loc[
+            master_gdf[master_key].duplicated(keep=False), master_key
+        ].dropna().unique()
+        if logger is not None:
+            logger.warning(
+                "master_gdf had %d duplicated '%s' value(s) (e.g. %s); "
+                "dissolving to one geometry per key to avoid assigning CF "
+                "values to non-overlapping polygons.",
+                len(dup_keys), master_key, list(dup_keys[:10]),
+            )
+        master_gdf = prep_master_unique(master_gdf, master_key, strategy="dissolve")
+
     if logger is not None:
         destination = gpckg_path if write_gpkg else "CSV only"
         logger.info(
