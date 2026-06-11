@@ -558,6 +558,7 @@ def _process_single_region(
     base_pixel_area: float,
     coverage_method: str,
     supersample_factor: int,
+    min_coverage_fraction: float,
     outlier_method: Optional[str],
     q_low: float,
     q_high: float,
@@ -656,31 +657,39 @@ def _process_single_region(
     values = arr[keep].astype(np.float64, copy=False)
     weights = (frac[keep] * pixel_area).astype(np.float64, copy=False)
 
-    # Outlier filtering (optional)
-    values, weights = _apply_outlier_filter(
-        values,
-        weights,
-        method=outlier_method,
-        q_low=q_low,
-        q_high=q_high,
-        std_thresh=std_thresh,
-        apply_local_zscore=apply_local_zscore,
-        local_window=local_window,
-        local_k=local_k,
-        local_min_neighbors=local_min_neighbors,
-    )
+    # Data-coverage gate: assign NaN when valid pixels cover less than the
+    # threshold fraction of the polygon area.
+    region_area = float(geom.area)
+    covered_area = float(np.sum(weights))
+    coverage_ratio = (covered_area / region_area) if region_area > 0 else 0.0
+    if coverage_ratio < min_coverage_fraction:
+        wmean = wmed = wstd = np.nan
+    else:
+        # Outlier filtering (optional)
+        values, weights = _apply_outlier_filter(
+            values,
+            weights,
+            method=outlier_method,
+            q_low=q_low,
+            q_high=q_high,
+            std_thresh=std_thresh,
+            apply_local_zscore=apply_local_zscore,
+            local_window=local_window,
+            local_k=local_k,
+            local_min_neighbors=local_min_neighbors,
+        )
 
-    if values.size == 0:
-        return None
+        if values.size == 0:
+            return None
 
-    # Weighted stats (population variance)
-    wsum = np.sum(weights)
-    if (not np.isfinite(wsum)) or (wsum <= 0):
-        return None
-    wmean = np.sum(values * weights) / wsum
-    wvar = np.sum(weights * (values - wmean) ** 2) / wsum
-    wstd = np.sqrt(wvar)
-    wmed = _weighted_median(values, weights)
+        # Weighted stats (population variance)
+        wsum = np.sum(weights)
+        if (not np.isfinite(wsum)) or (wsum <= 0):
+            return None
+        wmean = np.sum(values * weights) / wsum
+        wvar = np.sum(weights * (values - wmean) ** 2) / wsum
+        wstd = np.sqrt(wvar)
+        wmed = _weighted_median(values, weights)
 
     # Build result dict per area_type
     idx = region_attrs.get("_index")
@@ -735,6 +744,9 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     # Fractional cover options
     coverage_method: str = "supersample",  # 'supersample' (default) or 'exact'
     supersample_factor: int = 5,
+    # Minimum data coverage: regions whose valid pixels cover less than this
+    # fraction of the polygon area are assigned NaN (default 5%).
+    min_coverage_fraction: float = 0.05,
     # Outlier filtering
     outlier_method: str | None = None,     # None | 'quantile' | 'std' | 'log1p_cap' | 'log1p_win'
     q_low: float = 0.01,
@@ -761,6 +773,12 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
     - coverage_method:
         'supersample' -> fast approximation via fine mask + block average
         'exact'       -> precise per-pixel polygon intersection
+    - min_coverage_fraction:
+        Fraction in [0, 1]. For each region, the area covered by valid data
+        pixels is compared against the polygon's total area. When the covered
+        fraction is below this threshold the region's CF stats (cf, cf_median,
+        cf_std) are set to NaN instead of being computed from a non-representative
+        sliver of pixels. Defaults to 0.05 (5%); set to 0 to disable the gate.
     - Outlier filtering can be applied before computing statistics:
         outlier_method in {None, 'quantile', 'std', 'log1p_cap', 'log1p_win'}
     - Optional second-stage local z-score clipping can be enabled with
@@ -782,6 +800,12 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             )
         raise ValueError(
             f"area_type must be one of {sorted(valid_area_type)}, got '{area_type}'."
+        )
+
+    # Validate coverage threshold
+    if not (0.0 <= min_coverage_fraction <= 1.0):
+        raise ValueError(
+            f"min_coverage_fraction must be in [0, 1], got {min_coverage_fraction}."
         )
 
     # Select region GeoDataFrame
@@ -842,7 +866,10 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         return nodata_value
 
     _target_crs = pyproj.CRS.from_user_input(equal_area_crs)
-    need_reproj = raster_crs.is_geographic or (not raster_crs.equals(_target_crs))
+    # Wrap in pyproj so the comparison works regardless of whether rioxarray
+    # returns a rasterio CRS (no .equals) or a pyproj CRS.
+    _raster_crs_pp = pyproj.CRS.from_user_input(raster_crs)
+    need_reproj = _raster_crs_pp.is_geographic or (not _raster_crs_pp.equals(_target_crs))
     if need_reproj:
         # Carry forward the resolved nodata so reprojection preserves fill values.
         reproject_nodata = _resolve_nodata(raster)
@@ -960,35 +987,50 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
             # area weight = frac * pixel_area
             weights = (frac[keep] * base_pixel_area).astype(np.float64, copy=False)
 
-            # Outlier filtering (optional)
-            values, weights = _apply_outlier_filter(
-                values,
-                weights,
-                method=outlier_method,
-                q_low=q_low,
-                q_high=q_high,
-                std_thresh=std_thresh,
-                apply_local_zscore=apply_local_zscore,
-                local_window=local_window,
-                local_k=local_k,
-                local_min_neighbors=local_min_neighbors,
-            )
-
-            if values.size == 0:
+            # Data-coverage gate: compare the area covered by valid pixels against
+            # the polygon's total area; assign NaN when below the threshold.
+            region_area = float(geom.area)
+            covered_area = float(np.sum(weights))
+            coverage_ratio = (covered_area / region_area) if region_area > 0 else 0.0
+            if coverage_ratio < min_coverage_fraction:
                 if log:
-                    log.debug("All values filtered for %s. Skipping...", region_text)
-                continue
+                    log.debug(
+                        "Coverage %.2f%% below threshold %.2f%% for %s. Assigning NaN...",
+                        coverage_ratio * 100.0,
+                        min_coverage_fraction * 100.0,
+                        region_text,
+                    )
+                wmean = wmed = wstd = np.nan
+            else:
+                # Outlier filtering (optional)
+                values, weights = _apply_outlier_filter(
+                    values,
+                    weights,
+                    method=outlier_method,
+                    q_low=q_low,
+                    q_high=q_high,
+                    std_thresh=std_thresh,
+                    apply_local_zscore=apply_local_zscore,
+                    local_window=local_window,
+                    local_k=local_k,
+                    local_min_neighbors=local_min_neighbors,
+                )
 
-            # Weighted stats (population variance)
-            wsum = np.sum(weights)
-            if (not np.isfinite(wsum)) or (wsum <= 0):
-                if log:
-                    log.debug("Degenerate weights for %s. Skipping...", region_text)
-                continue
-            wmean = np.sum(values * weights) / wsum
-            wvar = np.sum(weights * (values - wmean) ** 2) / wsum
-            wstd = np.sqrt(wvar)
-            wmed = _weighted_median(values, weights)
+                if values.size == 0:
+                    if log:
+                        log.debug("All values filtered for %s. Skipping...", region_text)
+                    continue
+
+                # Weighted stats (population variance)
+                wsum = np.sum(weights)
+                if (not np.isfinite(wsum)) or (wsum <= 0):
+                    if log:
+                        log.debug("Degenerate weights for %s. Skipping...", region_text)
+                    continue
+                wmean = np.sum(values * weights) / wsum
+                wvar = np.sum(weights * (values - wmean) ** 2) / wsum
+                wstd = np.sqrt(wvar)
+                wmed = _weighted_median(values, weights)
 
             # Append per area_type
             if area_type == "ecoregion":
@@ -1081,6 +1123,7 @@ def build_cfs_gpkg_from_rasters(
     master_key: str,                 # e.g., 'ADM0_NAME', 'ISO_A3', 'ADM1_NAME', 'ECO_NAME'
     result_key: str,                 # column in calculator's gdf that matches master_key
     equal_area_crs: str= "EPSG:6933",
+    min_coverage_fraction: float = 0.05,  # regions with valid-pixel coverage below this fraction get NaN
     cf_name: str,
     cf_unit: str,
     area_type: str,
@@ -1139,6 +1182,12 @@ def build_cfs_gpkg_from_rasters(
         Column in the calculator's output DataFrame that matches ``master_key``.
     equal_area_crs : str, optional
         CRS string for area-weighted calculations. Defaults to ``"EPSG:6933"``.
+    min_coverage_fraction : float, optional
+        Minimum fraction (in ``[0, 1]``) of a region's area that must be covered
+        by valid raster pixels for a CF value to be computed. Regions below this
+        threshold are left as NaN. Defaults to ``0.05`` (5%); set to ``0`` to
+        disable. Forwarded to the CF calculator (an explicit value in
+        ``calc_kwargs`` takes precedence).
     cf_name : str
         Name of the characterization factor (used in filenames and metadata).
     cf_unit : str
@@ -1329,6 +1378,7 @@ def build_cfs_gpkg_from_rasters(
     else:
         calc_kwargs.setdefault("subcountry_gdf", master_gdf)
     calc_kwargs.setdefault("return_gdf", False)
+    calc_kwargs.setdefault("min_coverage_fraction", min_coverage_fraction)
 
     # Base frame with master identifiers for later joins
     master_id_df = pd.DataFrame(master_gdf[master_key])
