@@ -842,7 +842,9 @@ def calculate_area_weighted_cfs_from_raster_with_std_and_median_vOutliers(
         return nodata_value
 
     _target_crs = pyproj.CRS.from_user_input(equal_area_crs)
-    need_reproj = raster_crs.is_geographic or (not raster_crs.equals(_target_crs))
+    # raster_crs may be a rasterio CRS (no .equals); normalize through pyproj
+    _raster_crs = pyproj.CRS.from_user_input(raster_crs)
+    need_reproj = _raster_crs.is_geographic or (not _raster_crs.equals(_target_crs))
     if need_reproj:
         # Carry forward the resolved nodata so reprojection preserves fill values.
         reproject_nodata = _resolve_nodata(raster)
@@ -1261,15 +1263,13 @@ def build_cfs_gpkg_from_rasters(
         and (_flow_name_from_file(file) not in processed_flows)
     ]
 
-    progress_iter = tqdm(
-        file_list,
-        desc=f"Processing rasters ({layer_name})",
-        unit="raster",
-        dynamic_ncols=True,
-        disable=not file_list,
-    )
-
-    logging_context = logging_redirect_tqdm() if logger is not None else nullcontext()
+    # Redirect both the passed logger's console handler and root's through
+    # tqdm.write so log lines from worker threads don't corrupt the bar.
+    if logger is not None:
+        redirect_loggers = [logger] if logger is logging.root else [logger, logging.root]
+        logging_context = logging_redirect_tqdm(loggers=redirect_loggers, tqdm_class=tqdm)
+    else:
+        logging_context = nullcontext()
 
     # Prepare GeoPackage layer bookkeeping
     attribute_first_write = True
@@ -1283,7 +1283,7 @@ def build_cfs_gpkg_from_rasters(
         drop_cols = [ 'STATUS', 'DISP_AREA', 'ADM0_CODE', 'STR0_YEAR', 'EXP0_YEAR', 'SHAPE_LENG', 'SHAPE_AREA']
     else:  #subcountry
         drop_cols = ['STR1_YEAR', 'EXP1_YEAR', 'STATUS', 'DISP_AREA', 'ADM0_CODE',  'SHAPE_LENG', "SHAPE_AREA"]
-    master_gdf = master_gdf.drop(columns=drop_cols)
+    master_gdf = master_gdf.drop(columns=drop_cols, errors='ignore')
 
     # Ensure master_gdf is in an equal-area CRS
     master_crs = master_gdf.crs
@@ -1496,19 +1496,23 @@ def build_cfs_gpkg_from_rasters(
 
     # --- main loop (sequential or parallel) --------------------------------
     with logging_context:
-        if max_workers > 1:
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_file = {
-                    executor.submit(_compute_raster, f): f for f in file_list
-                }
-                pbar = tqdm(
-                    total=len(future_to_file),
-                    desc=f"Processing rasters ({layer_name})",
-                    unit="raster",
-                    dynamic_ncols=True,
-                    disable=not file_list,
-                )
-                try:
+        # The bar must be fully constructed before any worker thread can log:
+        # logging_redirect_tqdm routes records through tqdm.write, which
+        # refreshes every registered bar, and a half-built notebook bar
+        # raises AttributeError ('container') when refreshed.
+        pbar = tqdm(
+            total=len(file_list),
+            desc=f"Processing rasters ({layer_name})",
+            unit="raster",
+            dynamic_ncols=True,
+            disable=not file_list,
+        )
+        try:
+            if max_workers > 1:
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_to_file = {
+                        executor.submit(_compute_raster, f): f for f in file_list
+                    }
                     for future in as_completed(future_to_file):
                         try:
                             file, flow_name, df_flow = future.result()
@@ -1520,22 +1524,18 @@ def build_cfs_gpkg_from_rasters(
                             _write_gpkg_batch()
                             raise
                         pbar.update(1)
-                finally:
-                    pbar.close()
-        else:
-            for file in progress_iter:
-                try:
-                    file, flow_name, df_flow = _compute_raster(file)
-                    _accumulate(file, flow_name, df_flow)
-                except Exception:
-                    flush_pending()
-                    _write_gpkg_batch()
-                    raise
-
-    if hasattr(progress_iter, "close"):
-        progress_iter.close()
-    elif hasattr(progress_iter, "update"):
-        progress_iter.update(0)
+            else:
+                for file in file_list:
+                    try:
+                        file, flow_name, df_flow = _compute_raster(file)
+                        _accumulate(file, flow_name, df_flow)
+                    except Exception:
+                        flush_pending()
+                        _write_gpkg_batch()
+                        raise
+                    pbar.update(1)
+        finally:
+            pbar.close()
 
     # Final CSV flush then single GPKG batch write
     flush_pending()
