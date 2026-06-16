@@ -1,0 +1,4 @@
+indicator,indicator_name,unit,within_sd_country,within_sd_rel_country,within_sd_subcountry,within_sd_rel_subcountry,within_sd_ecoregion,within_sd_rel_ecoregion
+soc,SOC stock,t SOC/ha,7.3742,1.0,5.206,0.706,7.8388,1.063
+soil_erosion,Soil erosion,t soil/ha/yr,43.9199,1.0,35.7418,0.8138,46.4961,1.0587
+acidification,Acidification CF,kg SO2-eq./kg,0.2668,1.0,0.1352,0.5066,0.279,1.0457

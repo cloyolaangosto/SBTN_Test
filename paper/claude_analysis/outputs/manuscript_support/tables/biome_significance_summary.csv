@@ -1,0 +1,4 @@
+indicator,indicator_name,n_flows,eta2_biome,eta2_realm,kruskal_p_max
+soc,SOC stock,9,0.167,0.1709,0.0
+soil_erosion,Soil erosion,9,0.2595,0.1559,0.0
+acidification,Acidification CF,3,0.3231,0.378,0.0

@@ -1,0 +1,28 @@
+flow,flow_label,level,n_regions,spearman_rho,p,signif
+BRDC_Tropical,Broadleaf-decid. forest (tropical),country,96,0.6382,0.0,***
+BRDC_Tropical,Broadleaf-decid. forest (tropical),subcountry,1366,0.5995,0.0,***
+BRDC_Tropical,Broadleaf-decid. forest (tropical),ecoregion,418,0.4934,0.0,***
+Coffee|rf|na|ct,Coffee (rainfed),country,83,0.6609,0.0,***
+Coffee|rf|na|ct,Coffee (rainfed),subcountry,1123,0.5227,0.0,***
+Coffee|rf|na|ct,Coffee (rainfed),ecoregion,358,0.5978,0.0,***
+Cotton|rf|na|ct,Cotton (rainfed),country,121,0.2974,0.0009,***
+Cotton|rf|na|ct,Cotton (rainfed),subcountry,1470,0.3537,0.0,***
+Cotton|rf|na|ct,Cotton (rainfed),ecoregion,497,0.4196,0.0,***
+Grassland,Grassland,country,165,0.3009,0.0001,***
+Grassland,Grassland,subcountry,2398,0.2151,0.0,***
+Grassland,Grassland,ecoregion,694,0.3519,0.0,***
+Maize|rf|roff|ct,Maize (rainfed),country,184,0.2121,0.0039,**
+Maize|rf|roff|ct,Maize (rainfed),subcountry,2617,0.1609,0.0,***
+Maize|rf|roff|ct,Maize (rainfed),ecoregion,675,0.2684,0.0,***
+Oil_palm|rf|na|ct,Oil palm (rainfed),country,58,0.6152,0.0,***
+Oil_palm|rf|na|ct,Oil palm (rainfed),subcountry,669,0.5351,0.0,***
+Oil_palm|rf|na|ct,Oil palm (rainfed),ecoregion,241,0.5936,0.0,***
+Soybeans|rf|na|ct,Soybeans (rainfed),country,142,0.0931,0.2702,ns
+Soybeans|rf|na|ct,Soybeans (rainfed),subcountry,1945,0.1463,0.0,***
+Soybeans|rf|na|ct,Soybeans (rainfed),ecoregion,590,0.2292,0.0,***
+Sugarcane|rf|na|ct,Sugarcane (rainfed),country,96,0.3307,0.001,***
+Sugarcane|rf|na|ct,Sugarcane (rainfed),subcountry,1250,0.2498,0.0,***
+Sugarcane|rf|na|ct,Sugarcane (rainfed),ecoregion,411,0.2444,0.0,***
+Wheat|rf|roff|ct,Wheat (rainfed),country,152,0.2488,0.002,**
+Wheat|rf|roff|ct,Wheat (rainfed),subcountry,2170,0.1493,0.0,***
+Wheat|rf|roff|ct,Wheat (rainfed),ecoregion,619,0.3335,0.0,***

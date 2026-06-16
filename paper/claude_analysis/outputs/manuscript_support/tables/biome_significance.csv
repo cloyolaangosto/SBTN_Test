@@ -1,0 +1,22 @@
+indicator,indicator_name,flow,flow_label,k_biomes,n_ecoregions,kruskal_H,kruskal_p,anova_F_log,anova_p_log,eta2_biome,eta2_realm,signif
+soc,SOC stock,Wheat|rf|roff|ct,Wheat (rainfed),13,633,244.6755,0.0,31.5715,0.0,0.3303,0.1198,***
+soc,SOC stock,Maize|rf|roff|ct,Maize (rainfed),13,694,192.4634,0.0,21.3434,0.0,0.239,0.1824,***
+soc,SOC stock,Soybeans|rf|na|ct,Soybeans (rainfed),13,595,154.8954,0.0,18.4959,0.0,0.2388,0.1935,***
+soc,SOC stock,Oil_palm|rf|na|ct,Oil palm (rainfed),7,238,29.4867,0.0,5.0245,0.0001,0.0952,0.3381,***
+soc,SOC stock,Coffee|rf|na|ct,Coffee (rainfed),8,350,38.8973,0.0,5.8113,0.0,0.0886,0.2741,***
+soc,SOC stock,Sugarcane|rf|na|ct,Sugarcane (rainfed),12,416,41.1664,0.0,3.47,0.0001,0.0588,0.1709,***
+soc,SOC stock,Cotton|rf|na|ct,Cotton (rainfed),12,504,110.1892,0.0,11.9769,0.0,0.167,0.1342,***
+soc,SOC stock,Grassland,Grassland,13,705,216.3357,0.0,23.4626,0.0,0.2478,0.0763,***
+soc,SOC stock,BRDC_Tropical,Broadleaf-decid. forest (tropical),8,410,65.0321,0.0,8.4421,0.0,0.0923,0.1458,***
+soil_erosion,Soil erosion,Wheat|rf|roff|ct,Wheat (rainfed),14,637,342.391,0.0,52.4198,0.0,0.4304,0.3156,***
+soil_erosion,Soil erosion,Maize|rf|roff|ct,Maize (rainfed),13,675,307.5373,0.0,44.8048,0.0,0.2685,0.199,***
+soil_erosion,Soil erosion,Soybeans|rf|na|ct,Soybeans (rainfed),13,677,303.7344,0.0,45.248,0.0,0.2595,0.1874,***
+soil_erosion,Soil erosion,Oil_palm|rf|na|ct,Oil palm (rainfed),8,335,49.5666,0.0,8.8919,0.0,0.1168,0.0985,***
+soil_erosion,Soil erosion,Coffee|rf|na|ct,Coffee (rainfed),8,380,71.1326,0.0,12.9905,0.0,0.1685,0.1213,***
+soil_erosion,Soil erosion,Sugarcane|rf|na|ct,Sugarcane (rainfed),12,454,125.8297,0.0,16.496,0.0,0.1883,0.0906,***
+soil_erosion,Soil erosion,Cotton|rf|na|ct,Cotton (rainfed),12,583,248.2312,0.0,35.6301,0.0,0.2181,0.1521,***
+soil_erosion,Soil erosion,Grassland,Grassland,14,718,329.5807,0.0,40.2934,0.0,0.2871,0.1559,***
+soil_erosion,Soil erosion,BRDC_Tropical,Broadleaf-decid. forest (tropical),8,432,168.5459,0.0,43.1711,0.0,0.278,0.1735,***
+acidification,Acidification CF,acid_nox,NOₓ (acidification),14,828,276.7105,0.0,27.6201,0.0,0.3231,0.5175,***
+acidification,Acidification CF,acid_nh3,NH₃ (acidification),14,828,285.1189,0.0,23.5723,0.0,0.31,0.3266,***
+acidification,Acidification CF,acid_so2,SO₂ (acidification),14,828,309.9286,0.0,29.8915,0.0,0.3902,0.378,***
