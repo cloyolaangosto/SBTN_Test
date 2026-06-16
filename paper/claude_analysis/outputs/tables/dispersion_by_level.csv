@@ -1,0 +1,4 @@
+indicator,indicator_name,cv_country,cv_subcountry,cv_ecoregion
+soc,SOC stock,0.3927,0.3862,0.3874
+soil_erosion,Soil erosion,1.3385,1.5047,1.2937
+acidification,Acidification CF,0.9789,0.8458,0.9521

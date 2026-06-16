@@ -1,0 +1,10 @@
+indicator,flow,flow_label,subcty_within_country_frac,subcty_n_units,eco_between_biome_eta2,eco_between_realm_eta2,eco_n_units
+soc,Wheat|rf|roff|ct,Wheat (rainfed),0.2239,2343,0.3303,0.1198,633
+soc,Maize|rf|roff|ct,Maize (rainfed),0.2023,2837,0.239,0.1824,694
+soc,Soybeans|rf|na|ct,Soybeans (rainfed),0.3567,1960,0.2388,0.1935,595
+soc,Oil_palm|rf|na|ct,Oil palm (rainfed),0.5067,677,0.0952,0.3381,242
+soc,Coffee|rf|na|ct,Coffee (rainfed),0.3018,1138,0.0886,0.2741,358
+soc,Sugarcane|rf|na|ct,Sugarcane (rainfed),0.4048,1292,0.0588,0.1709,416
+soc,Cotton|rf|na|ct,Cotton (rainfed),0.3927,1512,0.167,0.1342,504
+soc,Grassland,Grassland,0.3041,2499,0.2478,0.0763,705
+soc,BRDC_Tropical,Broadleaf-decid. forest (tropical),0.3231,1378,0.0923,0.1458,418

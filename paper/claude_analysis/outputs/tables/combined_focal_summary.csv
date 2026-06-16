@@ -1,0 +1,64 @@
+unit,indicator_name,flow,level,n_regions,mean_leaf,median_leaf,std_leaf,p10,p90,max_leaf,mean_within_std,cv,flow_label,indicator
+t SOC/ha,SOC stock,BRDC_Tropical,country,97,90.7861,80.3947,46.2465,54.6456,116.8882,289.0151,25.3675,0.5094,Broadleaf-decid. forest (tropical),soc
+t SOC/ha,SOC stock,BRDC_Tropical,subcountry,1378,89.1882,78.2775,47.6937,50.7414,133.6025,301.9882,16.8732,0.5348,Broadleaf-decid. forest (tropical),soc
+t SOC/ha,SOC stock,BRDC_Tropical,ecoregion,419,100.0685,88.6341,47.7151,59.4732,144.2933,293.1357,26.3218,0.4768,Broadleaf-decid. forest (tropical),soc
+t SOC/ha,SOC stock,Coffee|rf|na|ct,country,86,41.1103,37.7566,14.5299,26.8216,69.3737,78.5433,6.8577,0.3534,Coffee (rainfed),soc
+t SOC/ha,SOC stock,Coffee|rf|na|ct,subcountry,1138,39.9255,37.2171,12.7781,26.864,58.8624,80.0594,5.1404,0.32,Coffee (rainfed),soc
+t SOC/ha,SOC stock,Coffee|rf|na|ct,ecoregion,358,41.7748,39.3249,12.9401,27.5803,61.4152,79.9031,7.003,0.3098,Coffee (rainfed),soc
+t SOC/ha,SOC stock,Cotton|rf|na|ct,country,124,30.4003,30.0447,9.6651,18.8875,40.2321,69.7865,5.403,0.3179,Cotton (rainfed),soc
+t SOC/ha,SOC stock,Cotton|rf|na|ct,subcountry,1512,30.667,29.2646,10.3194,18.984,42.5445,69.9732,3.7018,0.3365,Cotton (rainfed),soc
+t SOC/ha,SOC stock,Cotton|rf|na|ct,ecoregion,505,32.4428,30.9434,10.7607,20.0784,45.4745,69.9732,5.8871,0.3317,Cotton (rainfed),soc
+t SOC/ha,SOC stock,Grassland,country,175,52.9358,47.6402,20.7892,31.4494,81.4621,124.146,10.2612,0.3927,Grassland,soc
+t SOC/ha,SOC stock,Grassland,subcountry,2499,53.5587,48.3746,20.684,31.9541,81.7526,158.9033,6.889,0.3862,Grassland,soc
+t SOC/ha,SOC stock,Grassland,ecoregion,706,54.5209,49.2143,21.1232,32.9959,83.6273,158.9033,10.997,0.3874,Grassland,soc
+t SOC/ha,SOC stock,Maize|rf|roff|ct,country,209,39.8768,36.7158,17.3361,19.3485,67.7934,77.2908,6.4055,0.4347,Maize (rainfed),soc
+t SOC/ha,SOC stock,Maize|rf|roff|ct,subcountry,2837,37.3034,34.6665,15.5313,19.0192,62.1835,77.2908,4.447,0.4164,Maize (rainfed),soc
+t SOC/ha,SOC stock,Maize|rf|roff|ct,ecoregion,695,36.5875,34.0146,14.4379,20.3406,56.9353,77.2908,6.9145,0.3946,Maize (rainfed),soc
+t SOC/ha,SOC stock,Oil_palm|rf|na|ct,country,58,38.1734,35.7663,10.9255,27.4633,48.8294,81.2374,7.5214,0.2862,Oil palm (rainfed),soc
+t SOC/ha,SOC stock,Oil_palm|rf|na|ct,subcountry,677,39.2695,37.4175,11.2695,27.4662,53.8607,82.5438,5.6453,0.287,Oil palm (rainfed),soc
+t SOC/ha,SOC stock,Oil_palm|rf|na|ct,ecoregion,242,41.9406,39.982,12.6007,28.3034,57.8669,84.9644,7.8388,0.3004,Oil palm (rainfed),soc
+t SOC/ha,SOC stock,Soybeans|rf|na|ct,country,142,38.4191,38.6945,13.7829,22.3466,55.6565,85.8281,7.3311,0.3588,Soybeans (rainfed),soc
+t SOC/ha,SOC stock,Soybeans|rf|na|ct,subcountry,1960,40.1554,37.7618,14.2129,24.0813,60.2086,90.0116,5.206,0.3539,Soybeans (rainfed),soc
+t SOC/ha,SOC stock,Soybeans|rf|na|ct,ecoregion,596,41.2908,39.4662,14.6338,23.8358,60.1581,86.2247,8.0509,0.3544,Soybeans (rainfed),soc
+t SOC/ha,SOC stock,Sugarcane|rf|na|ct,country,99,91.4927,75.5192,62.582,42.7317,163.2982,399.9836,34.7188,0.684,Sugarcane (rainfed),soc
+t SOC/ha,SOC stock,Sugarcane|rf|na|ct,subcountry,1292,89.3026,70.1339,62.0526,42.0082,161.2681,399.9836,24.9893,0.6949,Sugarcane (rainfed),soc
+t SOC/ha,SOC stock,Sugarcane|rf|na|ct,ecoregion,417,101.1156,78.601,63.194,52.8492,178.1285,399.9836,41.445,0.625,Sugarcane (rainfed),soc
+t SOC/ha,SOC stock,Wheat|rf|roff|ct,country,169,41.499,38.0572,19.0436,20.8258,68.5674,94.333,7.3742,0.4589,Wheat (rainfed),soc
+t SOC/ha,SOC stock,Wheat|rf|roff|ct,subcountry,2343,40.3665,37.0899,16.7722,21.1488,64.2042,94.333,4.6645,0.4155,Wheat (rainfed),soc
+t SOC/ha,SOC stock,Wheat|rf|roff|ct,ecoregion,634,39.2127,36.1099,17.9474,19.5461,64.4147,94.333,6.9974,0.4577,Wheat (rainfed),soc
+t soil/ha/yr,Soil erosion,BRDC_Tropical,country,107,0.8857,0.5035,1.0165,0.0604,2.1517,5.6457,0.7742,1.1477,Broadleaf-decid. forest (tropical),soil_erosion
+t soil/ha/yr,Soil erosion,BRDC_Tropical,subcountry,1427,0.8517,0.4469,1.0012,0.0665,2.1874,8.1663,0.6043,1.1755,Broadleaf-decid. forest (tropical),soil_erosion
+t soil/ha/yr,Soil erosion,BRDC_Tropical,ecoregion,445,1.0307,0.5261,1.1115,0.0992,2.7763,5.6457,0.7559,1.0784,Broadleaf-decid. forest (tropical),soil_erosion
+t soil/ha/yr,Soil erosion,Coffee|rf|na|ct,country,97,88.3535,59.3612,85.8484,17.8768,184.2999,443.9799,66.9698,0.9716,Coffee (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Coffee|rf|na|ct,subcountry,1218,78.2884,48.9067,85.0233,10.7171,180.1451,608.2133,50.1089,1.086,Coffee (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Coffee|rf|na|ct,ecoregion,391,88.2816,61.7722,79.8035,13.7785,213.9022,376.3814,63.2659,0.904,Coffee (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Cotton|rf|na|ct,country,159,92.4768,36.354,142.5243,6.5053,234.4755,796.8275,67.2544,1.5412,Cotton (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Cotton|rf|na|ct,subcountry,2120,81.9966,32.3414,123.3814,4.161,232.7835,796.8275,48.2386,1.5047,Cotton (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Cotton|rf|na|ct,ecoregion,584,92.9571,41.8492,122.7222,5.1903,260.2661,796.8275,70.7682,1.3202,Cotton (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Grassland,country,167,1.5597,0.7065,2.0876,0.0974,3.7122,15.3558,1.3448,1.3385,Grassland,soil_erosion
+t soil/ha/yr,Soil erosion,Grassland,subcountry,2422,1.6879,0.6333,2.6393,0.0583,4.8364,15.3558,0.9785,1.5636,Grassland,soil_erosion
+t soil/ha/yr,Soil erosion,Grassland,ecoregion,719,1.9052,0.8688,2.5649,0.0871,5.2798,15.3558,1.4256,1.3463,Grassland,soil_erosion
+t soil/ha/yr,Soil erosion,Maize|rf|roff|ct,country,184,101.8485,43.9467,153.6188,4.6805,282.5492,933.3443,74.8985,1.5083,Maize (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Maize|rf|roff|ct,subcountry,2637,90.9233,33.7817,137.6999,3.3559,265.7232,998.4474,56.4658,1.5145,Maize (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Maize|rf|roff|ct,ecoregion,677,106.7412,44.5338,138.0877,4.5526,306.4688,715.1246,78.4255,1.2937,Maize (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Oil_palm|rf|na|ct,country,86,57.5735,36.445,60.868,13.2003,114.7553,332.9849,43.9199,1.0572,Oil palm (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Oil_palm|rf|na|ct,subcountry,1021,54.9218,34.4448,57.2223,8.1102,127.7328,430.5485,35.7418,1.0419,Oil palm (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Oil_palm|rf|na|ct,ecoregion,336,61.1636,41.8596,56.9643,9.555,145.6167,282.286,46.4961,0.9313,Oil palm (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Soybeans|rf|na|ct,country,183,83.7033,39.8681,125.6,3.9742,239.0559,745.6746,61.3013,1.5005,Soybeans (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Soybeans|rf|na|ct,subcountry,2610,74.2478,28.1394,111.9756,2.598,215.2591,792.234,46.3241,1.5081,Soybeans (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Soybeans|rf|na|ct,ecoregion,679,87.6167,37.2775,113.8805,4.5374,259.2105,782.3175,65.3339,1.2998,Soybeans (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Sugarcane|rf|na|ct,country,125,55.1871,30.9175,68.2742,6.726,113.0129,381.4537,39.7857,1.2371,Sugarcane (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Sugarcane|rf|na|ct,subcountry,1448,49.5343,27.4353,59.488,6.048,115.9579,409.8241,31.5936,1.2009,Sugarcane (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Sugarcane|rf|na|ct,ecoregion,455,55.4334,34.2933,58.4512,7.3004,134.6344,402.2496,41.6703,1.0544,Sugarcane (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Wheat|rf|roff|ct,country,153,64.8418,22.9459,90.0712,2.0287,210.8625,447.8415,39.0722,1.3891,Wheat (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Wheat|rf|roff|ct,subcountry,2189,55.1124,14.9416,84.8916,0.9198,170.7319,447.8415,26.578,1.5403,Wheat (rainfed),soil_erosion
+t soil/ha/yr,Soil erosion,Wheat|rf|roff|ct,ecoregion,638,68.9515,22.5365,92.0721,2.0079,214.5129,447.8415,39.7767,1.3353,Wheat (rainfed),soil_erosion
+kg SO2-eq./kg,Acidification CF,acid_nh3,country,276,1.4862,0.8902,1.6921,0.0412,3.8596,12.5803,0.5532,1.1385,NH₃ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_nh3,subcountry,3422,1.7681,1.0861,1.8478,0.3853,4.2567,20.7159,0.311,1.0451,NH₃ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_nh3,ecoregion,829,1.7429,1.032,2.1542,0.2051,4.1189,21.9585,0.6661,1.236,NH₃ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_nox,country,276,0.3181,0.2092,0.3114,0.0303,0.805,1.643,0.0607,0.9789,NOₓ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_nox,subcountry,3422,0.3832,0.2643,0.3113,0.0745,0.8285,1.8459,0.0294,0.8123,NOₓ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_nox,ecoregion,829,0.3292,0.2122,0.3021,0.0709,0.7808,1.6122,0.0594,0.9178,NOₓ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_so2,country,276,0.9227,0.6523,0.8935,0.0588,2.2619,4.7071,0.2668,0.9684,SO₂ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_so2,subcountry,3422,1.1012,0.8261,0.9314,0.1738,2.4821,10.7693,0.1352,0.8458,SO₂ (acidification),acidification
+kg SO2-eq./kg,Acidification CF,acid_so2,ecoregion,829,1.074,0.72,1.0226,0.1715,2.5123,7.3849,0.279,0.9521,SO₂ (acidification),acidification

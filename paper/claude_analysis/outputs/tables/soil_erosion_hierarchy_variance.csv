@@ -1,0 +1,10 @@
+indicator,flow,flow_label,subcty_within_country_frac,subcty_n_units,eco_between_biome_eta2,eco_between_realm_eta2,eco_n_units
+soil_erosion,Wheat|rf|roff|ct,Wheat (rainfed),0.2338,2189,0.4304,0.3156,637
+soil_erosion,Maize|rf|roff|ct,Maize (rainfed),0.3045,2637,0.2685,0.199,676
+soil_erosion,Soybeans|rf|na|ct,Soybeans (rainfed),0.31,2610,0.2595,0.1874,678
+soil_erosion,Oil_palm|rf|na|ct,Oil palm (rainfed),0.4214,1021,0.1168,0.0985,336
+soil_erosion,Coffee|rf|na|ct,Coffee (rainfed),0.4368,1218,0.1685,0.1213,390
+soil_erosion,Sugarcane|rf|na|ct,Sugarcane (rainfed),0.3851,1448,0.1883,0.0906,454
+soil_erosion,Cotton|rf|na|ct,Cotton (rainfed),0.3398,2120,0.2181,0.1521,583
+soil_erosion,Grassland,Grassland,0.402,2422,0.2871,0.1559,718
+soil_erosion,BRDC_Tropical,Broadleaf-decid. forest (tropical),0.461,1427,0.278,0.1735,444

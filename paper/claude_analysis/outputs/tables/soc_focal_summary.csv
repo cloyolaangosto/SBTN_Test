@@ -1,0 +1,28 @@
+flow,level,n_regions,mean_leaf,median_leaf,std_leaf,p10,p90,max_leaf,mean_within_std,cv,flow_label,indicator
+BRDC_Tropical,country,97,90.7861,80.3947,46.2465,54.6456,116.8882,289.0151,25.3675,0.5094,Broadleaf-decid. forest (tropical),soc
+BRDC_Tropical,subcountry,1378,89.1882,78.2775,47.6937,50.7414,133.6025,301.9882,16.8732,0.5348,Broadleaf-decid. forest (tropical),soc
+BRDC_Tropical,ecoregion,419,100.0685,88.6341,47.7151,59.4732,144.2933,293.1357,26.3218,0.4768,Broadleaf-decid. forest (tropical),soc
+Coffee|rf|na|ct,country,86,41.1103,37.7566,14.5299,26.8216,69.3737,78.5433,6.8577,0.3534,Coffee (rainfed),soc
+Coffee|rf|na|ct,subcountry,1138,39.9255,37.2171,12.7781,26.864,58.8624,80.0594,5.1404,0.32,Coffee (rainfed),soc
+Coffee|rf|na|ct,ecoregion,358,41.7748,39.3249,12.9401,27.5803,61.4152,79.9031,7.003,0.3098,Coffee (rainfed),soc
+Cotton|rf|na|ct,country,124,30.4003,30.0447,9.6651,18.8875,40.2321,69.7865,5.403,0.3179,Cotton (rainfed),soc
+Cotton|rf|na|ct,subcountry,1512,30.667,29.2646,10.3194,18.984,42.5445,69.9732,3.7018,0.3365,Cotton (rainfed),soc
+Cotton|rf|na|ct,ecoregion,505,32.4428,30.9434,10.7607,20.0784,45.4745,69.9732,5.8871,0.3317,Cotton (rainfed),soc
+Grassland,country,175,52.9358,47.6402,20.7892,31.4494,81.4621,124.146,10.2612,0.3927,Grassland,soc
+Grassland,subcountry,2499,53.5587,48.3746,20.684,31.9541,81.7526,158.9033,6.889,0.3862,Grassland,soc
+Grassland,ecoregion,706,54.5209,49.2143,21.1232,32.9959,83.6273,158.9033,10.997,0.3874,Grassland,soc
+Maize|rf|roff|ct,country,209,39.8768,36.7158,17.3361,19.3485,67.7934,77.2908,6.4055,0.4347,Maize (rainfed),soc
+Maize|rf|roff|ct,subcountry,2837,37.3034,34.6665,15.5313,19.0192,62.1835,77.2908,4.447,0.4164,Maize (rainfed),soc
+Maize|rf|roff|ct,ecoregion,695,36.5875,34.0146,14.4379,20.3406,56.9353,77.2908,6.9145,0.3946,Maize (rainfed),soc
+Oil_palm|rf|na|ct,country,58,38.1734,35.7663,10.9255,27.4633,48.8294,81.2374,7.5214,0.2862,Oil palm (rainfed),soc
+Oil_palm|rf|na|ct,subcountry,677,39.2695,37.4175,11.2695,27.4662,53.8607,82.5438,5.6453,0.287,Oil palm (rainfed),soc
+Oil_palm|rf|na|ct,ecoregion,242,41.9406,39.982,12.6007,28.3034,57.8669,84.9644,7.8388,0.3004,Oil palm (rainfed),soc
+Soybeans|rf|na|ct,country,142,38.4191,38.6945,13.7829,22.3466,55.6565,85.8281,7.3311,0.3588,Soybeans (rainfed),soc
+Soybeans|rf|na|ct,subcountry,1960,40.1554,37.7618,14.2129,24.0813,60.2086,90.0116,5.206,0.3539,Soybeans (rainfed),soc
+Soybeans|rf|na|ct,ecoregion,596,41.2908,39.4662,14.6338,23.8358,60.1581,86.2247,8.0509,0.3544,Soybeans (rainfed),soc
+Sugarcane|rf|na|ct,country,99,91.4927,75.5192,62.582,42.7317,163.2982,399.9836,34.7188,0.684,Sugarcane (rainfed),soc
+Sugarcane|rf|na|ct,subcountry,1292,89.3026,70.1339,62.0526,42.0082,161.2681,399.9836,24.9893,0.6949,Sugarcane (rainfed),soc
+Sugarcane|rf|na|ct,ecoregion,417,101.1156,78.601,63.194,52.8492,178.1285,399.9836,41.445,0.625,Sugarcane (rainfed),soc
+Wheat|rf|roff|ct,country,169,41.499,38.0572,19.0436,20.8258,68.5674,94.333,7.3742,0.4589,Wheat (rainfed),soc
+Wheat|rf|roff|ct,subcountry,2343,40.3665,37.0899,16.7722,21.1488,64.2042,94.333,4.6645,0.4155,Wheat (rainfed),soc
+Wheat|rf|roff|ct,ecoregion,634,39.2127,36.1099,17.9474,19.5461,64.4147,94.333,6.9974,0.4577,Wheat (rainfed),soc

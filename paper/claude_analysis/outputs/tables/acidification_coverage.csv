@@ -1,0 +1,4 @@
+level,n_regions,n_flows,n_rows,coverage_pct
+country,276,3,828,100.0
+subcountry,3422,3,10266,100.0
+ecoregion,829,3,2487,100.0

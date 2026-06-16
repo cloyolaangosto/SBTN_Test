@@ -1,0 +1,4 @@
+indicator,indicator_name,unit,n_focal_flows,eco_biome_eta2,eco_realm_eta2,subcty_within_country_frac
+soc,SOC stock,t SOC/ha,9,0.167,0.1709,0.3231
+soil_erosion,Soil erosion,t soil/ha/yr,9,0.2595,0.1559,0.3851
+acidification,Acidification CF,kg SO2-eq./kg,3,0.3231,0.378,0.2524

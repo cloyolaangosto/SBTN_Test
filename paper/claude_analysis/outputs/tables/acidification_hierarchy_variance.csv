@@ -1,0 +1,4 @@
+indicator,flow,flow_label,subcty_within_country_frac,subcty_n_units,eco_between_biome_eta2,eco_between_realm_eta2,eco_n_units
+acidification,acid_nox,NOₓ (acidification),0.124,3422,0.3231,0.5175,828
+acidification,acid_nh3,NH₃ (acidification),0.2962,3422,0.31,0.3266,828
+acidification,acid_so2,SO₂ (acidification),0.2524,3422,0.3902,0.378,828

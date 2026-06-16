@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sbtn_leaf import se_aggregation_analysis as se
+from sbtn_leaf.claude_analysis import se_aggregation_analysis as se
 
 
 # --------------------------------------------------------------------------- #

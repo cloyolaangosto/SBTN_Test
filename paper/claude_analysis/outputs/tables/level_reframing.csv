@@ -1,0 +1,4 @@
+indicator,indicator_name,unit,rel_mean_country,rel_median_country,rel_mean_subcountry,rel_median_subcountry,rel_mean_ecoregion,rel_median_ecoregion
+soc,SOC stock,t SOC/ha,1.0,1.0,0.9824,0.9746,1.0672,1.033
+soil_erosion,Soil erosion,t soil/ha/yr,1.0,1.0,0.8927,0.8874,1.048,1.0448
+acidification,Acidification CF,kg SO2-eq./kg,1.0,1.0,1.1934,1.2633,1.164,1.1038
