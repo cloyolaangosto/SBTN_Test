@@ -11,9 +11,10 @@ ecological grouping (biome / realm) explains. The reusable code lives in
 |---|---|
 | [`Ecoregion_Aggregation_CrossIndicator.ipynb`](Ecoregion_Aggregation_CrossIndicator.ipynb) | **Main deliverable.** In-depth comparison of how ecoregions represent **SOC**, **soil-erosion** and **terrestrial-acidification** averages differently than sub-country / country units. Extends sections 6–7 of the soil-erosion notebook across all three indicators. |
 | [`Manuscript_Support_Figures.ipynb`](Manuscript_Support_Figures.ipynb) | Extra figures + statistics backing specific claims in the LEAF manuscript (biome significance tests, within-region SD by level, SOC↔erosion alignment). |
+| [`MultiIndicator_PracticeChange.ipynb`](MultiIndicator_PracticeChange.ipynb) | Practice-switch co-benefits (Fig. 13): SOC gained **and** erosion avoided when switching to reduced tillage + residue retention — maps of where to focus, benefit distributions, and residue-vs-tillage attribution. |
 | [`SoilErosion_Aggregation_Comparison.ipynb`](SoilErosion_Aggregation_Comparison.ipynb) | The original single-indicator (soil-erosion) aggregation comparison, relocated here. |
-| `_build_notebook.py`, `_build_manuscript_notebook.py` | Build scripts that regenerate the two cross-indicator / manuscript notebooks' cells. |
-| `outputs/` | Generated tables (`tables/*.csv`), figures (`figures/*.png`) and findings `README.md`; manuscript-support artifacts in `outputs/manuscript_support/`. |
+| `_build_*.py` | Build scripts that regenerate each notebook's cells. |
+| `outputs/` | Generated tables (`tables/*.csv`), figures (`figures/*.png`) and findings `README.md`; manuscript-support in `outputs/manuscript_support/`, practice-change (incl. maps) in `outputs/practice_change/`. |
 
 ## What the cross-indicator analysis answers
 
@@ -45,13 +46,31 @@ From the repository root (with the project installed, e.g. `pip install -e .`):
 # regenerate every table, figure and the findings README under outputs/
 python -m sbtn_leaf.claude_analysis.run_cross_indicator
 python -m sbtn_leaf.claude_analysis.run_manuscript_support
+python -m sbtn_leaf.claude_analysis.run_practice_change   # maps fetch geometry once, then cache
 
 # or re-run the narrative notebooks end-to-end
 jupyter nbconvert --to notebook --execute --inplace \
     paper/claude_analysis/Ecoregion_Aggregation_CrossIndicator.ipynb
 jupyter nbconvert --to notebook --execute --inplace \
     paper/claude_analysis/Manuscript_Support_Figures.ipynb
+jupyter nbconvert --to notebook --execute --inplace \
+    paper/claude_analysis/MultiIndicator_PracticeChange.ipynb
 ```
+
+### Practice-switch co-benefits (`outputs/practice_change/`)
+
+Switching the **same commodity** from conventional-till + residues-removed to reduced-till +
+residues-left (manuscript Fig. 13):
+
+| finding | statistic |
+|---|---|
+| extent of benefit (wheat) | median **+8.5 t SOC/ha (+25 %)** and **−13 t soil/ha/yr (−77 %)**; **96 % win-win** |
+| relative erosion cut is location-independent | constant per commodity (RUSLE C-factor): wheat −77 %, maize −69 %, soy/cotton −65 % |
+| the two benefits don't co-locate | SOC-gain ↔ erosion-avoided Spearman ρ ≈ **−0.18…−0.29** → use the combined **priority** score |
+| what drives each | SOC ← **residue retention**; erosion ← **reduced tillage** (complementary levers) |
+
+Maps (country via Natural Earth; ecoregion via RESOLVE Ecoregions-2017 by `ECO_ID`) are fetched once
+and cached in `~/.cache/sbtn_leaf_geo`; all map code skips gracefully when geometry is unavailable.
 
 ### Manuscript-support statistics (`outputs/manuscript_support/`)
 
@@ -61,5 +80,6 @@ jupyter nbconvert --to notebook --execute --inplace \
 | *“sub-country … smaller standard deviation”* | within-region SD = 0.71× / 0.81× / 0.51× the country value at sub-country |
 | multi-indicator *“aligned SOC and soil erosion”* | ecoregion SOC↔erosion Spearman ρ = 0.23–0.60 (all p < 0.001) |
 
-Maps are intentionally omitted: the analysis is purely statistical and needs no
-boundary geometry (the DVC-tracked shapefiles are not required).
+The aggregation and manuscript-support analyses are purely statistical and need no
+geometry. Only the practice-change notebook draws maps, and it fetches/caches its
+own geometry (above), so no DVC shapefiles are required for any of this.

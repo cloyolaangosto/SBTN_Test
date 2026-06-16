@@ -1,0 +1,5 @@
+commodity,switch,soc_tillage,se_tillage,soc_residue,se_residue,soc_driver,se_driver
+Wheat,cereal,0.452,10.7048,6.5735,2.7044,residue,tillage
+Maize,cereal,0.2916,28.947,7.9693,5.3441,residue,tillage
+Soybeans,tillage_only,0.7302,24.2303,,,tillage,tillage
+Cotton,tillage_only,0.6328,27.202,,,tillage,tillage

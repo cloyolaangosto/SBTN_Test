@@ -15,6 +15,9 @@ This subpackage groups the aggregation-comparison work:
 * :mod:`~sbtn_leaf.claude_analysis.manuscript_support` -- extra statistics and
   figures backing specific claims in the LEAF manuscript (biome significance,
   within-region SD, SOC<->erosion alignment).
+* :mod:`~sbtn_leaf.claude_analysis.practice_change` -- multi-indicator practice-switch
+  co-benefits (SOC gained + erosion avoided) with maps of where to focus, plus the
+  :mod:`~sbtn_leaf.claude_analysis.geo` geometry loaders for the choropleths.
 
 The narrative notebooks live under ``paper/claude_analysis/``.
 """
@@ -23,9 +26,11 @@ from __future__ import annotations
 
 from sbtn_leaf.claude_analysis import (
     cross_indicator,
+    geo,
     indicator_aggregation,
     indicators,
     manuscript_support,
+    practice_change,
     se_aggregation_analysis,
 )
 from sbtn_leaf.claude_analysis.indicator_aggregation import IndicatorConfig
@@ -38,6 +43,7 @@ from sbtn_leaf.claude_analysis.indicators import (
 )
 from sbtn_leaf.claude_analysis.cross_indicator import run_cross_indicator_analysis
 from sbtn_leaf.claude_analysis.manuscript_support import run_manuscript_support
+from sbtn_leaf.claude_analysis.practice_change import run_practice_change_analysis
 
 __all__ = [
     "se_aggregation_analysis",
@@ -45,6 +51,8 @@ __all__ = [
     "indicators",
     "cross_indicator",
     "manuscript_support",
+    "practice_change",
+    "geo",
     "IndicatorConfig",
     "INDICATORS",
     "SOC",
@@ -53,4 +61,5 @@ __all__ = [
     "get_indicator",
     "run_cross_indicator_analysis",
     "run_manuscript_support",
+    "run_practice_change_analysis",
 ]

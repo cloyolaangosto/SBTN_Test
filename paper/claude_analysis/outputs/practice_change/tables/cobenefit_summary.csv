@@ -1,0 +1,5 @@
+commodity,switch,n_regions,med_d_soc,med_d_soc_pct,med_d_se_red,d_se_red_pct,pct_win_win,spearman_soc_se,spearman_p,signif
+Wheat,cereal,540,8.5273,25.3202,13.0965,76.9,96.1111,-0.1794,0.0,***
+Maize,cereal,650,8.9744,26.8518,30.7936,69.2,97.5385,-0.2321,0.0,***
+Soybeans,tillage_only,590,0.7386,1.6924,23.3352,65.0,72.7119,-0.294,0.0,***
+Cotton,tillage_only,497,0.6328,1.7013,26.2586,65.0,72.2334,-0.2051,0.0,***
