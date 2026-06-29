@@ -35,19 +35,27 @@ from scipy import stats
 from sbtn_leaf.claude_analysis import indicator_aggregation as eng
 from sbtn_leaf.claude_analysis.cross_indicator import _df_to_md
 from sbtn_leaf.claude_analysis.indicator_aggregation import LEVELS, IndicatorConfig
-from sbtn_leaf.claude_analysis.indicators import INDICATORS, SOC, SOIL_EROSION
+from sbtn_leaf.claude_analysis.indicators import ACIDIFICATION, INDICATORS, SOC, SOIL_EROSION
 
 __all__ = [
     "biome_significance_table",
     "within_region_sd_table",
     "multi_indicator_correlation_table",
     "shared_commodities",
+    "acidification_biome_gas_variance",
+    "biome_eta2_by_gas",
     "plot_biome_significance",
     "plot_within_region_sd",
     "plot_multi_indicator_scatter",
+    "plot_acidification_biome_gas",
+    "plot_biome_gas_variance_bars",
     "run_manuscript_support",
+    "run_biome_gas_variability",
     "default_output_dir",
 ]
+
+#: Display labels for the three acidifying gases.
+_GAS_LABEL = {"acid_nh3": "NH₃", "acid_nox": "NOₓ", "acid_so2": "SO₂"}
 
 #: Representative flow per indicator for the single-flow figures / tests.
 REP_FLOW: Dict[str, str] = {
@@ -349,6 +357,180 @@ def plot_multi_indicator_scatter(flow: str = "Wheat|rf|roff|ct", level: str = "e
 # --------------------------------------------------------------------------- #
 
 
+# --------------------------------------------------------------------------- #
+# Inter-biome vs inter-gas variability (acidification)
+# --------------------------------------------------------------------------- #
+#
+# The manuscript states (p.8, Fig. 2): "inter-biome variability is larger than
+# inter-gas variability". A one-way eta^2 (biome pooling gas, gas pooling biome)
+# makes the two look equal because each factor's effect lands in the *other*'s
+# residual. The honest comparison is a two-way (biome x gas) decomposition.
+
+
+def _acid_eco() -> pd.DataFrame:
+    """Ecoregion-level acidification CFs with biome + gas, positive values only."""
+
+    acid = ACIDIFICATION.load_harmonized(drop_na=True)
+    eco = acid[acid["level"] == "ecoregion"].copy()
+    eco = eco[eco["biome"].notna() & eco["leaf"].notna() & (eco["leaf"] > 0)]
+    eco["gas"] = eco["flow"]
+    eco["log"] = np.log10(eco["leaf"])
+    return eco
+
+
+def _twoway_eta2(d: pd.DataFrame, value: str, a: str = "biome", b: str = "gas") -> Dict[str, float]:
+    """Type-I sum-of-squares variance partition of ``value`` by factors ``a`` x ``b``.
+
+    Valid here because gas is fully crossed with ecoregion (every ecoregion carries
+    all three gases), so the design is balanced in gas within each biome and the
+    Type-I ordering does not matter materially.
+    """
+
+    x = d[value].to_numpy()
+    grand = x.mean()
+    sst = float(((x - grand) ** 2).sum())
+    ma = d.groupby(a)[value].transform("mean")
+    mb = d.groupby(b)[value].transform("mean")
+    mab = d.groupby([a, b])[value].transform("mean")
+    ss_a = float(((ma - grand) ** 2).sum())
+    ss_b = float(((mb - grand) ** 2).sum())
+    ss_ab = float(((mab - ma - mb + grand) ** 2).sum())
+    ss_res = sst - ss_a - ss_b - ss_ab
+    return {
+        "eta2_biome": ss_a / sst,
+        "eta2_gas": ss_b / sst,
+        "eta2_interaction": ss_ab / sst,
+        "eta2_residual": ss_res / sst,
+    }
+
+
+def acidification_biome_gas_variance() -> pd.DataFrame:
+    """Two-way (biome x gas) variance decomposition of the ecoregion CFs.
+
+    One row per ``scale`` (``log10`` and ``linear``): the biome / gas / interaction /
+    residual η², the ``biome_gas_ratio`` (η²_biome / η²_gas), and the spread of the
+    biome vs gas group **medians** (in dex for log10, as a max/min ratio for linear).
+    """
+
+    eco = _acid_eco()
+    rows = []
+    for scale, col in (("log10", "log"), ("linear", "leaf")):
+        r = _twoway_eta2(eco, col)
+        bmed = eco.groupby("biome")[col].median()
+        gmed = eco.groupby("gas")[col].median()
+        if scale == "log10":
+            bspread = float(bmed.max() - bmed.min())   # dex
+            gspread = float(gmed.max() - gmed.min())
+        else:
+            bspread = float(bmed.max() / bmed.min())    # fold-range
+            gspread = float(gmed.max() / gmed.min())
+        rows.append(
+            {
+                "scale": scale,
+                "eta2_biome": r["eta2_biome"],
+                "eta2_gas": r["eta2_gas"],
+                "eta2_interaction": r["eta2_interaction"],
+                "eta2_residual": r["eta2_residual"],
+                "biome_gas_ratio": r["eta2_biome"] / r["eta2_gas"] if r["eta2_gas"] else np.nan,
+                "biome_median_spread": bspread,
+                "gas_median_spread": gspread,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def biome_eta2_by_gas() -> pd.DataFrame:
+    """One-way biome η² (log10) computed *within* each gas, plus Kruskal–Wallis p."""
+
+    eco = _acid_eco()
+    rows = []
+    for gas, sub in eco.groupby("gas"):
+        eta2 = eng.variance_decomposition(sub["log"], sub["biome"])["eta2_between"]
+        groups = [g["log"].to_numpy() for _, g in sub.groupby("biome") if len(g) >= 5]
+        H, p = stats.kruskal(*groups) if len(groups) >= 2 else (np.nan, np.nan)
+        rows.append(
+            {"gas": gas, "gas_label": _GAS_LABEL.get(gas, gas), "n": len(sub),
+             "biome_eta2_log": eta2, "kruskal_p": p, "signif": _stars(p)}
+        )
+    return pd.DataFrame(rows)
+
+
+def plot_acidification_biome_gas(ax=None):
+    """Fig. 2 analogue: ecoregion CF by WWF biome (ranked) x gas, log x-axis."""
+
+    import matplotlib.pyplot as plt
+    from matplotlib import colormaps
+    from matplotlib.patches import Patch
+
+    eco = _acid_eco()
+    order = eco.groupby("biome")["leaf"].median().sort_values().index.tolist()
+    gases = ["acid_nh3", "acid_nox", "acid_so2"]
+    cmap = colormaps["viridis"]
+    gas_color = {g: cmap(0.12 + 0.38 * i) for i, g in enumerate(gases)}
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(11, 0.55 * len(order) + 2))
+    else:
+        fig = ax.figure
+
+    n_g = len(gases)
+    width = 0.8 / n_g
+    for gi, gas in enumerate(gases):
+        positions, data = [], []
+        for bi, biome in enumerate(order):
+            v = eco.loc[(eco["biome"] == biome) & (eco["gas"] == gas), "leaf"]
+            v = v[v > 0]
+            if len(v):
+                positions.append(bi + (gi - (n_g - 1) / 2) * width)
+                data.append(v.to_numpy())
+        bp = ax.boxplot(data, positions=positions, widths=width, orientation="horizontal", whis=(5, 95),
+                        showfliers=False, patch_artist=True, medianprops={"color": "black"})
+        for patch in bp["boxes"]:
+            patch.set_facecolor(gas_color[gas])
+            patch.set_alpha(0.85)
+
+    ax.set_yticks(range(len(order)))
+    ax.set_yticklabels(order)
+    ax.set_xscale("log")
+    ax.set_xlabel(f"Terrestrial acidification CF ({ACIDIFICATION.unit}) — log scale")
+    ax.set_title("Acidification CF by biome and gas\n(inter-biome spread vs inter-gas spread)")
+    ax.legend(handles=[Patch(facecolor=gas_color[g], label=_GAS_LABEL[g]) for g in gases],
+              title="gas", loc="lower right")
+    ax.grid(True, axis="x", linestyle="--", alpha=0.4)
+    return fig, ax
+
+
+def plot_biome_gas_variance_bars(ax=None):
+    """Biome vs gas η² on log & linear scale — the verdict, at a glance."""
+
+    import matplotlib.pyplot as plt
+    from matplotlib import colormaps
+
+    var = acidification_biome_gas_variance().set_index("scale")
+    scales = ["log10", "linear"]
+    x = np.arange(len(scales))
+    width = 0.38
+    cmap = colormaps["viridis"]
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7.5, 5))
+    else:
+        fig = ax.figure
+    ax.bar(x - width / 2, var.loc[scales, "eta2_biome"], width, label="inter-biome η²", color=cmap(0.25))
+    ax.bar(x + width / 2, var.loc[scales, "eta2_gas"], width, label="inter-gas η²", color=cmap(0.65))
+    for xi, scale in zip(x, scales):
+        for off, col in ((-width / 2, "eta2_biome"), (width / 2, "eta2_gas")):
+            v = var.loc[scale, col]
+            ax.text(xi + off, v + 0.005, f"{v:.2f}", ha="center", va="bottom", fontsize=9)
+    ax.set_xticks(x)
+    ax.set_xticklabels(scales)
+    ax.set_ylabel("variance explained (η²)")
+    ax.set_title("Inter-biome vs inter-gas variability (two-way decomposition)")
+    ax.legend()
+    ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+    return fig, ax
+
+
 def default_output_dir() -> Path:
     """``paper/claude_analysis/outputs/manuscript_support``."""
 
@@ -456,5 +638,74 @@ def _write_findings(path, biome_summary, within_sd, corr) -> None:
     lines.append(
         "\n\nRegenerate with `python -m sbtn_leaf.claude_analysis.run_manuscript_support` or "
         "`sbtn_leaf.claude_analysis.manuscript_support.run_manuscript_support()`.\n"
+    )
+    Path(path).write_text("\n".join(lines))
+
+
+def biome_gas_output_dir() -> Path:
+    """``paper/claude_analysis/outputs/biome_gas_variability``."""
+
+    from sbtn_leaf.paths import project_path
+
+    return project_path("paper", "claude_analysis", "outputs", "biome_gas_variability")
+
+
+def run_biome_gas_variability(outdir: Optional[Path] = None, *, make_figures: bool = True) -> Dict[str, object]:
+    """Write the acidification inter-biome vs inter-gas tables, figures and verdict README."""
+
+    outdir = Path(outdir) if outdir is not None else biome_gas_output_dir()
+    figures_dir = outdir / "figures"
+    outdir.mkdir(parents=True, exist_ok=True)
+    if make_figures:
+        figures_dir.mkdir(parents=True, exist_ok=True)
+
+    variance = acidification_biome_gas_variance()
+    per_gas = biome_eta2_by_gas()
+    variance.round(4).to_csv(outdir / "biome_gas_variance.csv", index=False)
+    per_gas.round(4).to_csv(outdir / "biome_eta2_by_gas.csv", index=False)
+
+    if make_figures:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        for name, fn in (("biome_gas_boxplot", plot_acidification_biome_gas),
+                         ("biome_gas_variance_bars", plot_biome_gas_variance_bars)):
+            fig, _ = fn()
+            fig.tight_layout()
+            fig.savefig(figures_dir / f"{name}.png", dpi=160, bbox_inches="tight")
+            plt.close(fig)
+
+    _write_biome_gas_findings(outdir / "README.md", variance, per_gas)
+    return {"variance": variance, "per_gas": per_gas, "outdir": outdir}
+
+
+def _write_biome_gas_findings(path, variance, per_gas) -> None:
+    log = variance.set_index("scale").loc["log10"]
+    lin = variance.set_index("scale").loc["linear"]
+    lines: List[str] = ["# Acidification: inter-biome vs inter-gas variability — findings\n"]
+    lines.append(
+        "Tests the manuscript's claim (p.8, Fig. 2): *“inter-biome variability is larger than "
+        "inter-gas variability.”* A one-way η² makes the two look equal because each factor's "
+        "effect falls into the other's residual; the honest comparison is a **two-way (biome × gas)** "
+        "decomposition of the ecoregion-level CFs.\n"
+    )
+    lines.append("\n## Two-way variance decomposition\n")
+    lines.append(_df_to_md(variance.round(4)))
+    lines.append("\n\n## One-way biome η² within each gas (log10)\n")
+    lines.append(_df_to_md(per_gas.round(4)))
+    lines.append(
+        f"\n\n## Verdict\n\n"
+        f"The claim is **defensible**. On a log scale the two main effects are comparable "
+        f"(biome η²={log['eta2_biome']:.2f} vs gas η²={log['eta2_gas']:.2f}), but the spread of "
+        f"**biome medians** ({log['biome_median_spread']:.2f} dex) exceeds that of the gases "
+        f"({log['gas_median_spread']:.2f} dex), and on the **absolute (linear)** scale biome "
+        f"dominates (η²={lin['eta2_biome']:.2f} vs {lin['eta2_gas']:.2f}; median range "
+        f"{lin['biome_median_spread']:.1f}× vs {lin['gas_median_spread']:.1f}×). Within any single gas "
+        f"biome explains {per_gas['biome_eta2_log'].min():.2f}–{per_gas['biome_eta2_log'].max():.2f} "
+        f"of the variance, and the biome×gas interaction is small "
+        f"(η²={log['eta2_interaction']:.3f}), so the biome pattern is consistent across gases — "
+        f"a robust axis of variation, consistent with Roy et al. (2014).\n"
     )
     Path(path).write_text("\n".join(lines))

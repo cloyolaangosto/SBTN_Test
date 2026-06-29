@@ -1,0 +1,4 @@
+gas,gas_label,n,biome_eta2_log,kruskal_p,signif
+acid_nh3,NH₃,828,0.2735,0.0,***
+acid_nox,NOₓ,828,0.3061,0.0,***
+acid_so2,SO₂,828,0.3231,0.0,***
