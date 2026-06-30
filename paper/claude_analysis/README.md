@@ -11,8 +11,12 @@ ecological grouping (biome / realm) explains. The reusable code lives in
 |---|---|
 | [`Ecoregion_Aggregation_CrossIndicator.ipynb`](Ecoregion_Aggregation_CrossIndicator.ipynb) | **Main deliverable.** In-depth comparison of how ecoregions represent **SOC**, **soil-erosion** and **terrestrial-acidification** averages differently than sub-country / country units. Extends sections 6–7 of the soil-erosion notebook across all three indicators. |
 | [`Manuscript_Support_Figures.ipynb`](Manuscript_Support_Figures.ipynb) | Extra figures + statistics backing specific claims in the LEAF manuscript (biome significance tests, within-region SD by level, SOC↔erosion alignment). |
+| [`Acidification_BiomeGas_Variability.ipynb`](Acidification_BiomeGas_Variability.ipynb) | Two-way (biome × gas) test of the manuscript's *“inter-biome variability is larger than inter-gas variability”* claim — the Fig. 2 boxplot + decomposition + verdict. |
 | [`MultiIndicator_PracticeChange.ipynb`](MultiIndicator_PracticeChange.ipynb) | Practice-switch co-benefits (Fig. 13): SOC gained **and** erosion avoided when switching to reduced tillage + residue retention — maps of where to focus, benefit distributions, and residue-vs-tillage attribution. |
 | [`SoilErosion_Aggregation_Comparison.ipynb`](SoilErosion_Aggregation_Comparison.ipynb) | The original single-indicator (soil-erosion) aggregation comparison, relocated here. |
+| [`Introduction_Citations.ipynb`](Introduction_Citations.ipynb) | **Manuscript writing.** Proposed references for every `[citation]` placeholder in the Introduction, with confidence flags and paste-ready bibliography. |
+| [`Discussion_Proposed.ipynb`](Discussion_Proposed.ipynb) | **Manuscript writing.** A drafted Discussion section expanding the three bracketed placeholders (SOC / erosion / acidification) plus multi-indicator, limitations and outlook. |
+| [`AnnexA_RothC_Methodological_Details.ipynb`](AnnexA_RothC_Methodological_Details.ipynb) | **Manuscript writing.** The Supplementary Information (Annex A) on RothC — pools, decomposition, rate modifiers, plant-residue calculations per commodity type, and reduced tillage — with the real parameter tables loaded from the repo. |
 | `_build_*.py` | Build scripts that regenerate each notebook's cells. |
 | `outputs/` | Generated tables (`tables/*.csv`), figures (`figures/*.png`) and findings `README.md`; manuscript-support in `outputs/manuscript_support/`, practice-change (incl. maps) in `outputs/practice_change/`. |
 
@@ -79,6 +83,7 @@ and cached in `~/.cache/sbtn_leaf_geo`; all map code skips gracefully when geome
 | *“ecoregion’s biomes lead to LEAFs that are significantly different”* | Kruskal–Wallis p < 1e-40 for SOC, erosion & acidification; biome η² = 0.17 / 0.26 / 0.32 |
 | *“sub-country … smaller standard deviation”* | within-region SD = 0.71× / 0.81× / 0.51× the country value at sub-country |
 | multi-indicator *“aligned SOC and soil erosion”* | ecoregion SOC↔erosion Spearman ρ = 0.23–0.60 (all p < 0.001) |
+| *“inter-biome variability is larger than inter-gas variability”* (acidification) | **defensible**: two-way η² log10 0.22≈0.22, linear **0.19 > 0.15**; biome median range 8.8× vs gas 4.9×; interaction <2%. See `Acidification_BiomeGas_Variability.ipynb` / `outputs/biome_gas_variability/`. |
 
 The aggregation and manuscript-support analyses are purely statistical and need no
 geometry. Only the practice-change notebook draws maps, and it fetches/caches its

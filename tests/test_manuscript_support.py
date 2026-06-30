@@ -103,3 +103,41 @@ def test_plots_return_fig():
     fig, ax = ms.plot_multi_indicator_scatter("Wheat|rf|roff|ct", "ecoregion")
     assert fig is not None
     plt.close(fig)
+
+
+# --------------------------------------------------------------------------- #
+# Acidification inter-biome vs inter-gas variability (two-way decomposition)
+# --------------------------------------------------------------------------- #
+
+
+def test_biome_gas_variance_two_scales_and_components_sum():
+    v = ms.acidification_biome_gas_variance()
+    assert set(v["scale"]) == {"log10", "linear"}
+    comp = v[["eta2_biome", "eta2_gas", "eta2_interaction", "eta2_residual"]]
+    # each eta^2 in [0,1] and the four components partition the total variance
+    assert ((comp >= -1e-9) & (comp <= 1 + 1e-9)).to_numpy().all()
+    assert np.allclose(comp.sum(axis=1), 1.0, atol=1e-6)
+    assert (v["biome_gas_ratio"] > 0).all()
+    # the manuscript's claim holds on the absolute (linear) scale
+    lin = v.set_index("scale").loc["linear"]
+    assert lin["eta2_biome"] > lin["eta2_gas"]
+    assert lin["biome_median_spread"] > lin["gas_median_spread"]
+
+
+def test_biome_eta2_by_gas_covers_three_gases():
+    g = ms.biome_eta2_by_gas()
+    assert set(g["gas"]) == {"acid_nh3", "acid_nox", "acid_so2"}
+    assert ((g["biome_eta2_log"] >= 0) & (g["biome_eta2_log"] <= 1)).all()
+    assert (g["kruskal_p"] < 1e-3).all()  # biomes differ significantly within every gas
+
+
+def test_biome_gas_plots_return_fig():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    for fn in (ms.plot_acidification_biome_gas, ms.plot_biome_gas_variance_bars):
+        fig, ax = fn()
+        assert fig is not None and ax is not None
+        plt.close(fig)

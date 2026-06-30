@@ -42,6 +42,10 @@ __all__ = [
     "cobenefit_summary",
     "practice_attribution_table",
     "priority_regions",
+    "STACK_CEREALS",
+    "stack_flows",
+    "practice_stack_table",
+    "plot_practice_stack_range",
     "plot_cobenefit_scatter",
     "plot_benefit_distributions",
     "plot_attribution",
@@ -223,6 +227,115 @@ def priority_regions(commodity: str = "Wheat", level: str = "ecoregion", n: int 
     cols = ["region_name", "country_name", "biome", "realm", "d_soc", "d_se_red", "priority"]
     cols = [c for c in cols if c in t.columns]
     return t.sort_values("priority", ascending=False).head(n)[cols].reset_index(drop=True)
+
+
+# --------------------------------------------------------------------------- #
+# Full practice-stack SOC range (best vs worst combination, by commodity)
+# --------------------------------------------------------------------------- #
+
+#: Cereals that carry the full irrigation x residue x tillage practice stack.
+STACK_CEREALS = ["Maize", "Wheat", "Sorghum", "Barley", "Rapeseed"]
+
+
+def stack_flows(commodity: str) -> Dict[str, str]:
+    """Best- vs worst-practice SOC flow keys for the full stacking comparison.
+
+    *Best* = rainfed + residues retained + reduced tillage; *worst* = irrigated +
+    residues removed + conventional tillage.  Cereals use the full three-practice
+    stack; crops without residue management fall back to an irrigation + tillage
+    stack (``na`` residue).
+    """
+
+    has_residue = f"{commodity}|rf|ron|ct" in set(_soc()["flow"].unique())
+    if has_residue:
+        return {"best": f"{commodity}|rf|ron|rt", "worst": f"{commodity}|irr|roff|ct",
+                "stack": "irrigation+residue+tillage"}
+    return {"best": f"{commodity}|rf|na|rt", "worst": f"{commodity}|irr|na|ct",
+            "stack": "irrigation+tillage"}
+
+
+def _stack_pct(commodity: str, level: str) -> pd.Series:
+    """Per-region % SOC difference between the best and worst practice stack."""
+
+    sf = stack_flows(commodity)
+    best = _series(_soc(), sf["best"], level)
+    worst = _series(_soc(), sf["worst"], level)
+    idx = best.index.intersection(worst.index)
+    pct = 100 * (best[idx] - worst[idx]) / worst[idx]
+    return pct.replace([np.inf, -np.inf], np.nan).dropna()
+
+
+def practice_stack_table(commodities: Optional[Sequence[str]] = None, level: str = "ecoregion") -> pd.DataFrame:
+    """Per-commodity SOC gain from the best vs worst practice stack.
+
+    Expands the manuscript's single "~37.5 % higher SOC" figure into its
+    by-commodity range: for each commodity, ``100*(SOC_best - SOC_worst)/SOC_worst``
+    summarised (median, mean, 10th/90th percentile) across regions.
+    """
+
+    commodities = list(commodities) if commodities is not None else STACK_CEREALS
+    rows = []
+    for c in commodities:
+        sf = stack_flows(c)
+        pct = _stack_pct(c, level)
+        if len(pct) < 10:
+            continue
+        best = _series(_soc(), sf["best"], level)
+        worst = _series(_soc(), sf["worst"], level)
+        idx = best.index.intersection(worst.index)
+        rows.append(
+            {
+                "commodity": c,
+                "stack": sf["stack"],
+                "n_regions": int(len(pct)),
+                "soc_worst_med": float(worst[idx].median()),
+                "soc_best_med": float(best[idx].median()),
+                "median_pct": float(pct.median()),
+                "mean_pct": float(pct.mean()),
+                "p10_pct": float(pct.quantile(0.10)),
+                "p90_pct": float(pct.quantile(0.90)),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("median_pct", ascending=False).reset_index(drop=True)
+
+
+def plot_practice_stack_range(commodities: Optional[Sequence[str]] = None, level: str = "ecoregion", ax=None):
+    """Boxplots of the best-vs-worst SOC % difference per commodity (ranked)."""
+
+    import matplotlib.pyplot as plt
+    from matplotlib import colormaps
+
+    commodities = list(commodities) if commodities is not None else STACK_CEREALS
+    series = [(c, _stack_pct(c, level).to_numpy()) for c in commodities]
+    series = [(c, v) for c, v in series if len(v) >= 10]
+    series.sort(key=lambda cv: np.median(cv[1]))
+    labels = [c for c, _ in series]
+    data = [v for _, v in series]
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(9, 0.6 * len(data) + 2))
+    else:
+        fig = ax.figure
+    bp = ax.boxplot(data, orientation="horizontal", whis=(10, 90), showfliers=False,
+                    patch_artist=True, medianprops={"color": "black"})
+    cmap = colormaps["YlGn"]
+    for i, patch in enumerate(bp["boxes"]):
+        patch.set_facecolor(cmap(0.3 + 0.5 * i / max(len(data) - 1, 1)))
+        patch.set_alpha(0.9)
+    overall = float(np.mean([np.mean(d) for d in data])) if data else float("nan")
+    ax.axvline(overall, color="firebrick", linestyle="--", linewidth=1.5,
+               label=f"mean of means ≈ {overall:.0f}% (manuscript: 37.5%)")
+    ax.axvline(0, color="grey", linewidth=1)
+    ax.set_yticks(range(1, len(labels) + 1))
+    ax.set_yticklabels(labels)
+    ax.set_xlabel("SOC difference, best vs worst practice stack (%)")
+    ax.set_title(
+        "Best- vs worst-practice SOC stacking benefit by commodity\n"
+        "(best: rainfed + residues retained + reduced till; worst: irrigated + residues removed + conv. till)"
+    )
+    ax.legend(loc="lower right", fontsize=9)
+    ax.grid(True, axis="x", linestyle="--", alpha=0.4)
+    return fig, ax
 
 
 # --------------------------------------------------------------------------- #
@@ -464,8 +577,10 @@ def run_practice_change_analysis(
 
     summary = cobenefit_summary(commodities, "ecoregion")
     attribution = practice_attribution_table(commodities, "ecoregion")
+    stack = practice_stack_table(level="ecoregion")
     summary.round(4).to_csv(tables_dir / "cobenefit_summary.csv", index=False)
     attribution.round(4).to_csv(tables_dir / "practice_attribution.csv", index=False)
+    stack.round(4).to_csv(tables_dir / "practice_stack_range.csv", index=False)
     cobenefit_table("Wheat", "ecoregion").round(4).to_csv(tables_dir / "cobenefit_wheat_ecoregion.csv", index=False)
     for c in commodities:
         priority_regions(c, "ecoregion", 20).round(4).to_csv(tables_dir / f"priority_regions_{c.lower()}.csv", index=False)
@@ -486,6 +601,7 @@ def run_practice_change_analysis(
         _save(plot_benefit_distributions(commodities, "ecoregion")[0], figures_dir / "benefit_distributions.png")
         _save(plot_attribution("Wheat", "ecoregion")[0], figures_dir / "attribution_wheat.png")
         _save(plot_cobenefit_by_realm("Wheat", "ecoregion")[0], figures_dir / "cobenefit_by_realm_wheat.png")
+        _save(plot_practice_stack_range(level="ecoregion")[0], figures_dir / "practice_stack_range.png")
 
         if make_maps:
             # Full panels for Wheat at both levels; priority map for the rest.
@@ -502,12 +618,12 @@ def run_practice_change_analysis(
                     _save(res[0], maps_dir / f"{c.lower()}_priority_ecoregion.png", dpi=140)
                     n_maps += 1
 
-    _write_findings(outdir / "README.md", summary, attribution, priority_regions("Wheat", "ecoregion", 12), n_maps)
+    _write_findings(outdir / "README.md", summary, attribution, stack, priority_regions("Wheat", "ecoregion", 12), n_maps)
 
     return {"summary": summary, "attribution": attribution, "outdir": outdir, "n_maps": n_maps}
 
 
-def _write_findings(path, summary, attribution, top_wheat, n_maps) -> None:
+def _write_findings(path, summary, attribution, stack, top_wheat, n_maps) -> None:
     lines: List[str] = ["# Multi-indicator practice-change co-benefits — findings\n"]
     lines.append(
         "Switching the **same commodity** from the baseline (conventional tillage + residues "
@@ -529,6 +645,14 @@ def _write_findings(path, summary, attribution, top_wheat, n_maps) -> None:
         "retention vs reduced tillage alone.\n\n"
     )
     lines.append(_df_to_md(attribution.round(3)))
+    lines.append("\n\n## Full practice-stack SOC range (best vs worst combination, by commodity)\n")
+    lines.append(
+        "Median / mean % SOC difference between the best (rainfed + residues retained + reduced "
+        "tillage) and worst (irrigated + residues removed + conventional tillage) stack. The "
+        "cross-commodity mean reproduces the manuscript's ~37.5%, but the by-commodity range is "
+        "wide (rapeseed lowest, maize highest).\n\n"
+    )
+    lines.append(_df_to_md(stack.round(2)))
     lines.append("\n\n## Where to focus — top wheat ecoregions by co-benefit priority\n")
     lines.append(_df_to_md(top_wheat.round(3)))
     lines.append(f"\n\nMaps rendered this run: **{n_maps}** (0 ⇒ no geometry available; maps are drop-in).\n")

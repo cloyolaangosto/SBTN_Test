@@ -1,0 +1,3 @@
+scale,eta2_biome,eta2_gas,eta2_interaction,eta2_residual,biome_gas_ratio,biome_median_spread,gas_median_spread
+log10,0.2177,0.2202,0.0138,0.5482,0.9885,0.9421,0.6879
+linear,0.1871,0.148,0.0896,0.5754,1.2645,8.7522,4.8742

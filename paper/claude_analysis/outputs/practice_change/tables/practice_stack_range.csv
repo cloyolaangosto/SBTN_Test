@@ -1,0 +1,6 @@
+commodity,stack,n_regions,soc_worst_med,soc_best_med,median_pct,mean_pct,p10_pct,p90_pct
+Maize,irrigation+residue+tillage,663,31.3706,43.5616,38.4731,54.0607,9.1702,112.9426
+Wheat,irrigation+residue+tillage,546,33.6861,42.3804,30.7319,45.6031,8.1406,102.7684
+Sorghum,irrigation+residue+tillage,601,28.3508,36.2598,25.8436,39.8114,4.4046,84.1617
+Barley,irrigation+residue+tillage,511,34.4561,40.8033,21.881,33.139,4.9449,78.8742
+Rapeseed,irrigation+residue+tillage,433,34.8631,38.9165,13.8008,20.8315,1.6891,50.3509
