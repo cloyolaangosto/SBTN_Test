@@ -14,6 +14,9 @@ ecological grouping (biome / realm) explains. The reusable code lives in
 | [`Acidification_BiomeGas_Variability.ipynb`](Acidification_BiomeGas_Variability.ipynb) | Two-way (biome × gas) test of the manuscript's *“inter-biome variability is larger than inter-gas variability”* claim — the Fig. 2 boxplot + decomposition + verdict. |
 | [`MultiIndicator_PracticeChange.ipynb`](MultiIndicator_PracticeChange.ipynb) | Practice-switch co-benefits (Fig. 13): SOC gained **and** erosion avoided when switching to reduced tillage + residue retention — maps of where to focus, benefit distributions, and residue-vs-tillage attribution. |
 | [`SoilErosion_Aggregation_Comparison.ipynb`](SoilErosion_Aggregation_Comparison.ipynb) | The original single-indicator (soil-erosion) aggregation comparison, relocated here. |
+| [`Introduction_Citations.ipynb`](Introduction_Citations.ipynb) | **Manuscript writing.** Proposed references for every `[citation]` placeholder in the Introduction, with confidence flags and paste-ready bibliography. |
+| [`Discussion_Proposed.ipynb`](Discussion_Proposed.ipynb) | **Manuscript writing.** A drafted Discussion section expanding the three bracketed placeholders (SOC / erosion / acidification) plus multi-indicator, limitations and outlook. |
+| [`AnnexA_RothC_Methodological_Details.ipynb`](AnnexA_RothC_Methodological_Details.ipynb) | **Manuscript writing.** The Supplementary Information (Annex A) on RothC — pools, decomposition, rate modifiers, plant-residue calculations per commodity type, and reduced tillage — with the real parameter tables loaded from the repo. |
 | `_build_*.py` | Build scripts that regenerate each notebook's cells. |
 | `outputs/` | Generated tables (`tables/*.csv`), figures (`figures/*.png`) and findings `README.md`; manuscript-support in `outputs/manuscript_support/`, practice-change (incl. maps) in `outputs/practice_change/`. |
 
