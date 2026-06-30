@@ -3,7 +3,17 @@
     "allow": [
       "Bash(python -c ':*)",
       "Bash(python -c ' *)",
-      "Bash(more)"
+      "Bash(more)",
+      "Bash(python -)",
+      "Bash(grep -q \"SOC-SE wheat\" \"C:\\\\Users\\\\loyola\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-loyola-OneDrive---World-Wildlife-Fund--Inc-Documents-203--Python-projects-SBTN-Test\\\\ce846eaf-eb5a-4a1b-af6e-506fe854aa44\\\\tasks\\\\bxseub1oa.output\")",
+      "Bash(break)",
+      "Bash(cat \"C:\\\\Users\\\\loyola\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-loyola-OneDrive---World-Wildlife-Fund--Inc-Documents-203--Python-projects-SBTN-Test\\\\ce846eaf-eb5a-4a1b-af6e-506fe854aa44\\\\tasks\\\\bxseub1oa.output\")",
+      "Bash(python _build_raster_vs_shape_notebook.py)",
+      "Bash(jupyter nbconvert *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(cd \"c:/Users/loyola/OneDrive *)",
+      "Bash(ls \"C:\\\\Users\\\\loyola\\\\.claude\\\\projects\\\\c--Users-loyola-OneDrive---World-Wildlife-Fund--Inc-Documents-203--Python-projects-SBTN-Test\\\\memory\")",
+      "Bash(cat \"C:\\\\Users\\\\loyola\\\\.claude\\\\projects\\\\c--Users-loyola-OneDrive---World-Wildlife-Fund--Inc-Documents-203--Python-projects-SBTN-Test\\\\memory\\\\MEMORY.md\")"
     ]
   }
 }

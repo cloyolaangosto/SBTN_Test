@@ -2005,7 +2005,7 @@ def rasterize_shapefile_to_target_raster(gdf: gpd.GeoDataFrame, raster_filepath:
         out_shape=raster_shape,
         transform=transform,
         fill= no_data if no_data is not None else no_data_input,           # Pixels not covered by any polygon get a fill with no_data_value
-        all_touched=False         # Use all_touched=True to account for partial pixel coverage
+        all_touched=True         # Use all_touched=True to account for partial pixel coverage
     )
 
     # Saves the raster

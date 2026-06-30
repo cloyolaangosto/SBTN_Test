@@ -1,1660 +1,4 @@
 ADM0_NAME,flow_name,metric,value
-Abyei,acid_nox,cf_mean,0.33954725
-Afghanistan,acid_nox,cf_mean,0.9546978
-Aksai Chin,acid_nox,cf_mean,1.1637104
-Albania,acid_nox,cf_mean,0.58598375
-Algeria,acid_nox,cf_mean,0.21126628
-American Samoa,acid_nox,cf_mean,0.006833296
-Andorra,acid_nox,cf_mean,0.5765525
-Angola,acid_nox,cf_mean,0.22461416
-Anguilla,acid_nox,cf_mean,0.05671405
-Antarctica,acid_nox,cf_mean,0.0
-Antigua and Barbuda,acid_nox,cf_mean,0.05096253
-Argentina,acid_nox,cf_mean,0.12826887
-Armenia,acid_nox,cf_mean,0.8250703
-Aruba,acid_nox,cf_mean,0.07228469
-Arunachal Pradesh,acid_nox,cf_mean,0.5763252
-Ashmore and Cartier Islands,acid_nox,cf_mean,0.04697354
-Australia,acid_nox,cf_mean,0.13660476
-Austria,acid_nox,cf_mean,1.063788
-Azerbaijan,acid_nox,cf_mean,0.7470137
-Azores Islands,acid_nox,cf_mean,0.3836211
-Bahamas,acid_nox,cf_mean,0.11035786
-Bahrain,acid_nox,cf_mean,0.76615584
-Baker Island,acid_nox,cf_mean,0.0034343994
-Bangladesh,acid_nox,cf_mean,0.3569047
-Barbados,acid_nox,cf_mean,0.060149383
-Bassas da India,acid_nox,cf_mean,0.19187334
-Belarus,acid_nox,cf_mean,0.68481493
-Belgium,acid_nox,cf_mean,0.7644028
-Belize,acid_nox,cf_mean,0.075440615
-Benin,acid_nox,cf_mean,0.11772607
-Bermuda,acid_nox,cf_mean,0.21919335
-Bhutan,acid_nox,cf_mean,0.59343743
-Bird Island,acid_nox,cf_mean,0.04937946
-Bolivia,acid_nox,cf_mean,0.24409841
-Bosnia and Herzegovina,acid_nox,cf_mean,0.8041138
-Botswana,acid_nox,cf_mean,0.35517374
-Bouvet Island,acid_nox,cf_mean,0.0
-Brazil,acid_nox,cf_mean,0.2217047
-British Indian Ocean Territory,acid_nox,cf_mean,0.04803023
-British Virgin Islands,acid_nox,cf_mean,0.05671405
-Brunei Darussalam,acid_nox,cf_mean,0.12891616
-Bulgaria,acid_nox,cf_mean,0.6316281
-Burkina Faso,acid_nox,cf_mean,0.13841663
-Burundi,acid_nox,cf_mean,0.19206168
-Cambodia,acid_nox,cf_mean,0.1955234
-Cameroon,acid_nox,cf_mean,0.19408523
-Canada,acid_nox,cf_mean,0.55579036
-Cape Verde,acid_nox,cf_mean,0.057709273
-Cayman Islands,acid_nox,cf_mean,0.074915595
-Central African Republic,acid_nox,cf_mean,0.3881457
-Chad,acid_nox,cf_mean,0.2972783
-Chile,acid_nox,cf_mean,0.21665038
-China,acid_nox,cf_mean,0.82936436
-China/India,acid_nox,cf_mean,0.8425918
-Christmas Island,acid_nox,cf_mean,0.06280233
-Clipperton Island,acid_nox,cf_mean,0.032804966
-Cocos (Keeling) Islands,acid_nox,cf_mean,0.04933148
-Colombia,acid_nox,cf_mean,0.15415949
-Comoros,acid_nox,cf_mean,0.1306665
-Congo,acid_nox,cf_mean,0.19199546
-Cook Islands,acid_nox,cf_mean,0.0076841004
-Costa Rica,acid_nox,cf_mean,0.08372085
-Croatia,acid_nox,cf_mean,0.821306
-Cuba,acid_nox,cf_mean,0.09157414
-Cyprus,acid_nox,cf_mean,0.49601614
-Czech Republic,acid_nox,cf_mean,1.1218826
-Côte d'Ivoire,acid_nox,cf_mean,0.094970375
-Dem People's Rep of Korea,acid_nox,cf_mean,0.8262261
-Democratic Republic of the Congo,acid_nox,cf_mean,0.20584716
-Denmark,acid_nox,cf_mean,0.5707744
-Djibouti,acid_nox,cf_mean,0.22221963
-Dominica,acid_nox,cf_mean,0.047539372
-Dominican Republic,acid_nox,cf_mean,0.059756674
-Ecuador,acid_nox,cf_mean,0.17807847
-Egypt,acid_nox,cf_mean,0.5517674
-El Salvador,acid_nox,cf_mean,0.07664226
-Equatorial Guinea,acid_nox,cf_mean,0.13798715
-Eritrea,acid_nox,cf_mean,0.27139702
-Estonia,acid_nox,cf_mean,0.7449785
-Ethiopia,acid_nox,cf_mean,0.22932938
-Europa Island,acid_nox,cf_mean,0.17030102
-Falkland Islands (Malvinas),acid_nox,cf_mean,0.06386463
-Faroe Islands,acid_nox,cf_mean,0.3711116
-Fiji,acid_nox,cf_mean,0.009041966
-Finland,acid_nox,cf_mean,0.67268693
-France,acid_nox,cf_mean,0.6698313
-French Guiana,acid_nox,cf_mean,0.14076404
-French Polynesia,acid_nox,cf_mean,0.0077340067
-French Southern and Antarctic Territories,acid_nox,cf_mean,0.036006093
-Gabon,acid_nox,cf_mean,0.16321164
-Gambia,acid_nox,cf_mean,0.11316323
-Gaza Strip,acid_nox,cf_mean,0.8043867
-Georgia,acid_nox,cf_mean,0.8390275
-Germany,acid_nox,cf_mean,0.8056926
-Ghana,acid_nox,cf_mean,0.097386934
-Gibraltar,acid_nox,cf_mean,0.19045551
-Glorioso Island,acid_nox,cf_mean,0.12990397
-Greece,acid_nox,cf_mean,0.45783648
-Greenland,acid_nox,cf_mean,0.06649697
-Grenada,acid_nox,cf_mean,0.08627891
-Guadeloupe,acid_nox,cf_mean,0.048348904
-Guam,acid_nox,cf_mean,0.04792444
-Guatemala,acid_nox,cf_mean,0.07984104
-Guernsey,acid_nox,cf_mean,0.44570762
-Guinea,acid_nox,cf_mean,0.11068029
-Guinea-Bissau,acid_nox,cf_mean,0.094248965
-Guyana,acid_nox,cf_mean,0.217536
-Haiti,acid_nox,cf_mean,0.059928272
-Hala'ib triangle,acid_nox,cf_mean,0.3418627
-Heard Island and McDonald Islands,acid_nox,cf_mean,0.054312993
-Holy See,acid_nox,cf_mean,0.6098908
-Honduras,acid_nox,cf_mean,0.074314244
-Hong Kong,acid_nox,cf_mean,0.35529226
-Howland Island,acid_nox,cf_mean,0.0034343994
-Hungary,acid_nox,cf_mean,0.89236677
-Iceland,acid_nox,cf_mean,0.1743245
-Ilemi triangle,acid_nox,cf_mean,0.24070708
-India,acid_nox,cf_mean,0.3956515
-Indonesia,acid_nox,cf_mean,0.0922692
-Iran  (Islamic Republic of),acid_nox,cf_mean,0.561045
-Iraq,acid_nox,cf_mean,0.59462416
-Ireland,acid_nox,cf_mean,0.11996381
-Isle of Man,acid_nox,cf_mean,0.13224956
-Israel,acid_nox,cf_mean,1.0945307
-Italy,acid_nox,cf_mean,0.7046284
-Jamaica,acid_nox,cf_mean,0.063034676
-Jammu and Kashmir,acid_nox,cf_mean,1.0372388
-Japan,acid_nox,cf_mean,0.33730304
-Jarvis Island,acid_nox,cf_mean,0.005485533
-Jersey,acid_nox,cf_mean,0.4790958
-Johnston Atoll,acid_nox,cf_mean,0.027874952
-Jordan,acid_nox,cf_mean,0.8032241
-Juan de Nova Island,acid_nox,cf_mean,0.1262435
-Kazakhstan,acid_nox,cf_mean,0.85019076
-Kenya,acid_nox,cf_mean,0.23093063
-Kingman Reef,acid_nox,cf_mean,0.007651262
-Kiribati,acid_nox,cf_mean,0.007982171
-Kuril islands,acid_nox,cf_mean,0.2728834
-Kuwait,acid_nox,cf_mean,0.9335976
-Kyrgyzstan,acid_nox,cf_mean,1.6430069
-Lao People's Democratic Republic,acid_nox,cf_mean,0.27710018
-Latvia,acid_nox,cf_mean,0.73995036
-Lebanon,acid_nox,cf_mean,0.53687435
-Lesotho,acid_nox,cf_mean,0.27787966
-Liberia,acid_nox,cf_mean,0.10531014
-Libya,acid_nox,cf_mean,0.27843526
-Liechtenstein,acid_nox,cf_mean,0.9397174
-Lithuania,acid_nox,cf_mean,0.76987034
-Luxembourg,acid_nox,cf_mean,0.9282308
-Ma'tan al-Sarra,acid_nox,cf_mean,0.33470446
-Macau,acid_nox,cf_mean,0.35529226
-Madagascar,acid_nox,cf_mean,0.19395833
-Madeira Islands,acid_nox,cf_mean,0.25204638
-Malawi,acid_nox,cf_mean,0.30481464
-Malaysia,acid_nox,cf_mean,0.13484746
-Maldives,acid_nox,cf_mean,0.089894734
-Mali,acid_nox,cf_mean,0.21272957
-Malta,acid_nox,cf_mean,0.3544608
-Marshall Islands,acid_nox,cf_mean,0.008966044
-Martinique,acid_nox,cf_mean,0.054113492
-Mauritania,acid_nox,cf_mean,0.22557634
-Mauritius,acid_nox,cf_mean,0.073795445
-Mayotte,acid_nox,cf_mean,0.1291485
-Mexico,acid_nox,cf_mean,0.13191888
-Micronesia (Federated States of),acid_nox,cf_mean,0.020032596
-Midway Island,acid_nox,cf_mean,0.08922854
-"Moldova, Republic of",acid_nox,cf_mean,0.59655464
-Monaco,acid_nox,cf_mean,0.7621184
-Mongolia,acid_nox,cf_mean,0.79136485
-Montenegro,acid_nox,cf_mean,0.68268955
-Montserrat,acid_nox,cf_mean,0.047539372
-Morocco,acid_nox,cf_mean,0.16706063
-Mozambique,acid_nox,cf_mean,0.25787875
-Myanmar,acid_nox,cf_mean,0.3333368
-Namibia,acid_nox,cf_mean,0.30130512
-Nauru,acid_nox,cf_mean,0.006562106
-Navassa Island,acid_nox,cf_mean,0.060213078
-Nepal,acid_nox,cf_mean,0.5530234
-Netherlands,acid_nox,cf_mean,0.25844434
-Netherlands Antilles,acid_nox,cf_mean,0.071847595
-New Caledonia,acid_nox,cf_mean,0.012780185
-New Zealand,acid_nox,cf_mean,0.12141624
-Nicaragua,acid_nox,cf_mean,0.07174162
-Niger,acid_nox,cf_mean,0.22863805
-Nigeria,acid_nox,cf_mean,0.1773378
-Niue,acid_nox,cf_mean,0.008247392
-Norfolk Island,acid_nox,cf_mean,0.015188219
-Northern Mariana Islands,acid_nox,cf_mean,0.043075178
-Norway,acid_nox,cf_mean,0.6007665
-Oman,acid_nox,cf_mean,0.26890785
-Pakistan,acid_nox,cf_mean,0.92337394
-Palau,acid_nox,cf_mean,0.084316894
-Palmyra Atoll,acid_nox,cf_mean,0.008969247
-Panama,acid_nox,cf_mean,0.08263252
-Papua New Guinea,acid_nox,cf_mean,0.0418985
-Paracel Islands,acid_nox,cf_mean,0.2229904
-Paraguay,acid_nox,cf_mean,0.126066
-Peru,acid_nox,cf_mean,0.31366962
-Philippines,acid_nox,cf_mean,0.15442072
-Pitcairn,acid_nox,cf_mean,0.010776962
-Poland,acid_nox,cf_mean,0.8125466
-Portugal,acid_nox,cf_mean,0.24372965
-Puerto Rico,acid_nox,cf_mean,0.057152282
-Qatar,acid_nox,cf_mean,0.7925949
-Republic of Korea,acid_nox,cf_mean,0.46384665
-Romania,acid_nox,cf_mean,0.7845318
-Russian Federation,acid_nox,cf_mean,0.61356515
-Rwanda,acid_nox,cf_mean,0.16742517
-Réunion,acid_nox,cf_mean,0.09389122
-Saint Helena,acid_nox,cf_mean,0.08696792
-Saint Kitts and Nevis,acid_nox,cf_mean,0.056615826
-Saint Lucia,acid_nox,cf_mean,0.054113492
-Saint Pierre et Miquelon,acid_nox,cf_mean,0.3272214
-Saint Vincent and the Grenadines,acid_nox,cf_mean,0.06730714
-Samoa,acid_nox,cf_mean,0.00694808
-San Marino,acid_nox,cf_mean,0.78469735
-Sao Tome and Principe,acid_nox,cf_mean,0.053789712
-Saudi Arabia,acid_nox,cf_mean,0.76852816
-Scarborough Reef,acid_nox,cf_mean,0.20734333
-Senegal,acid_nox,cf_mean,0.15341741
-Senkaku Islands,acid_nox,cf_mean,0.25499523
-Serbia,acid_nox,cf_mean,0.8243383
-Seychelles,acid_nox,cf_mean,0.09718199
-Sierra Leone,acid_nox,cf_mean,0.11044354
-Singapore,acid_nox,cf_mean,0.14304154
-Slovakia,acid_nox,cf_mean,1.0044607
-Slovenia,acid_nox,cf_mean,0.9743807
-Solomon Islands,acid_nox,cf_mean,0.009000395
-Somalia,acid_nox,cf_mean,0.25120935
-South Africa,acid_nox,cf_mean,0.32612008
-South Georgia and the South Sandwich Islands,acid_nox,cf_mean,0.075562134
-South Sudan,acid_nox,cf_mean,0.31229228
-Spain,acid_nox,cf_mean,0.32051387
-Spratly Islands,acid_nox,cf_mean,0.18542854
-Sri Lanka,acid_nox,cf_mean,0.11830731
-Sudan,acid_nox,cf_mean,0.31844398
-Suriname,acid_nox,cf_mean,0.1695761
-Svalbard and Jan Mayen Islands,acid_nox,cf_mean,0.30645105
-Swaziland,acid_nox,cf_mean,0.259028
-Sweden,acid_nox,cf_mean,0.6623912
-Switzerland,acid_nox,cf_mean,0.9334344
-Syrian Arab Republic,acid_nox,cf_mean,0.52544504
-Taiwan,acid_nox,cf_mean,0.30700532
-Tajikistan,acid_nox,cf_mean,1.366991
-Thailand,acid_nox,cf_mean,0.2242873
-The former Yugoslav Republic of Macedonia,acid_nox,cf_mean,0.7705532
-Timor-Leste,acid_nox,cf_mean,0.06465252
-Togo,acid_nox,cf_mean,0.10573881
-Tokelau,acid_nox,cf_mean,0.006535528
-Tonga,acid_nox,cf_mean,0.0083040865
-Trinidad and Tobago,acid_nox,cf_mean,0.11095642
-Tromelin Island,acid_nox,cf_mean,0.035723824
-Tunisia,acid_nox,cf_mean,0.3095464
-Turkey,acid_nox,cf_mean,0.54682845
-Turkmenistan,acid_nox,cf_mean,0.8846801
-Turks and Caicos islands,acid_nox,cf_mean,0.075461574
-Tuvalu,acid_nox,cf_mean,0.008405282
-U.K. of Great Britain and Northern Ireland,acid_nox,cf_mean,0.3280515
-Uganda,acid_nox,cf_mean,0.21103941
-Ukraine,acid_nox,cf_mean,0.58397686
-United Arab Emirates,acid_nox,cf_mean,0.57471716
-United Republic of Tanzania,acid_nox,cf_mean,0.19577129
-United States Virgin Islands,acid_nox,cf_mean,0.056746382
-United States of America,acid_nox,cf_mean,0.43556187
-Uruguay,acid_nox,cf_mean,0.08073311
-Uzbekistan,acid_nox,cf_mean,0.97593296
-Vanuatu,acid_nox,cf_mean,0.009540294
-Venezuela,acid_nox,cf_mean,0.15672994
-Viet Nam,acid_nox,cf_mean,0.26862442
-Wake Island,acid_nox,cf_mean,0.018266413
-Wallis and Futuna,acid_nox,cf_mean,0.0072384444
-West Bank,acid_nox,cf_mean,0.6774007
-Western Sahara,acid_nox,cf_mean,0.19223525
-Yemen,acid_nox,cf_mean,0.30856624
-Zambia,acid_nox,cf_mean,0.2627737
-Zimbabwe,acid_nox,cf_mean,0.28784057
-Abyei,acid_nox,cf_median,0.33954725
-Afghanistan,acid_nox,cf_median,0.89777875
-Aksai Chin,acid_nox,cf_median,1.2229763
-Albania,acid_nox,cf_median,0.6065309
-Algeria,acid_nox,cf_median,0.20118856
-American Samoa,acid_nox,cf_median,0.006946915
-Andorra,acid_nox,cf_median,0.5765525
-Angola,acid_nox,cf_median,0.22826721
-Anguilla,acid_nox,cf_median,0.05671405
-Antarctica,acid_nox,cf_median,0.0
-Antigua and Barbuda,acid_nox,cf_median,0.05111652
-Argentina,acid_nox,cf_median,0.11834297
-Armenia,acid_nox,cf_median,0.8281582
-Aruba,acid_nox,cf_median,0.074041605
-Arunachal Pradesh,acid_nox,cf_median,0.5620444
-Ashmore and Cartier Islands,acid_nox,cf_median,0.04697354
-Australia,acid_nox,cf_median,0.107513785
-Austria,acid_nox,cf_median,1.0509876
-Azerbaijan,acid_nox,cf_median,0.71849453
-Azores Islands,acid_nox,cf_median,0.41142553
-Bahamas,acid_nox,cf_median,0.10529604
-Bahrain,acid_nox,cf_median,0.76615584
-Baker Island,acid_nox,cf_median,0.0034343994
-Bangladesh,acid_nox,cf_median,0.3594311
-Barbados,acid_nox,cf_median,0.060149383
-Bassas da India,acid_nox,cf_median,0.19187334
-Belarus,acid_nox,cf_median,0.65488696
-Belgium,acid_nox,cf_median,0.7502472
-Belize,acid_nox,cf_median,0.07467697
-Benin,acid_nox,cf_median,0.11516943
-Bermuda,acid_nox,cf_median,0.21919335
-Bhutan,acid_nox,cf_median,0.62733436
-Bird Island,acid_nox,cf_median,0.04937946
-Bolivia,acid_nox,cf_median,0.2151123
-Bosnia and Herzegovina,acid_nox,cf_median,0.8457828
-Botswana,acid_nox,cf_median,0.31976345
-Bouvet Island,acid_nox,cf_median,0.0
-Brazil,acid_nox,cf_median,0.2021301
-British Indian Ocean Territory,acid_nox,cf_median,0.050427686
-British Virgin Islands,acid_nox,cf_median,0.05671405
-Brunei Darussalam,acid_nox,cf_median,0.13137218
-Bulgaria,acid_nox,cf_median,0.58768386
-Burkina Faso,acid_nox,cf_median,0.12947224
-Burundi,acid_nox,cf_median,0.18167299
-Cambodia,acid_nox,cf_median,0.19493335
-Cameroon,acid_nox,cf_median,0.19492033
-Canada,acid_nox,cf_median,0.48875
-Cape Verde,acid_nox,cf_median,0.037586823
-Cayman Islands,acid_nox,cf_median,0.07656494
-Central African Republic,acid_nox,cf_median,0.35511485
-Chad,acid_nox,cf_median,0.26043895
-Chile,acid_nox,cf_median,0.20228565
-China,acid_nox,cf_median,0.7617109
-China/India,acid_nox,cf_median,0.8505822
-Christmas Island,acid_nox,cf_median,0.06280233
-Clipperton Island,acid_nox,cf_median,0.032804966
-Cocos (Keeling) Islands,acid_nox,cf_median,0.04933148
-Colombia,acid_nox,cf_median,0.14999661
-Comoros,acid_nox,cf_median,0.1306665
-Congo,acid_nox,cf_median,0.18542452
-Cook Islands,acid_nox,cf_median,0.007957289
-Costa Rica,acid_nox,cf_median,0.09263695
-Croatia,acid_nox,cf_median,0.79645705
-Cuba,acid_nox,cf_median,0.0893517
-Cyprus,acid_nox,cf_median,0.46070668
-Czech Republic,acid_nox,cf_median,1.1339788
-Côte d'Ivoire,acid_nox,cf_median,0.09229436
-Dem People's Rep of Korea,acid_nox,cf_median,0.86468244
-Democratic Republic of the Congo,acid_nox,cf_median,0.21960737
-Denmark,acid_nox,cf_median,0.86179715
-Djibouti,acid_nox,cf_median,0.22431387
-Dominica,acid_nox,cf_median,0.047539372
-Dominican Republic,acid_nox,cf_median,0.059249714
-Ecuador,acid_nox,cf_median,0.18269116
-Egypt,acid_nox,cf_median,0.4034413
-El Salvador,acid_nox,cf_median,0.07676377
-Equatorial Guinea,acid_nox,cf_median,0.16011222
-Eritrea,acid_nox,cf_median,0.2785304
-Estonia,acid_nox,cf_median,0.7430101
-Ethiopia,acid_nox,cf_median,0.22615048
-Europa Island,acid_nox,cf_median,0.17030102
-Falkland Islands (Malvinas),acid_nox,cf_median,0.06351522
-Faroe Islands,acid_nox,cf_median,0.3708531
-Fiji,acid_nox,cf_median,0.0094038835
-Finland,acid_nox,cf_median,0.6700287
-France,acid_nox,cf_median,0.63552266
-French Guiana,acid_nox,cf_median,0.13224956
-French Polynesia,acid_nox,cf_median,0.007865021
-French Southern and Antarctic Territories,acid_nox,cf_median,0.05315554
-Gabon,acid_nox,cf_median,0.17343235
-Gambia,acid_nox,cf_median,0.10339699
-Gaza Strip,acid_nox,cf_median,0.8043867
-Georgia,acid_nox,cf_median,0.88100153
-Germany,acid_nox,cf_median,0.97170144
-Ghana,acid_nox,cf_median,0.09533358
-Gibraltar,acid_nox,cf_median,0.19045551
-Glorioso Island,acid_nox,cf_median,0.12990397
-Greece,acid_nox,cf_median,0.4498302
-Greenland,acid_nox,cf_median,0.0
-Grenada,acid_nox,cf_median,0.08627891
-Guadeloupe,acid_nox,cf_median,0.047539372
-Guam,acid_nox,cf_median,0.047935963
-Guatemala,acid_nox,cf_median,0.07659902
-Guernsey,acid_nox,cf_median,0.43992156
-Guinea,acid_nox,cf_median,0.11120017
-Guinea-Bissau,acid_nox,cf_median,0.107539415
-Guyana,acid_nox,cf_median,0.20683658
-Haiti,acid_nox,cf_median,0.059249714
-Hala'ib triangle,acid_nox,cf_median,0.34266123
-Heard Island and McDonald Islands,acid_nox,cf_median,0.054434083
-Holy See,acid_nox,cf_median,0.6098908
-Honduras,acid_nox,cf_median,0.07525993
-Hong Kong,acid_nox,cf_median,0.35529226
-Howland Island,acid_nox,cf_median,0.0034343994
-Hungary,acid_nox,cf_median,0.91833025
-Iceland,acid_nox,cf_median,0.18178643
-Ilemi triangle,acid_nox,cf_median,0.24151425
-India,acid_nox,cf_median,0.3413696
-Indonesia,acid_nox,cf_median,0.09103789
-Iran  (Islamic Republic of),acid_nox,cf_median,0.54124945
-Iraq,acid_nox,cf_median,0.5793135
-Ireland,acid_nox,cf_median,0.014147342
-Isle of Man,acid_nox,cf_median,0.13224956
-Israel,acid_nox,cf_median,0.8043867
-Italy,acid_nox,cf_median,0.6231912
-Jamaica,acid_nox,cf_median,0.06677667
-Jammu and Kashmir,acid_nox,cf_median,0.97899455
-Japan,acid_nox,cf_median,0.3125968
-Jarvis Island,acid_nox,cf_median,0.005485533
-Jersey,acid_nox,cf_median,0.4790958
-Johnston Atoll,acid_nox,cf_median,0.027874952
-Jordan,acid_nox,cf_median,0.6691526
-Juan de Nova Island,acid_nox,cf_median,0.12613551
-Kazakhstan,acid_nox,cf_median,0.7412848
-Kenya,acid_nox,cf_median,0.22794807
-Kingman Reef,acid_nox,cf_median,0.0069945375
-Kiribati,acid_nox,cf_median,0.008637506
-Kuril islands,acid_nox,cf_median,0.3062518
-Kuwait,acid_nox,cf_median,0.71301144
-Kyrgyzstan,acid_nox,cf_median,1.6762621
-Lao People's Democratic Republic,acid_nox,cf_median,0.26389202
-Latvia,acid_nox,cf_median,0.72334695
-Lebanon,acid_nox,cf_median,0.53687435
-Lesotho,acid_nox,cf_median,0.25172484
-Liberia,acid_nox,cf_median,0.11086109
-Libya,acid_nox,cf_median,0.27332222
-Liechtenstein,acid_nox,cf_median,0.9397174
-Lithuania,acid_nox,cf_median,0.7597577
-Luxembourg,acid_nox,cf_median,0.9282308
-Ma'tan al-Sarra,acid_nox,cf_median,0.33470446
-Macau,acid_nox,cf_median,0.35529226
-Madagascar,acid_nox,cf_median,0.17242618
-Madeira Islands,acid_nox,cf_median,0.23841165
-Malawi,acid_nox,cf_median,0.33679402
-Malaysia,acid_nox,cf_median,0.13398683
-Maldives,acid_nox,cf_median,0.08623932
-Mali,acid_nox,cf_median,0.20864037
-Malta,acid_nox,cf_median,0.3544608
-Marshall Islands,acid_nox,cf_median,0.008932828
-Martinique,acid_nox,cf_median,0.054113492
-Mauritania,acid_nox,cf_median,0.20739806
-Mauritius,acid_nox,cf_median,0.08037787
-Mayotte,acid_nox,cf_median,0.12990397
-Mexico,acid_nox,cf_median,0.12923639
-Micronesia (Federated States of),acid_nox,cf_median,0.017299514
-Midway Island,acid_nox,cf_median,0.091141455
-"Moldova, Republic of",acid_nox,cf_median,0.5848497
-Monaco,acid_nox,cf_median,0.7621184
-Mongolia,acid_nox,cf_median,0.73604506
-Montenegro,acid_nox,cf_median,0.6065309
-Montserrat,acid_nox,cf_median,0.047539372
-Morocco,acid_nox,cf_median,0.16037649
-Mozambique,acid_nox,cf_median,0.21656619
-Myanmar,acid_nox,cf_median,0.31384763
-Namibia,acid_nox,cf_median,0.25393686
-Nauru,acid_nox,cf_median,0.006562106
-Navassa Island,acid_nox,cf_median,0.058572177
-Nepal,acid_nox,cf_median,0.55487156
-Netherlands,acid_nox,cf_median,0.060954448
-Netherlands Antilles,acid_nox,cf_median,0.074041605
-New Caledonia,acid_nox,cf_median,0.013307664
-New Zealand,acid_nox,cf_median,0.09646766
-Nicaragua,acid_nox,cf_median,0.07367559
-Niger,acid_nox,cf_median,0.20687853
-Nigeria,acid_nox,cf_median,0.15906459
-Niue,acid_nox,cf_median,0.008381793
-Norfolk Island,acid_nox,cf_median,0.015509475
-Northern Mariana Islands,acid_nox,cf_median,0.0439049
-Norway,acid_nox,cf_median,0.6741243
-Oman,acid_nox,cf_median,0.21804161
-Pakistan,acid_nox,cf_median,0.85820925
-Palau,acid_nox,cf_median,0.08418065
-Palmyra Atoll,acid_nox,cf_median,0.008969247
-Panama,acid_nox,cf_median,0.08293785
-Papua New Guinea,acid_nox,cf_median,0.04402865
-Paracel Islands,acid_nox,cf_median,0.21932721
-Paraguay,acid_nox,cf_median,0.12432667
-Peru,acid_nox,cf_median,0.27873176
-Philippines,acid_nox,cf_median,0.14048654
-Pitcairn,acid_nox,cf_median,0.010885955
-Poland,acid_nox,cf_median,0.99342865
-Portugal,acid_nox,cf_median,0.23885866
-Puerto Rico,acid_nox,cf_median,0.057149753
-Qatar,acid_nox,cf_median,0.76615584
-Republic of Korea,acid_nox,cf_median,0.45055062
-Romania,acid_nox,cf_median,0.8161799
-Russian Federation,acid_nox,cf_median,0.6315467
-Rwanda,acid_nox,cf_median,0.12509899
-Réunion,acid_nox,cf_median,0.0954258
-Saint Helena,acid_nox,cf_median,0.0795522
-Saint Kitts and Nevis,acid_nox,cf_median,0.05671405
-Saint Lucia,acid_nox,cf_median,0.054113492
-Saint Pierre et Miquelon,acid_nox,cf_median,0.24257688
-Saint Vincent and the Grenadines,acid_nox,cf_median,0.054113492
-Samoa,acid_nox,cf_median,0.006946915
-San Marino,acid_nox,cf_median,0.7814757
-Sao Tome and Principe,acid_nox,cf_median,0.053346228
-Saudi Arabia,acid_nox,cf_median,0.6419685
-Scarborough Reef,acid_nox,cf_median,0.20734333
-Senegal,acid_nox,cf_median,0.1323681
-Senkaku Islands,acid_nox,cf_median,0.25499523
-Serbia,acid_nox,cf_median,0.8457828
-Seychelles,acid_nox,cf_median,0.085896276
-Sierra Leone,acid_nox,cf_median,0.11725702
-Singapore,acid_nox,cf_median,0.14304154
-Slovakia,acid_nox,cf_median,0.9679374
-Slovenia,acid_nox,cf_median,1.0576944
-Solomon Islands,acid_nox,cf_median,0.009175542
-Somalia,acid_nox,cf_median,0.22017093
-South Africa,acid_nox,cf_median,0.29483142
-South Georgia and the South Sandwich Islands,acid_nox,cf_median,0.074613266
-South Sudan,acid_nox,cf_median,0.28065228
-Spain,acid_nox,cf_median,0.28566572
-Spratly Islands,acid_nox,cf_median,0.17666028
-Sri Lanka,acid_nox,cf_median,0.119405985
-Sudan,acid_nox,cf_median,0.29206994
-Suriname,acid_nox,cf_median,0.16977017
-Svalbard and Jan Mayen Islands,acid_nox,cf_median,0.22631639
-Swaziland,acid_nox,cf_median,0.26155806
-Sweden,acid_nox,cf_median,0.73664004
-Switzerland,acid_nox,cf_median,0.9397174
-Syrian Arab Republic,acid_nox,cf_median,0.52426237
-Taiwan,acid_nox,cf_median,0.3177715
-Tajikistan,acid_nox,cf_median,1.3489625
-Thailand,acid_nox,cf_median,0.2222063
-The former Yugoslav Republic of Macedonia,acid_nox,cf_median,0.7926073
-Timor-Leste,acid_nox,cf_median,0.066520296
-Togo,acid_nox,cf_median,0.102701224
-Tokelau,acid_nox,cf_median,0.0064300215
-Tonga,acid_nox,cf_median,0.00812932
-Trinidad and Tobago,acid_nox,cf_median,0.1129644
-Tromelin Island,acid_nox,cf_median,0.035723824
-Tunisia,acid_nox,cf_median,0.29707563
-Turkey,acid_nox,cf_median,0.50896394
-Turkmenistan,acid_nox,cf_median,0.84360343
-Turks and Caicos islands,acid_nox,cf_median,0.075463936
-Tuvalu,acid_nox,cf_median,0.008224855
-U.K. of Great Britain and Northern Ireland,acid_nox,cf_median,0.35656926
-Uganda,acid_nox,cf_median,0.21222904
-Ukraine,acid_nox,cf_median,0.51295334
-United Arab Emirates,acid_nox,cf_median,0.57345706
-United Republic of Tanzania,acid_nox,cf_median,0.18813384
-United States Virgin Islands,acid_nox,cf_median,0.05671405
-United States of America,acid_nox,cf_median,0.39641267
-Uruguay,acid_nox,cf_median,0.081256114
-Uzbekistan,acid_nox,cf_median,0.9837827
-Vanuatu,acid_nox,cf_median,0.009691922
-Venezuela,acid_nox,cf_median,0.17269477
-Viet Nam,acid_nox,cf_median,0.22615847
-Wake Island,acid_nox,cf_median,0.018266413
-Wallis and Futuna,acid_nox,cf_median,0.0070938547
-West Bank,acid_nox,cf_median,0.6691526
-Western Sahara,acid_nox,cf_median,0.1982008
-Yemen,acid_nox,cf_median,0.30520466
-Zambia,acid_nox,cf_median,0.24619235
-Zimbabwe,acid_nox,cf_median,0.24619235
-Abyei,acid_nox,cf_std,0.0
-Afghanistan,acid_nox,cf_std,0.27100205
-Aksai Chin,acid_nox,cf_std,0.15782021
-Albania,acid_nox,cf_std,0.13051197
-Algeria,acid_nox,cf_std,0.049928106
-American Samoa,acid_nox,cf_std,0.00016267327
-Andorra,acid_nox,cf_std,0.0
-Angola,acid_nox,cf_std,0.04896754
-Anguilla,acid_nox,cf_std,6.938894e-18
-Antarctica,acid_nox,cf_std,0.0
-Antigua and Barbuda,acid_nox,cf_std,0.0006123304
-Argentina,acid_nox,cf_std,0.04531452
-Armenia,acid_nox,cf_std,0.02690401
-Aruba,acid_nox,cf_std,0.0018380096
-Arunachal Pradesh,acid_nox,cf_std,0.03086979
-Ashmore and Cartier Islands,acid_nox,cf_std,6.938894e-18
-Australia,acid_nox,cf_std,0.081511
-Austria,acid_nox,cf_std,0.062467106
-Azerbaijan,acid_nox,cf_std,0.08004503
-Azores Islands,acid_nox,cf_std,0.08591331
-Bahamas,acid_nox,cf_std,0.025713671
-Bahrain,acid_nox,cf_std,2.220446e-16
-Baker Island,acid_nox,cf_std,0.0
-Bangladesh,acid_nox,cf_std,0.040519193
-Barbados,acid_nox,cf_std,0.0
-Bassas da India,acid_nox,cf_std,0.0
-Belarus,acid_nox,cf_std,0.07779516
-Belgium,acid_nox,cf_std,0.18650733
-Belize,acid_nox,cf_std,0.00092821254
-Benin,acid_nox,cf_std,0.013280116
-Bermuda,acid_nox,cf_std,0.0
-Bhutan,acid_nox,cf_std,0.07319826
-Bird Island,acid_nox,cf_std,0.0
-Bolivia,acid_nox,cf_std,0.097472034
-Bosnia and Herzegovina,acid_nox,cf_std,0.060331903
-Botswana,acid_nox,cf_std,0.10558158
-Bouvet Island,acid_nox,cf_std,0.0
-Brazil,acid_nox,cf_std,0.09896181
-British Indian Ocean Territory,acid_nox,cf_std,0.0029182658
-British Virgin Islands,acid_nox,cf_std,6.938894e-18
-Brunei Darussalam,acid_nox,cf_std,0.0048332843
-Bulgaria,acid_nox,cf_std,0.09254352
-Burkina Faso,acid_nox,cf_std,0.023778183
-Burundi,acid_nox,cf_std,0.031173255
-Cambodia,acid_nox,cf_std,0.0075097415
-Cameroon,acid_nox,cf_std,0.04341154
-Canada,acid_nox,cf_std,0.23369233
-Cape Verde,acid_nox,cf_std,0.054240722
-Cayman Islands,acid_nox,cf_std,0.0031993832
-Central African Republic,acid_nox,cf_std,0.12384473
-Chad,acid_nox,cf_std,0.10309672
-Chile,acid_nox,cf_std,0.1095898
-China,acid_nox,cf_std,0.30614218
-China/India,acid_nox,cf_std,0.09591516
-Christmas Island,acid_nox,cf_std,0.0
-Clipperton Island,acid_nox,cf_std,0.0
-Cocos (Keeling) Islands,acid_nox,cf_std,6.938894e-18
-Colombia,acid_nox,cf_std,0.052596964
-Comoros,acid_nox,cf_std,0.0
-Congo,acid_nox,cf_std,0.051951807
-Cook Islands,acid_nox,cf_std,0.0009557078
-Costa Rica,acid_nox,cf_std,0.01221107
-Croatia,acid_nox,cf_std,0.09680159
-Cuba,acid_nox,cf_std,0.0139201535
-Cyprus,acid_nox,cf_std,0.04026269
-Czech Republic,acid_nox,cf_std,0.023128716
-Côte d'Ivoire,acid_nox,cf_std,0.011764825
-Dem People's Rep of Korea,acid_nox,cf_std,0.14608043
-Democratic Republic of the Congo,acid_nox,cf_std,0.0681324
-Denmark,acid_nox,cf_std,0.35859013
-Djibouti,acid_nox,cf_std,0.0030792414
-Dominica,acid_nox,cf_std,0.0
-Dominican Republic,acid_nox,cf_std,0.0017268802
-Ecuador,acid_nox,cf_std,0.033231713
-Egypt,acid_nox,cf_std,0.39793658
-El Salvador,acid_nox,cf_std,0.00096932694
-Equatorial Guinea,acid_nox,cf_std,0.038943116
-Eritrea,acid_nox,cf_std,0.025145683
-Estonia,acid_nox,cf_std,0.026490653
-Ethiopia,acid_nox,cf_std,0.026570018
-Europa Island,acid_nox,cf_std,0.0
-Falkland Islands (Malvinas),acid_nox,cf_std,0.00052741874
-Faroe Islands,acid_nox,cf_std,0.0018519303
-Fiji,acid_nox,cf_std,0.0004196022
-Finland,acid_nox,cf_std,0.107777
-France,acid_nox,cf_std,0.13774154
-French Guiana,acid_nox,cf_std,0.033014454
-French Polynesia,acid_nox,cf_std,0.0010418709
-French Southern and Antarctic Territories,acid_nox,cf_std,0.024830168
-Gabon,acid_nox,cf_std,0.044345416
-Gambia,acid_nox,cf_std,0.013629068
-Gaza Strip,acid_nox,cf_std,1.110223e-16
-Georgia,acid_nox,cf_std,0.07484731
-Germany,acid_nox,cf_std,0.35805357
-Ghana,acid_nox,cf_std,0.0094353845
-Gibraltar,acid_nox,cf_std,0.0
-Glorioso Island,acid_nox,cf_std,0.0
-Greece,acid_nox,cf_std,0.092358306
-Greenland,acid_nox,cf_std,0.084288605
-Grenada,acid_nox,cf_std,0.0
-Guadeloupe,acid_nox,cf_std,0.002602276
-Guam,acid_nox,cf_std,6.827626e-05
-Guatemala,acid_nox,cf_std,0.009019231
-Guernsey,acid_nox,cf_std,0.03044032
-Guinea,acid_nox,cf_std,0.009875096
-Guinea-Bissau,acid_nox,cf_std,0.016083583
-Guyana,acid_nox,cf_std,0.06982038
-Haiti,acid_nox,cf_std,0.0045209355
-Hala'ib triangle,acid_nox,cf_std,0.00823219
-Heard Island and McDonald Islands,acid_nox,cf_std,0.00022540176
-Holy See,acid_nox,cf_std,0.0
-Honduras,acid_nox,cf_std,0.0018961411
-Hong Kong,acid_nox,cf_std,5.551115e-17
-Howland Island,acid_nox,cf_std,0.0
-Hungary,acid_nox,cf_std,0.07571442
-Iceland,acid_nox,cf_std,0.020492282
-Ilemi triangle,acid_nox,cf_std,0.0010421352
-India,acid_nox,cf_std,0.24087106
-Indonesia,acid_nox,cf_std,0.03127038
-Iran  (Islamic Republic of),acid_nox,cf_std,0.12964413
-Iraq,acid_nox,cf_std,0.05927336
-Ireland,acid_nox,cf_std,0.15453866
-Isle of Man,acid_nox,cf_std,2.7755576e-17
-Israel,acid_nox,cf_std,0.52891135
-Italy,acid_nox,cf_std,0.22151573
-Jamaica,acid_nox,cf_std,0.0046156812
-Jammu and Kashmir,acid_nox,cf_std,0.12952232
-Japan,acid_nox,cf_std,0.072480746
-Jarvis Island,acid_nox,cf_std,0.0
-Jersey,acid_nox,cf_std,5.551115e-17
-Johnston Atoll,acid_nox,cf_std,0.0
-Jordan,acid_nox,cf_std,0.1919202
-Juan de Nova Island,acid_nox,cf_std,0.0003054699
-Kazakhstan,acid_nox,cf_std,0.28989315
-Kenya,acid_nox,cf_std,0.043111257
-Kingman Reef,acid_nox,cf_std,0.001061063
-Kiribati,acid_nox,cf_std,0.0016124805
-Kuril islands,acid_nox,cf_std,0.04287302
-Kuwait,acid_nox,cf_std,0.43011242
-Kyrgyzstan,acid_nox,cf_std,0.13714057
-Lao People's Democratic Republic,acid_nox,cf_std,0.048392028
-Latvia,acid_nox,cf_std,0.031852964
-Lebanon,acid_nox,cf_std,0.0
-Lesotho,acid_nox,cf_std,0.064496435
-Liberia,acid_nox,cf_std,0.019023098
-Libya,acid_nox,cf_std,0.050541256
-Liechtenstein,acid_nox,cf_std,0.0
-Lithuania,acid_nox,cf_std,0.036099833
-Luxembourg,acid_nox,cf_std,0.0
-Ma'tan al-Sarra,acid_nox,cf_std,5.551115e-17
-Macau,acid_nox,cf_std,0.0
-Madagascar,acid_nox,cf_std,0.057733074
-Madeira Islands,acid_nox,cf_std,0.055280548
-Malawi,acid_nox,cf_std,0.07984697
-Malaysia,acid_nox,cf_std,0.013767179
-Maldives,acid_nox,cf_std,0.013678944
-Mali,acid_nox,cf_std,0.07811697
-Malta,acid_nox,cf_std,0.0
-Marshall Islands,acid_nox,cf_std,0.0011042005
-Martinique,acid_nox,cf_std,1.3877788e-17
-Mauritania,acid_nox,cf_std,0.07517751
-Mauritius,acid_nox,cf_std,0.022213936
-Mayotte,acid_nox,cf_std,0.002415987
-Mexico,acid_nox,cf_std,0.030859927
-Micronesia (Federated States of),acid_nox,cf_std,0.014003383
-Midway Island,acid_nox,cf_std,0.0033132618
-"Moldova, Republic of",acid_nox,cf_std,0.06969074
-Monaco,acid_nox,cf_std,0.0
-Mongolia,acid_nox,cf_std,0.12113235
-Montenegro,acid_nox,cf_std,0.10431478
-Montserrat,acid_nox,cf_std,0.0
-Morocco,acid_nox,cf_std,0.029663777
-Mozambique,acid_nox,cf_std,0.12014445
-Myanmar,acid_nox,cf_std,0.092311226
-Namibia,acid_nox,cf_std,0.14536388
-Nauru,acid_nox,cf_std,8.6736174e-19
-Navassa Island,acid_nox,cf_std,0.0032817954
-Nepal,acid_nox,cf_std,0.046142913
-Netherlands,acid_nox,cf_std,0.29119456
-Netherlands Antilles,acid_nox,cf_std,0.00605638
-New Caledonia,acid_nox,cf_std,0.0007136152
-New Zealand,acid_nox,cf_std,0.078565896
-Nicaragua,acid_nox,cf_std,0.004183435
-Niger,acid_nox,cf_std,0.08099989
-Nigeria,acid_nox,cf_std,0.06679439
-Niue,acid_nox,cf_std,0.00020633668
-Norfolk Island,acid_nox,cf_std,0.00046554368
-Northern Mariana Islands,acid_nox,cf_std,0.0031986856
-Norway,acid_nox,cf_std,0.24930236
-Oman,acid_nox,cf_std,0.08000526
-Pakistan,acid_nox,cf_std,0.42199472
-Palau,acid_nox,cf_std,0.0012425284
-Palmyra Atoll,acid_nox,cf_std,0.0
-Panama,acid_nox,cf_std,0.005102567
-Papua New Guinea,acid_nox,cf_std,0.017353654
-Paracel Islands,acid_nox,cf_std,0.008151596
-Paraguay,acid_nox,cf_std,0.013278762
-Peru,acid_nox,cf_std,0.20101313
-Philippines,acid_nox,cf_std,0.03144403
-Pitcairn,acid_nox,cf_std,0.00071362685
-Poland,acid_nox,cf_std,0.40814647
-Portugal,acid_nox,cf_std,0.026416412
-Puerto Rico,acid_nox,cf_std,2.4269468e-05
-Qatar,acid_nox,cf_std,0.040968873
-Republic of Korea,acid_nox,cf_std,0.09678902
-Romania,acid_nox,cf_std,0.14171882
-Russian Federation,acid_nox,cf_std,0.286307
-Rwanda,acid_nox,cf_std,0.04702926
-Réunion,acid_nox,cf_std,0.0028932716
-Saint Helena,acid_nox,cf_std,0.024375191
-Saint Kitts and Nevis,acid_nox,cf_std,0.0003000803
-Saint Lucia,acid_nox,cf_std,0.0
-Saint Pierre et Miquelon,acid_nox,cf_std,0.103387855
-Saint Vincent and the Grenadines,acid_nox,cf_std,0.015747778
-Samoa,acid_nox,cf_std,2.1587757e-06
-San Marino,acid_nox,cf_std,0.005008165
-Sao Tome and Principe,acid_nox,cf_std,0.0009063881
-Saudi Arabia,acid_nox,cf_std,0.5234921
-Scarborough Reef,acid_nox,cf_std,0.0
-Senegal,acid_nox,cf_std,0.06850364
-Senkaku Islands,acid_nox,cf_std,0.0
-Serbia,acid_nox,cf_std,0.031136055
-Seychelles,acid_nox,cf_std,0.031091804
-Sierra Leone,acid_nox,cf_std,0.014958288
-Singapore,acid_nox,cf_std,2.7755576e-17
-Slovakia,acid_nox,cf_std,0.07456049
-Slovenia,acid_nox,cf_std,0.09415867
-Solomon Islands,acid_nox,cf_std,0.0015685847
-Somalia,acid_nox,cf_std,0.0928864
-South Africa,acid_nox,cf_std,0.122345015
-South Georgia and the South Sandwich Islands,acid_nox,cf_std,0.002432415
-South Sudan,acid_nox,cf_std,0.084548496
-Spain,acid_nox,cf_std,0.09721208
-Spratly Islands,acid_nox,cf_std,0.009210455
-Sri Lanka,acid_nox,cf_std,0.0048941183
-Sudan,acid_nox,cf_std,0.1034553
-Suriname,acid_nox,cf_std,0.041685633
-Svalbard and Jan Mayen Islands,acid_nox,cf_std,0.1641425
-Swaziland,acid_nox,cf_std,0.005562549
-Sweden,acid_nox,cf_std,0.317378
-Switzerland,acid_nox,cf_std,0.048770484
-Syrian Arab Republic,acid_nox,cf_std,0.040719703
-Taiwan,acid_nox,cf_std,0.027645567
-Tajikistan,acid_nox,cf_std,0.11586531
-Thailand,acid_nox,cf_std,0.03484752
-The former Yugoslav Republic of Macedonia,acid_nox,cf_std,0.06542485
-Timor-Leste,acid_nox,cf_std,0.0046300814
-Togo,acid_nox,cf_std,0.008672533
-Tokelau,acid_nox,cf_std,0.00021445034
-Tonga,acid_nox,cf_std,0.0006238332
-Trinidad and Tobago,acid_nox,cf_std,0.0070393025
-Tromelin Island,acid_nox,cf_std,0.0
-Tunisia,acid_nox,cf_std,0.030854616
-Turkey,acid_nox,cf_std,0.12163976
-Turkmenistan,acid_nox,cf_std,0.24774711
-Turks and Caicos islands,acid_nox,cf_std,1.1246228e-05
-Tuvalu,acid_nox,cf_std,0.0002840875
-U.K. of Great Britain and Northern Ireland,acid_nox,cf_std,0.1691446
-Uganda,acid_nox,cf_std,0.030238839
-Ukraine,acid_nox,cf_std,0.1424572
-United Arab Emirates,acid_nox,cf_std,0.13734207
-United Republic of Tanzania,acid_nox,cf_std,0.019361272
-United States Virgin Islands,acid_nox,cf_std,0.000103696206
-United States of America,acid_nox,cf_std,0.2265447
-Uruguay,acid_nox,cf_std,0.0025536886
-Uzbekistan,acid_nox,cf_std,0.2832176
-Vanuatu,acid_nox,cf_std,0.000298187
-Venezuela,acid_nox,cf_std,0.047810785
-Viet Nam,acid_nox,cf_std,0.078552246
-Wake Island,acid_nox,cf_std,0.0
-Wallis and Futuna,acid_nox,cf_std,0.00016344259
-West Bank,acid_nox,cf_std,0.030667946
-Western Sahara,acid_nox,cf_std,0.056201078
-Yemen,acid_nox,cf_std,0.08841534
-Zambia,acid_nox,cf_std,0.04653384
-Zimbabwe,acid_nox,cf_std,0.08385429
-Abyei,acid_nh3,cf_mean,0.9973236
-Afghanistan,acid_nh3,cf_mean,3.7508836
-Aksai Chin,acid_nh3,cf_mean,5.1654325
-Albania,acid_nh3,cf_mean,2.3080664
-Algeria,acid_nh3,cf_mean,1.0270166
-American Samoa,acid_nh3,cf_mean,0.004923022
-Andorra,acid_nh3,cf_mean,3.3729568
-Angola,acid_nh3,cf_mean,0.82458687
-Anguilla,acid_nh3,cf_mean,0.58223283
-Antarctica,acid_nh3,cf_mean,0.00033028814
-Antigua and Barbuda,acid_nh3,cf_mean,0.5987738
-Argentina,acid_nh3,cf_mean,0.68521017
-Armenia,acid_nh3,cf_mean,3.6395319
-Aruba,acid_nh3,cf_mean,0.50793797
-Arunachal Pradesh,acid_nh3,cf_mean,2.5539882
-Ashmore and Cartier Islands,acid_nh3,cf_mean,0.17027055
-Australia,acid_nh3,cf_mean,0.48410332
-Austria,acid_nh3,cf_mean,7.3270073
-Azerbaijan,acid_nh3,cf_mean,2.7543669
-Azores Islands,acid_nh3,cf_mean,0.34125787
-Bahamas,acid_nh3,cf_mean,1.0187274
-Bahrain,acid_nh3,cf_mean,2.157576
-Baker Island,acid_nh3,cf_mean,0.0115693435
-Bangladesh,acid_nh3,cf_mean,0.7267835
-Barbados,acid_nh3,cf_mean,0.58770454
-Bassas da India,acid_nh3,cf_mean,0.47493744
-Belarus,acid_nh3,cf_mean,2.6895976
-Belgium,acid_nh3,cf_mean,4.7252836
-Belize,acid_nh3,cf_mean,0.6194382
-Benin,acid_nh3,cf_mean,0.545606
-Bermuda,acid_nh3,cf_mean,0.6037995
-Bhutan,acid_nh3,cf_mean,3.605022
-Bird Island,acid_nh3,cf_mean,0.5721691
-Bolivia,acid_nh3,cf_mean,1.4586781
-Bosnia and Herzegovina,acid_nh3,cf_mean,4.8657293
-Botswana,acid_nh3,cf_mean,1.2971666
-Bouvet Island,acid_nh3,cf_mean,0.006870412
-Brazil,acid_nh3,cf_mean,1.3483347
-British Indian Ocean Territory,acid_nh3,cf_mean,0.13240457
-British Virgin Islands,acid_nh3,cf_mean,0.58223283
-Brunei Darussalam,acid_nh3,cf_mean,0.3190725
-Bulgaria,acid_nh3,cf_mean,2.3873842
-Burkina Faso,acid_nh3,cf_mean,0.7935584
-Burundi,acid_nh3,cf_mean,0.9252896
-Cambodia,acid_nh3,cf_mean,0.47873777
-Cameroon,acid_nh3,cf_mean,1.0106589
-Canada,acid_nh3,cf_mean,4.1515317
-Cape Verde,acid_nh3,cf_mean,0.48731485
-Cayman Islands,acid_nh3,cf_mean,0.74105346
-Central African Republic,acid_nh3,cf_mean,1.5035576
-Chad,acid_nh3,cf_mean,1.5842321
-Chile,acid_nh3,cf_mean,1.7222486
-China,acid_nh3,cf_mean,3.6665137
-China/India,acid_nh3,cf_mean,3.7968755
-Christmas Island,acid_nh3,cf_mean,0.15656723
-Clipperton Island,acid_nh3,cf_mean,0.33776304
-Cocos (Keeling) Islands,acid_nh3,cf_mean,0.1473592
-Colombia,acid_nh3,cf_mean,1.2162411
-Comoros,acid_nh3,cf_mean,0.38874707
-Congo,acid_nh3,cf_mean,1.6336768
-Cook Islands,acid_nh3,cf_mean,0.0017411466
-Costa Rica,acid_nh3,cf_mean,0.6446257
-Croatia,acid_nh3,cf_mean,4.5334535
-Cuba,acid_nh3,cf_mean,0.9109193
-Cyprus,acid_nh3,cf_mean,1.1108243
-Czech Republic,acid_nh3,cf_mean,7.756037
-Côte d'Ivoire,acid_nh3,cf_mean,0.71758807
-Dem People's Rep of Korea,acid_nh3,cf_mean,5.445804
-Democratic Republic of the Congo,acid_nh3,cf_mean,1.0720624
-Denmark,acid_nh3,cf_mean,4.0314875
-Djibouti,acid_nh3,cf_mean,0.7703629
-Dominica,acid_nh3,cf_mean,0.5920119
-Dominican Republic,acid_nh3,cf_mean,0.52892536
-Ecuador,acid_nh3,cf_mean,1.125927
-Egypt,acid_nh3,cf_mean,1.787448
-El Salvador,acid_nh3,cf_mean,0.5555252
-Equatorial Guinea,acid_nh3,cf_mean,1.1443523
-Eritrea,acid_nh3,cf_mean,0.95397395
-Estonia,acid_nh3,cf_mean,2.6567771
-Ethiopia,acid_nh3,cf_mean,0.77103806
-Europa Island,acid_nh3,cf_mean,0.5122951
-Falkland Islands (Malvinas),acid_nh3,cf_mean,0.09313526
-Faroe Islands,acid_nh3,cf_mean,0.776038
-Fiji,acid_nh3,cf_mean,0.0153626995
-Finland,acid_nh3,cf_mean,2.5162508
-France,acid_nh3,cf_mean,3.7682316
-French Guiana,acid_nh3,cf_mean,0.94814384
-French Polynesia,acid_nh3,cf_mean,0.0008215833
-French Southern and Antarctic Territories,acid_nh3,cf_mean,0.0025757153
-Gabon,acid_nh3,cf_mean,1.4766115
-Gambia,acid_nh3,cf_mean,0.791801
-Gaza Strip,acid_nh3,cf_mean,2.106156
-Georgia,acid_nh3,cf_mean,4.45606
-Germany,acid_nh3,cf_mean,4.7660666
-Ghana,acid_nh3,cf_mean,0.54055536
-Gibraltar,acid_nh3,cf_mean,0.7756854
-Glorioso Island,acid_nh3,cf_mean,0.3545144
-Greece,acid_nh3,cf_mean,1.475087
-Greenland,acid_nh3,cf_mean,0.1032012
-Grenada,acid_nh3,cf_mean,0.59480464
-Guadeloupe,acid_nh3,cf_mean,0.5911491
-Guam,acid_nh3,cf_mean,0.1880516
-Guatemala,acid_nh3,cf_mean,0.66543794
-Guernsey,acid_nh3,cf_mean,1.3924708
-Guinea,acid_nh3,cf_mean,0.98207295
-Guinea-Bissau,acid_nh3,cf_mean,0.79190063
-Guyana,acid_nh3,cf_mean,1.8028219
-Haiti,acid_nh3,cf_mean,0.5522071
-Hala'ib triangle,acid_nh3,cf_mean,1.3131672
-Heard Island and McDonald Islands,acid_nh3,cf_mean,0.0018512051
-Holy See,acid_nh3,cf_mean,2.7903666
-Honduras,acid_nh3,cf_mean,0.5466631
-Hong Kong,acid_nh3,cf_mean,0.90789807
-Howland Island,acid_nh3,cf_mean,0.0115693435
-Hungary,acid_nh3,cf_mean,4.5358825
-Iceland,acid_nh3,cf_mean,1.0438031
-Ilemi triangle,acid_nh3,cf_mean,0.7808627
-India,acid_nh3,cf_mean,0.9961945
-Indonesia,acid_nh3,cf_mean,0.29882175
-Iran  (Islamic Republic of),acid_nh3,cf_mean,1.8800629
-Iraq,acid_nh3,cf_mean,1.48874
-Ireland,acid_nh3,cf_mean,0.42169434
-Isle of Man,acid_nh3,cf_mean,0.898545
-Israel,acid_nh3,cf_mean,4.870281
-Italy,acid_nh3,cf_mean,3.9409077
-Jamaica,acid_nh3,cf_mean,0.59120524
-Jammu and Kashmir,acid_nh3,cf_mean,4.8908377
-Japan,acid_nh3,cf_mean,1.8884274
-Jarvis Island,acid_nh3,cf_mean,0.0029721071
-Jersey,acid_nh3,cf_mean,1.5159678
-Johnston Atoll,acid_nh3,cf_mean,0.030735262
-Jordan,acid_nh3,cf_mean,2.4156814
-Juan de Nova Island,acid_nh3,cf_mean,0.39101985
-Kazakhstan,acid_nh3,cf_mean,2.8458118
-Kenya,acid_nh3,cf_mean,0.9212128
-Kingman Reef,acid_nh3,cf_mean,0.0056320806
-Kiribati,acid_nh3,cf_mean,0.011784705
-Kuril islands,acid_nh3,cf_mean,1.1427978
-Kuwait,acid_nh3,cf_mean,2.9156637
-Kyrgyzstan,acid_nh3,cf_mean,12.580326
-Lao People's Democratic Republic,acid_nh3,cf_mean,0.8142419
-Latvia,acid_nh3,cf_mean,2.7751198
-Lebanon,acid_nh3,cf_mean,1.2511789
-Lesotho,acid_nh3,cf_mean,0.67825097
-Liberia,acid_nh3,cf_mean,1.5668492
-Libya,acid_nh3,cf_mean,1.0523579
-Liechtenstein,acid_nh3,cf_mean,5.436216
-Lithuania,acid_nh3,cf_mean,3.1342092
-Luxembourg,acid_nh3,cf_mean,6.4425597
-Ma'tan al-Sarra,acid_nh3,cf_mean,1.1724168
-Macau,acid_nh3,cf_mean,0.90789807
-Madagascar,acid_nh3,cf_mean,0.86713
-Madeira Islands,acid_nh3,cf_mean,0.6333567
-Malawi,acid_nh3,cf_mean,1.1927257
-Malaysia,acid_nh3,cf_mean,0.33697703
-Maldives,acid_nh3,cf_mean,0.1580697
-Mali,acid_nh3,cf_mean,1.9777906
-Malta,acid_nh3,cf_mean,1.1934354
-Marshall Islands,acid_nh3,cf_mean,0.032599237
-Martinique,acid_nh3,cf_mean,0.5862229
-Mauritania,acid_nh3,cf_mean,1.9827259
-Mauritius,acid_nh3,cf_mean,0.18895231
-Mayotte,acid_nh3,cf_mean,0.35385823
-Mexico,acid_nh3,cf_mean,1.1582173
-Micronesia (Federated States of),acid_nh3,cf_mean,0.071578115
-Midway Island,acid_nh3,cf_mean,0.04470198
-"Moldova, Republic of",acid_nh3,cf_mean,1.8606884
-Monaco,acid_nh3,cf_mean,5.7240205
-Mongolia,acid_nh3,cf_mean,1.7975751
-Montenegro,acid_nh3,cf_mean,3.1533608
-Montserrat,acid_nh3,cf_mean,0.5920119
-Morocco,acid_nh3,cf_mean,0.7796229
-Mozambique,acid_nh3,cf_mean,0.8557712
-Myanmar,acid_nh3,cf_mean,0.93382585
-Namibia,acid_nh3,cf_mean,1.3477619
-Nauru,acid_nh3,cf_mean,0.021415025
-Navassa Island,acid_nh3,cf_mean,0.56218237
-Nepal,acid_nh3,cf_mean,1.8112515
-Netherlands,acid_nh3,cf_mean,1.4007968
-Netherlands Antilles,acid_nh3,cf_mean,0.5277434
-New Caledonia,acid_nh3,cf_mean,0.04024842
-New Zealand,acid_nh3,cf_mean,0.5595664
-Nicaragua,acid_nh3,cf_mean,0.5344442
-Niger,acid_nh3,cf_mean,1.268214
-Nigeria,acid_nh3,cf_mean,0.7755755
-Niue,acid_nh3,cf_mean,0.005862903
-Norfolk Island,acid_nh3,cf_mean,0.04206869
-Northern Mariana Islands,acid_nh3,cf_mean,0.16529466
-Norway,acid_nh3,cf_mean,3.2690287
-Oman,acid_nh3,cf_mean,1.0946082
-Pakistan,acid_nh3,cf_mean,3.6235254
-Palau,acid_nh3,cf_mean,0.21163577
-Palmyra Atoll,acid_nh3,cf_mean,0.0051650773
-Panama,acid_nh3,cf_mean,0.5657523
-Papua New Guinea,acid_nh3,cf_mean,0.20041132
-Paracel Islands,acid_nh3,cf_mean,0.589862
-Paraguay,acid_nh3,cf_mean,0.6329248
-Peru,acid_nh3,cf_mean,2.224168
-Philippines,acid_nh3,cf_mean,0.40014243
-Pitcairn,acid_nh3,cf_mean,0.005033872
-Poland,acid_nh3,cf_mean,5.2215395
-Portugal,acid_nh3,cf_mean,1.203187
-Puerto Rico,acid_nh3,cf_mean,0.5683997
-Qatar,acid_nh3,cf_mean,2.256155
-Republic of Korea,acid_nh3,cf_mean,1.9625223
-Romania,acid_nh3,cf_mean,4.5511723
-Russian Federation,acid_nh3,cf_mean,2.1967833
-Rwanda,acid_nh3,cf_mean,1.0312349
-Réunion,acid_nh3,cf_mean,0.21335256
-Saint Helena,acid_nh3,cf_mean,0.09451332
-Saint Kitts and Nevis,acid_nh3,cf_mean,0.5825284
-Saint Lucia,acid_nh3,cf_mean,0.5862229
-Saint Pierre et Miquelon,acid_nh3,cf_mean,3.2436574
-Saint Vincent and the Grenadines,acid_nh3,cf_mean,0.58974296
-Samoa,acid_nh3,cf_mean,0.005782269
-San Marino,acid_nh3,cf_mean,3.880791
-Sao Tome and Principe,acid_nh3,cf_mean,0.4191368
-Saudi Arabia,acid_nh3,cf_mean,3.0067258
-Scarborough Reef,acid_nh3,cf_mean,0.54865444
-Senegal,acid_nh3,cf_mean,1.1708753
-Senkaku Islands,acid_nh3,cf_mean,0.79248434
-Serbia,acid_nh3,cf_mean,4.076318
-Seychelles,acid_nh3,cf_mean,0.2910919
-Sierra Leone,acid_nh3,cf_mean,1.4330966
-Singapore,acid_nh3,cf_mean,0.3172852
-Slovakia,acid_nh3,cf_mean,6.3447366
-Slovenia,acid_nh3,cf_mean,6.680703
-Solomon Islands,acid_nh3,cf_mean,0.03165131
-Somalia,acid_nh3,cf_mean,1.1584058
-South Africa,acid_nh3,cf_mean,1.1100483
-South Georgia and the South Sandwich Islands,acid_nh3,cf_mean,0.028543057
-South Sudan,acid_nh3,cf_mean,1.0120239
-Spain,acid_nh3,cf_mean,1.4233625
-Spratly Islands,acid_nh3,cf_mean,0.45611548
-Sri Lanka,acid_nh3,cf_mean,0.20735757
-Sudan,acid_nh3,cf_mean,1.5036536
-Suriname,acid_nh3,cf_mean,1.301585
-Svalbard and Jan Mayen Islands,acid_nh3,cf_mean,0.15781999
-Swaziland,acid_nh3,cf_mean,0.533554
-Sweden,acid_nh3,cf_mean,4.171677
-Switzerland,acid_nh3,cf_mean,6.325689
-Syrian Arab Republic,acid_nh3,cf_mean,1.2054349
-Taiwan,acid_nh3,cf_mean,0.9927998
-Tajikistan,acid_nh3,cf_mean,5.270679
-Thailand,acid_nh3,cf_mean,0.53779733
-The former Yugoslav Republic of Macedonia,acid_nh3,cf_mean,3.7319882
-Timor-Leste,acid_nh3,cf_mean,0.17179993
-Togo,acid_nh3,cf_mean,0.49552613
-Tokelau,acid_nh3,cf_mean,0.005124988
-Tonga,acid_nh3,cf_mean,0.011094551
-Trinidad and Tobago,acid_nh3,cf_mean,0.59356886
-Tromelin Island,acid_nh3,cf_mean,0.2488203
-Tunisia,acid_nh3,cf_mean,1.0207752
-Turkey,acid_nh3,cf_mean,1.7921188
-Turkmenistan,acid_nh3,cf_mean,3.2188194
-Turks and Caicos islands,acid_nh3,cf_mean,0.6771477
-Tuvalu,acid_nh3,cf_mean,0.01139545
-U.K. of Great Britain and Northern Ireland,acid_nh3,cf_mean,1.4394984
-Uganda,acid_nh3,cf_mean,0.88186413
-Ukraine,acid_nh3,cf_mean,2.0619652
-United Arab Emirates,acid_nh3,cf_mean,2.371743
-United Republic of Tanzania,acid_nh3,cf_mean,0.6293616
-United States Virgin Islands,acid_nh3,cf_mean,0.58122253
-United States of America,acid_nh3,cf_mean,3.8383985
-Uruguay,acid_nh3,cf_mean,0.30013537
-Uzbekistan,acid_nh3,cf_mean,2.9122705
-Vanuatu,acid_nh3,cf_mean,0.02701824
-Venezuela,acid_nh3,cf_mean,1.2616374
-Viet Nam,acid_nh3,cf_mean,0.7550314
-Wake Island,acid_nh3,cf_mean,0.078469954
-Wallis and Futuna,acid_nh3,cf_mean,0.009612423
-West Bank,acid_nh3,cf_mean,1.4911174
-Western Sahara,acid_nh3,cf_mean,0.8306397
-Yemen,acid_nh3,cf_mean,1.358435
-Zambia,acid_nh3,cf_mean,0.7876669
-Zimbabwe,acid_nh3,cf_mean,0.71399075
-Abyei,acid_nh3,cf_median,0.9973236
-Afghanistan,acid_nh3,cf_median,2.85508
-Aksai Chin,acid_nh3,cf_median,5.0025916
-Albania,acid_nh3,cf_median,2.2074742
-Algeria,acid_nh3,cf_median,1.0201205
-American Samoa,acid_nh3,cf_median,0.005434525
-Andorra,acid_nh3,cf_median,3.3729568
-Angola,acid_nh3,cf_median,0.75282454
-Anguilla,acid_nh3,cf_median,0.58223283
-Antarctica,acid_nh3,cf_median,0.0
-Antigua and Barbuda,acid_nh3,cf_median,0.59907794
-Argentina,acid_nh3,cf_median,0.4995703
-Armenia,acid_nh3,cf_median,3.7042985
-Aruba,acid_nh3,cf_median,0.5184352
-Arunachal Pradesh,acid_nh3,cf_median,2.2978225
-Ashmore and Cartier Islands,acid_nh3,cf_median,0.17027055
-Australia,acid_nh3,cf_median,0.2487756
-Austria,acid_nh3,cf_median,6.9055543
-Azerbaijan,acid_nh3,cf_median,2.1528902
-Azores Islands,acid_nh3,cf_median,0.3632452
-Bahamas,acid_nh3,cf_median,1.0668176
-Bahrain,acid_nh3,cf_median,2.157576
-Baker Island,acid_nh3,cf_median,0.0115693435
-Bangladesh,acid_nh3,cf_median,0.6954331
-Barbados,acid_nh3,cf_median,0.58770454
-Bassas da India,acid_nh3,cf_median,0.47493744
-Belarus,acid_nh3,cf_median,2.4669511
-Belgium,acid_nh3,cf_median,4.171258
-Belize,acid_nh3,cf_median,0.6314643
-Benin,acid_nh3,cf_median,0.54241633
-Bermuda,acid_nh3,cf_median,0.6037995
-Bhutan,acid_nh3,cf_median,4.1108127
-Bird Island,acid_nh3,cf_median,0.5721691
-Bolivia,acid_nh3,cf_median,0.9069718
-Bosnia and Herzegovina,acid_nh3,cf_median,5.3081613
-Botswana,acid_nh3,cf_median,0.8151404
-Bouvet Island,acid_nh3,cf_median,0.006870412
-Brazil,acid_nh3,cf_median,1.1720908
-British Indian Ocean Territory,acid_nh3,cf_median,0.13575208
-British Virgin Islands,acid_nh3,cf_median,0.58223283
-Brunei Darussalam,acid_nh3,cf_median,0.32480904
-Bulgaria,acid_nh3,cf_median,1.7758404
-Burkina Faso,acid_nh3,cf_median,0.6648128
-Burundi,acid_nh3,cf_median,0.9891152
-Cambodia,acid_nh3,cf_median,0.46983266
-Cameroon,acid_nh3,cf_median,0.92280173
-Canada,acid_nh3,cf_median,2.861579
-Cape Verde,acid_nh3,cf_median,0.5003339
-Cayman Islands,acid_nh3,cf_median,0.7544438
-Central African Republic,acid_nh3,cf_median,1.4215539
-Chad,acid_nh3,cf_median,1.0937102
-Chile,acid_nh3,cf_median,1.5507295
-China,acid_nh3,cf_median,2.7214558
-China/India,acid_nh3,cf_median,4.0039086
-Christmas Island,acid_nh3,cf_median,0.15656723
-Clipperton Island,acid_nh3,cf_median,0.33776304
-Cocos (Keeling) Islands,acid_nh3,cf_median,0.1473592
-Colombia,acid_nh3,cf_median,1.1666551
-Comoros,acid_nh3,cf_median,0.38874707
-Congo,acid_nh3,cf_median,1.693985
-Cook Islands,acid_nh3,cf_median,0.0016765861
-Costa Rica,acid_nh3,cf_median,0.7215843
-Croatia,acid_nh3,cf_median,4.583826
-Cuba,acid_nh3,cf_median,0.79198724
-Cyprus,acid_nh3,cf_median,1.0771359
-Czech Republic,acid_nh3,cf_median,7.8504243
-Côte d'Ivoire,acid_nh3,cf_median,0.6233205
-Dem People's Rep of Korea,acid_nh3,cf_median,5.6829915
-Democratic Republic of the Congo,acid_nh3,cf_median,0.8577076
-Denmark,acid_nh3,cf_median,6.172715
-Djibouti,acid_nh3,cf_median,0.77618355
-Dominica,acid_nh3,cf_median,0.5920119
-Dominican Republic,acid_nh3,cf_median,0.5201729
-Ecuador,acid_nh3,cf_median,0.9923715
-Egypt,acid_nh3,cf_median,1.134605
-El Salvador,acid_nh3,cf_median,0.55609584
-Equatorial Guinea,acid_nh3,cf_median,1.354989
-Eritrea,acid_nh3,cf_median,0.9636601
-Estonia,acid_nh3,cf_median,2.4793198
-Ethiopia,acid_nh3,cf_median,0.70774883
-Europa Island,acid_nh3,cf_median,0.5122951
-Falkland Islands (Malvinas),acid_nh3,cf_median,0.088725634
-Faroe Islands,acid_nh3,cf_median,0.7780159
-Fiji,acid_nh3,cf_median,0.015956538
-Finland,acid_nh3,cf_median,2.432556
-France,acid_nh3,cf_median,3.3773823
-French Guiana,acid_nh3,cf_median,0.898545
-French Polynesia,acid_nh3,cf_median,0.0005985679
-French Southern and Antarctic Territories,acid_nh3,cf_median,0.0020444873
-Gabon,acid_nh3,cf_median,1.6726106
-Gambia,acid_nh3,cf_median,0.8212149
-Gaza Strip,acid_nh3,cf_median,2.106156
-Georgia,acid_nh3,cf_median,4.7598205
-Germany,acid_nh3,cf_median,5.436216
-Ghana,acid_nh3,cf_median,0.54696226
-Gibraltar,acid_nh3,cf_median,0.7756854
-Glorioso Island,acid_nh3,cf_median,0.3545144
-Greece,acid_nh3,cf_median,1.277512
-Greenland,acid_nh3,cf_median,0.0
-Grenada,acid_nh3,cf_median,0.59480464
-Guadeloupe,acid_nh3,cf_median,0.5920119
-Guam,acid_nh3,cf_median,0.18832752
-Guatemala,acid_nh3,cf_median,0.60119545
-Guernsey,acid_nh3,cf_median,1.3710693
-Guinea,acid_nh3,cf_median,0.7923636
-Guinea-Bissau,acid_nh3,cf_median,0.930669
-Guyana,acid_nh3,cf_median,1.7523738
-Haiti,acid_nh3,cf_median,0.5502546
-Hala'ib triangle,acid_nh3,cf_median,1.3501655
-Heard Island and McDonald Islands,acid_nh3,cf_median,0.0018476715
-Holy See,acid_nh3,cf_median,2.7903666
-Honduras,acid_nh3,cf_median,0.55609584
-Hong Kong,acid_nh3,cf_median,0.90789807
-Howland Island,acid_nh3,cf_median,0.0115693435
-Hungary,acid_nh3,cf_median,4.901579
-Iceland,acid_nh3,cf_median,0.8370001
-Ilemi triangle,acid_nh3,cf_median,0.81383693
-India,acid_nh3,cf_median,0.66635585
-Indonesia,acid_nh3,cf_median,0.28370467
-Iran  (Islamic Republic of),acid_nh3,cf_median,1.6889689
-Iraq,acid_nh3,cf_median,1.4495258
-Ireland,acid_nh3,cf_median,0.20794174
-Isle of Man,acid_nh3,cf_median,0.898545
-Israel,acid_nh3,cf_median,2.106156
-Italy,acid_nh3,cf_median,2.833384
-Jamaica,acid_nh3,cf_median,0.57608014
-Jammu and Kashmir,acid_nh3,cf_median,4.7976665
-Japan,acid_nh3,cf_median,1.6574564
-Jarvis Island,acid_nh3,cf_median,0.0029721071
-Jersey,acid_nh3,cf_median,1.5159678
-Johnston Atoll,acid_nh3,cf_median,0.030735262
-Jordan,acid_nh3,cf_median,1.4511689
-Juan de Nova Island,acid_nh3,cf_median,0.39216936
-Kazakhstan,acid_nh3,cf_median,1.6174984
-Kenya,acid_nh3,cf_median,0.80398554
-Kingman Reef,acid_nh3,cf_median,0.0058647785
-Kiribati,acid_nh3,cf_median,0.015887843
-Kuril islands,acid_nh3,cf_median,1.675154
-Kuwait,acid_nh3,cf_median,1.8366818
-Kyrgyzstan,acid_nh3,cf_median,11.6652975
-Lao People's Democratic Republic,acid_nh3,cf_median,0.758037
-Latvia,acid_nh3,cf_median,2.8250322
-Lebanon,acid_nh3,cf_median,1.2511789
-Lesotho,acid_nh3,cf_median,0.4518868
-Liberia,acid_nh3,cf_median,1.7949256
-Libya,acid_nh3,cf_median,1.0581417
-Liechtenstein,acid_nh3,cf_median,5.436216
-Lithuania,acid_nh3,cf_median,2.8335538
-Luxembourg,acid_nh3,cf_median,6.4425597
-Ma'tan al-Sarra,acid_nh3,cf_median,1.1724168
-Macau,acid_nh3,cf_median,0.90789807
-Madagascar,acid_nh3,cf_median,0.66831374
-Madeira Islands,acid_nh3,cf_median,0.6352128
-Malawi,acid_nh3,cf_median,1.4793838
-Malaysia,acid_nh3,cf_median,0.3236841
-Maldives,acid_nh3,cf_median,0.1562012
-Mali,acid_nh3,cf_median,1.0457823
-Malta,acid_nh3,cf_median,1.1934354
-Marshall Islands,acid_nh3,cf_median,0.030597644
-Martinique,acid_nh3,cf_median,0.5862229
-Mauritania,acid_nh3,cf_median,1.0093623
-Mauritius,acid_nh3,cf_median,0.18323119
-Mayotte,acid_nh3,cf_median,0.3545144
-Mexico,acid_nh3,cf_median,1.1261461
-Micronesia (Federated States of),acid_nh3,cf_median,0.05290271
-Midway Island,acid_nh3,cf_median,0.043729056
-"Moldova, Republic of",acid_nh3,cf_median,1.5568266
-Monaco,acid_nh3,cf_median,5.7240205
-Mongolia,acid_nh3,cf_median,1.2966744
-Montenegro,acid_nh3,cf_median,2.2074742
-Montserrat,acid_nh3,cf_median,0.5920119
-Morocco,acid_nh3,cf_median,0.77658856
-Mozambique,acid_nh3,cf_median,0.4892065
-Myanmar,acid_nh3,cf_median,0.78424937
-Namibia,acid_nh3,cf_median,0.56057566
-Nauru,acid_nh3,cf_median,0.021415025
-Navassa Island,acid_nh3,cf_median,0.5587079
-Nepal,acid_nh3,cf_median,1.7783237
-Netherlands,acid_nh3,cf_median,0.2587855
-Netherlands Antilles,acid_nh3,cf_median,0.5184352
-New Caledonia,acid_nh3,cf_median,0.039096203
-New Zealand,acid_nh3,cf_median,0.37374803
-Nicaragua,acid_nh3,cf_median,0.53363705
-Niger,acid_nh3,cf_median,1.0281825
-Nigeria,acid_nh3,cf_median,0.6438924
-Niue,acid_nh3,cf_median,0.005994764
-Norfolk Island,acid_nh3,cf_median,0.042895928
-Northern Mariana Islands,acid_nh3,cf_median,0.16383892
-Norway,acid_nh3,cf_median,3.3556798
-Oman,acid_nh3,cf_median,0.94850504
-Pakistan,acid_nh3,cf_median,2.5000794
-Palau,acid_nh3,cf_median,0.21302368
-Palmyra Atoll,acid_nh3,cf_median,0.0051650773
-Panama,acid_nh3,cf_median,0.5453723
-Papua New Guinea,acid_nh3,cf_median,0.15131561
-Paracel Islands,acid_nh3,cf_median,0.58272564
-Paraguay,acid_nh3,cf_median,0.61678374
-Peru,acid_nh3,cf_median,1.6130847
-Philippines,acid_nh3,cf_median,0.36396316
-Pitcairn,acid_nh3,cf_median,0.004931776
-Poland,acid_nh3,cf_median,5.64774
-Portugal,acid_nh3,cf_median,1.2768984
-Puerto Rico,acid_nh3,cf_median,0.5686193
-Qatar,acid_nh3,cf_median,2.157576
-Republic of Korea,acid_nh3,cf_median,1.9333097
-Romania,acid_nh3,cf_median,4.9537616
-Russian Federation,acid_nh3,cf_median,1.2117983
-Rwanda,acid_nh3,cf_median,0.9891152
-Réunion,acid_nh3,cf_median,0.2122545
-Saint Helena,acid_nh3,cf_median,0.12950584
-Saint Kitts and Nevis,acid_nh3,cf_median,0.58223283
-Saint Lucia,acid_nh3,cf_median,0.5862229
-Saint Pierre et Miquelon,acid_nh3,cf_median,1.2168171
-Saint Vincent and the Grenadines,acid_nh3,cf_median,0.5862229
-Samoa,acid_nh3,cf_median,0.005434525
-San Marino,acid_nh3,cf_median,3.802718
-Sao Tome and Principe,acid_nh3,cf_median,0.41202554
-Saudi Arabia,acid_nh3,cf_median,1.7561864
-Scarborough Reef,acid_nh3,cf_median,0.54865444
-Senegal,acid_nh3,cf_median,0.8212149
-Senkaku Islands,acid_nh3,cf_median,0.79248434
-Serbia,acid_nh3,cf_median,4.310084
-Seychelles,acid_nh3,cf_median,0.27156615
-Sierra Leone,acid_nh3,cf_median,1.7949256
-Singapore,acid_nh3,cf_median,0.3172852
-Slovakia,acid_nh3,cf_median,5.360308
-Slovenia,acid_nh3,cf_median,8.259229
-Solomon Islands,acid_nh3,cf_median,0.031737283
-Somalia,acid_nh3,cf_median,0.6353295
-South Africa,acid_nh3,cf_median,0.56935424
-South Georgia and the South Sandwich Islands,acid_nh3,cf_median,0.03026544
-South Sudan,acid_nh3,cf_median,0.82442975
-Spain,acid_nh3,cf_median,1.2014331
-Spratly Islands,acid_nh3,cf_median,0.4438641
-Sri Lanka,acid_nh3,cf_median,0.20961179
-Sudan,acid_nh3,cf_median,1.0862364
-Suriname,acid_nh3,cf_median,1.4073441
-Svalbard and Jan Mayen Islands,acid_nh3,cf_median,0.17361419
-Swaziland,acid_nh3,cf_median,0.5200479
-Sweden,acid_nh3,cf_median,3.0818691
-Switzerland,acid_nh3,cf_median,5.84082
-Syrian Arab Republic,acid_nh3,cf_median,1.1844274
-Taiwan,acid_nh3,cf_median,1.0569756
-Tajikistan,acid_nh3,cf_median,5.4809427
-Thailand,acid_nh3,cf_median,0.5181027
-The former Yugoslav Republic of Macedonia,acid_nh3,cf_median,3.8996978
-Timor-Leste,acid_nh3,cf_median,0.18570657
-Togo,acid_nh3,cf_median,0.47771397
-Tokelau,acid_nh3,cf_median,0.004987188
-Tonga,acid_nh3,cf_median,0.010169887
-Trinidad and Tobago,acid_nh3,cf_median,0.5934683
-Tromelin Island,acid_nh3,cf_median,0.2488203
-Tunisia,acid_nh3,cf_median,0.9689372
-Turkey,acid_nh3,cf_median,1.4248563
-Turkmenistan,acid_nh3,cf_median,2.4209504
-Turks and Caicos islands,acid_nh3,cf_median,0.67709875
-Tuvalu,acid_nh3,cf_median,0.010931325
-U.K. of Great Britain and Northern Ireland,acid_nh3,cf_median,1.3925749
-Uganda,acid_nh3,cf_median,0.9030787
-Ukraine,acid_nh3,cf_median,1.3783859
-United Arab Emirates,acid_nh3,cf_median,2.332511
-United Republic of Tanzania,acid_nh3,cf_median,0.546195
-United States Virgin Islands,acid_nh3,cf_median,0.58223283
-United States of America,acid_nh3,cf_median,2.8224173
-Uruguay,acid_nh3,cf_median,0.31293595
-Uzbekistan,acid_nh3,cf_median,2.7545812
-Vanuatu,acid_nh3,cf_median,0.02841622
-Venezuela,acid_nh3,cf_median,1.3593731
-Viet Nam,acid_nh3,cf_median,0.6615858
-Wake Island,acid_nh3,cf_median,0.078469954
-Wallis and Futuna,acid_nh3,cf_median,0.008741278
-West Bank,acid_nh3,cf_median,1.4511689
-Western Sahara,acid_nh3,cf_median,0.8307387
-Yemen,acid_nh3,cf_median,1.0143304
-Zambia,acid_nh3,cf_median,0.6841161
-Zimbabwe,acid_nh3,cf_median,0.5359627
-Abyei,acid_nh3,cf_std,4.440892e-16
-Afghanistan,acid_nh3,cf_std,1.7518601
-Aksai Chin,acid_nh3,cf_std,1.0509763
-Albania,acid_nh3,cf_std,0.9395862
-Algeria,acid_nh3,cf_std,0.098915815
-American Samoa,acid_nh3,cf_std,0.0007271215
-Andorra,acid_nh3,cf_std,0.0
-Angola,acid_nh3,cf_std,0.2841111
-Anguilla,acid_nh3,cf_std,1.110223e-16
-Antarctica,acid_nh3,cf_std,0.002989777
-Antigua and Barbuda,acid_nh3,cf_std,0.0012095481
-Argentina,acid_nh3,cf_std,0.6417973
-Armenia,acid_nh3,cf_std,0.5488892
-Aruba,acid_nh3,cf_std,0.0109817665
-Arunachal Pradesh,acid_nh3,cf_std,0.6485112
-Ashmore and Cartier Islands,acid_nh3,cf_std,0.0
-Australia,acid_nh3,cf_std,0.6580227
-Austria,acid_nh3,cf_std,1.0522771
-Azerbaijan,acid_nh3,cf_std,1.0205976
-Azores Islands,acid_nh3,cf_std,0.02398481
-Bahamas,acid_nh3,cf_std,0.18098876
-Bahrain,acid_nh3,cf_std,0.0
-Baker Island,acid_nh3,cf_std,0.0
-Bangladesh,acid_nh3,cf_std,0.1138891
-Barbados,acid_nh3,cf_std,0.0
-Bassas da India,acid_nh3,cf_std,0.0
-Belarus,acid_nh3,cf_std,0.8146412
-Belgium,acid_nh3,cf_std,1.4771583
-Belize,acid_nh3,cf_std,0.01461767
-Benin,acid_nh3,cf_std,0.06730132
-Bermuda,acid_nh3,cf_std,0.0
-Bhutan,acid_nh3,cf_std,1.2200136
-Bird Island,acid_nh3,cf_std,0.0
-Bolivia,acid_nh3,cf_std,1.3087631
-Bosnia and Herzegovina,acid_nh3,cf_std,0.6812593
-Botswana,acid_nh3,cf_std,1.0616411
-Bouvet Island,acid_nh3,cf_std,0.0
-Brazil,acid_nh3,cf_std,0.69629604
-British Indian Ocean Territory,acid_nh3,cf_std,0.004069396
-British Virgin Islands,acid_nh3,cf_std,0.0
-Brunei Darussalam,acid_nh3,cf_std,0.010164175
-Bulgaria,acid_nh3,cf_std,0.8064797
-Burkina Faso,acid_nh3,cf_std,0.24459983
-Burundi,acid_nh3,cf_std,0.12052292
-Cambodia,acid_nh3,cf_std,0.035389893
-Cameroon,acid_nh3,cf_std,0.29882434
-Canada,acid_nh3,cf_std,3.7392304
-Cape Verde,acid_nh3,cf_std,0.016917536
-Cayman Islands,acid_nh3,cf_std,0.02597456
-Central African Republic,acid_nh3,cf_std,0.5744112
-Chad,acid_nh3,cf_std,1.2720901
-Chile,acid_nh3,cf_std,1.38316
-China,acid_nh3,cf_std,3.3560946
-China/India,acid_nh3,cf_std,0.6505835
-Christmas Island,acid_nh3,cf_std,0.0
-Clipperton Island,acid_nh3,cf_std,0.0
-Cocos (Keeling) Islands,acid_nh3,cf_std,0.0
-Colombia,acid_nh3,cf_std,0.49122494
-Comoros,acid_nh3,cf_std,0.0
-Congo,acid_nh3,cf_std,0.5880797
-Cook Islands,acid_nh3,cf_std,0.00041775944
-Costa Rica,acid_nh3,cf_std,0.10472751
-Croatia,acid_nh3,cf_std,1.3603786
-Cuba,acid_nh3,cf_std,0.29563022
-Cyprus,acid_nh3,cf_std,0.23935908
-Czech Republic,acid_nh3,cf_std,0.3689526
-Côte d'Ivoire,acid_nh3,cf_std,0.32651988
-Dem People's Rep of Korea,acid_nh3,cf_std,2.209626
-Democratic Republic of the Congo,acid_nh3,cf_std,0.50431854
-Denmark,acid_nh3,cf_std,3.2347069
-Djibouti,acid_nh3,cf_std,0.011726484
-Dominica,acid_nh3,cf_std,0.0
-Dominican Republic,acid_nh3,cf_std,0.023318041
-Ecuador,acid_nh3,cf_std,0.3864693
-Egypt,acid_nh3,cf_std,2.3536544
-El Salvador,acid_nh3,cf_std,0.004552073
-Equatorial Guinea,acid_nh3,cf_std,0.33481917
-Eritrea,acid_nh3,cf_std,0.08144804
-Estonia,acid_nh3,cf_std,0.38487816
-Ethiopia,acid_nh3,cf_std,0.37071323
-Europa Island,acid_nh3,cf_std,0.0
-Falkland Islands (Malvinas),acid_nh3,cf_std,0.0066561545
-Faroe Islands,acid_nh3,cf_std,0.014171113
-Fiji,acid_nh3,cf_std,0.001391817
-Finland,acid_nh3,cf_std,1.0673321
-France,acid_nh3,cf_std,1.5409895
-French Guiana,acid_nh3,cf_std,0.23141864
-French Polynesia,acid_nh3,cf_std,0.0005067928
-French Southern and Antarctic Territories,acid_nh3,cf_std,0.0020351075
-Gabon,acid_nh3,cf_std,0.54426616
-Gambia,acid_nh3,cf_std,0.041048005
-Gaza Strip,acid_nh3,cf_std,0.0
-Georgia,acid_nh3,cf_std,0.80071783
-Germany,acid_nh3,cf_std,2.467626
-Ghana,acid_nh3,cf_std,0.086314425
-Gibraltar,acid_nh3,cf_std,0.0
-Glorioso Island,acid_nh3,cf_std,0.0
-Greece,acid_nh3,cf_std,0.59254915
-Greenland,acid_nh3,cf_std,0.27936667
-Grenada,acid_nh3,cf_std,0.0
-Guadeloupe,acid_nh3,cf_std,0.0027737226
-Guam,acid_nh3,cf_std,0.0016353001
-Guatemala,acid_nh3,cf_std,0.13360015
-Guernsey,acid_nh3,cf_std,0.11259328
-Guinea,acid_nh3,cf_std,0.3713178
-Guinea-Bissau,acid_nh3,cf_std,0.16795374
-Guyana,acid_nh3,cf_std,0.93613344
-Haiti,acid_nh3,cf_std,0.032564938
-Hala'ib triangle,acid_nh3,cf_std,0.0741156
-Heard Island and McDonald Islands,acid_nh3,cf_std,6.577664e-06
-Holy See,acid_nh3,cf_std,0.0
-Honduras,acid_nh3,cf_std,0.054445613
-Hong Kong,acid_nh3,cf_std,0.0
-Howland Island,acid_nh3,cf_std,0.0
-Hungary,acid_nh3,cf_std,1.1111336
-Iceland,acid_nh3,cf_std,0.6222232
-Ilemi triangle,acid_nh3,cf_std,0.041512657
-India,acid_nh3,cf_std,0.985131
-Indonesia,acid_nh3,cf_std,0.12895878
-Iran  (Islamic Republic of),acid_nh3,cf_std,0.5323348
-Iraq,acid_nh3,cf_std,0.24674651
-Ireland,acid_nh3,cf_std,0.3500686
-Isle of Man,acid_nh3,cf_std,0.0
-Israel,acid_nh3,cf_std,4.5878205
-Italy,acid_nh3,cf_std,2.2795465
-Jamaica,acid_nh3,cf_std,0.018656576
-Jammu and Kashmir,acid_nh3,cf_std,1.50775
-Japan,acid_nh3,cf_std,0.93989736
-Jarvis Island,acid_nh3,cf_std,0.0
-Jersey,acid_nh3,cf_std,0.0
-Johnston Atoll,acid_nh3,cf_std,0.0
-Jordan,acid_nh3,cf_std,1.1364083
-Juan de Nova Island,acid_nh3,cf_std,0.003251306
-Kazakhstan,acid_nh3,cf_std,2.914091
-Kenya,acid_nh3,cf_std,0.5807819
-Kingman Reef,acid_nh3,cf_std,0.0003759678
-Kiribati,acid_nh3,cf_std,0.007773897
-Kuril islands,acid_nh3,cf_std,0.6037281
-Kuwait,acid_nh3,cf_std,2.1287665
-Kyrgyzstan,acid_nh3,cf_std,5.975781
-Lao People's Democratic Republic,acid_nh3,cf_std,0.23376358
-Latvia,acid_nh3,cf_std,0.38404515
-Lebanon,acid_nh3,cf_std,2.220446e-16
-Lesotho,acid_nh3,cf_std,0.6824859
-Liberia,acid_nh3,cf_std,0.5250931
-Libya,acid_nh3,cf_std,0.0382265
-Liechtenstein,acid_nh3,cf_std,0.0
-Lithuania,acid_nh3,cf_std,0.4279369
-Luxembourg,acid_nh3,cf_std,0.0
-Ma'tan al-Sarra,acid_nh3,cf_std,0.0
-Macau,acid_nh3,cf_std,0.0
-Madagascar,acid_nh3,cf_std,0.57696724
-Madeira Islands,acid_nh3,cf_std,0.006524744
-Malawi,acid_nh3,cf_std,0.5418399
-Malaysia,acid_nh3,cf_std,0.061366577
-Maldives,acid_nh3,cf_std,0.006626414
-Mali,acid_nh3,cf_std,2.6490815
-Malta,acid_nh3,cf_std,0.0
-Marshall Islands,acid_nh3,cf_std,0.00571487
-Martinique,acid_nh3,cf_std,1.110223e-16
-Mauritania,acid_nh3,cf_std,2.5896533
-Mauritius,acid_nh3,cf_std,0.021061573
-Mayotte,acid_nh3,cf_std,0.002098422
-Mexico,acid_nh3,cf_std,0.3083504
-Micronesia (Federated States of),acid_nh3,cf_std,0.047555223
-Midway Island,acid_nh3,cf_std,0.0016851557
-"Moldova, Republic of",acid_nh3,cf_std,0.9696885
-Monaco,acid_nh3,cf_std,0.0
-Mongolia,acid_nh3,cf_std,1.459491
-Montenegro,acid_nh3,cf_std,1.3204013
-Montserrat,acid_nh3,cf_std,1.110223e-16
-Morocco,acid_nh3,cf_std,0.056184046
-Mozambique,acid_nh3,cf_std,0.8561323
-Myanmar,acid_nh3,cf_std,0.5482029
-Namibia,acid_nh3,cf_std,1.751538
-Nauru,acid_nh3,cf_std,0.0
-Navassa Island,acid_nh3,cf_std,0.0069488953
-Nepal,acid_nh3,cf_std,0.5570155
-Netherlands,acid_nh3,cf_std,1.784213
-Netherlands Antilles,acid_nh3,cf_std,0.022158293
-New Caledonia,acid_nh3,cf_std,0.0029631136
-New Zealand,acid_nh3,cf_std,0.4466297
-Nicaragua,acid_nh3,cf_std,0.050780203
-Niger,acid_nh3,cf_std,0.89160424
-Nigeria,acid_nh3,cf_std,0.6270509
-Niue,acid_nh3,cf_std,0.00020243673
-Norfolk Island,acid_nh3,cf_std,0.0011987812
-Northern Mariana Islands,acid_nh3,cf_std,0.016921649
-Norway,acid_nh3,cf_std,2.6928844
-Oman,acid_nh3,cf_std,0.3456618
-Pakistan,acid_nh3,cf_std,2.2877247
-Palau,acid_nh3,cf_std,0.005277155
-Palmyra Atoll,acid_nh3,cf_std,8.6736174e-19
-Panama,acid_nh3,cf_std,0.1105512
-Papua New Guinea,acid_nh3,cf_std,0.122138046
-Paracel Islands,acid_nh3,cf_std,0.018069357
-Paraguay,acid_nh3,cf_std,0.071981736
-Peru,acid_nh3,cf_std,1.8659228
-Philippines,acid_nh3,cf_std,0.12590206
-Pitcairn,acid_nh3,cf_std,0.0009913852
-Poland,acid_nh3,cf_std,2.9235013
-Portugal,acid_nh3,cf_std,0.1261044
-Puerto Rico,acid_nh3,cf_std,0.0021076577
-Qatar,acid_nh3,cf_std,0.1527536
-Republic of Korea,acid_nh3,cf_std,0.50522727
-Romania,acid_nh3,cf_std,2.1994689
-Russian Federation,acid_nh3,cf_std,2.8954527
-Rwanda,acid_nh3,cf_std,0.046799894
-Réunion,acid_nh3,cf_std,0.0020702814
-Saint Helena,acid_nh3,cf_std,0.043716718
-Saint Kitts and Nevis,acid_nh3,cf_std,0.0009030584
-Saint Lucia,acid_nh3,cf_std,1.110223e-16
-Saint Pierre et Miquelon,acid_nh3,cf_std,2.4756556
-Saint Vincent and the Grenadines,acid_nh3,cf_std,0.0042015216
-Samoa,acid_nh3,cf_std,0.0006442095
-San Marino,acid_nh3,cf_std,0.12136927
-Sao Tome and Principe,acid_nh3,cf_std,0.014533927
-Saudi Arabia,acid_nh3,cf_std,2.9742224
-Scarborough Reef,acid_nh3,cf_std,1.110223e-16
-Senegal,acid_nh3,cf_std,0.7856333
-Senkaku Islands,acid_nh3,cf_std,0.0
-Serbia,acid_nh3,cf_std,0.6524607
-Seychelles,acid_nh3,cf_std,0.054914284
-Sierra Leone,acid_nh3,cf_std,0.44328582
-Singapore,acid_nh3,cf_std,5.551115e-17
-Slovakia,acid_nh3,cf_std,1.573794
-Slovenia,acid_nh3,cf_std,1.7840011
-Solomon Islands,acid_nh3,cf_std,0.0058964086
-Somalia,acid_nh3,cf_std,1.2359587
-South Africa,acid_nh3,cf_std,1.0722345
-South Georgia and the South Sandwich Islands,acid_nh3,cf_std,0.0061691334
-South Sudan,acid_nh3,cf_std,0.45204943
-Spain,acid_nh3,cf_std,0.6905773
-Spratly Islands,acid_nh3,cf_std,0.023121998
-Sri Lanka,acid_nh3,cf_std,0.01121243
-Sudan,acid_nh3,cf_std,1.4180669
-Suriname,acid_nh3,cf_std,0.43245727
-Svalbard and Jan Mayen Islands,acid_nh3,cf_std,0.047685515
-Swaziland,acid_nh3,cf_std,0.029693965
-Sweden,acid_nh3,cf_std,3.623822
-Switzerland,acid_nh3,cf_std,0.8568958
-Syrian Arab Republic,acid_nh3,cf_std,0.076415904
-Taiwan,acid_nh3,cf_std,0.11691481
-Tajikistan,acid_nh3,cf_std,1.7734703
-Thailand,acid_nh3,cf_std,0.12584017
-The former Yugoslav Republic of Macedonia,acid_nh3,cf_std,0.48969153
-Timor-Leste,acid_nh3,cf_std,0.02251894
-Togo,acid_nh3,cf_std,0.043207835
-Tokelau,acid_nh3,cf_std,0.00036699415
-Tonga,acid_nh3,cf_std,0.0020229844
-Trinidad and Tobago,acid_nh3,cf_std,0.00035251383
-Tromelin Island,acid_nh3,cf_std,2.7755576e-17
-Tunisia,acid_nh3,cf_std,0.08055892
-Turkey,acid_nh3,cf_std,0.96929914
-Turkmenistan,acid_nh3,cf_std,1.6098615
-Turks and Caicos islands,acid_nh3,cf_std,0.00023355859
-Tuvalu,acid_nh3,cf_std,0.00076079025
-U.K. of Great Britain and Northern Ireland,acid_nh3,cf_std,0.81397486
-Uganda,acid_nh3,cf_std,0.12326775
-Ukraine,acid_nh3,cf_std,1.5369024
-United Arab Emirates,acid_nh3,cf_std,0.69941854
-United Republic of Tanzania,acid_nh3,cf_std,0.1734515
-United States Virgin Islands,acid_nh3,cf_std,0.0032399572
-United States of America,acid_nh3,cf_std,3.0116725
-Uruguay,acid_nh3,cf_std,0.038201876
-Uzbekistan,acid_nh3,cf_std,1.2686714
-Vanuatu,acid_nh3,cf_std,0.00262675
-Venezuela,acid_nh3,cf_std,0.68683606
-Viet Nam,acid_nh3,cf_std,0.28669506
-Wake Island,acid_nh3,cf_std,0.0
-Wallis and Futuna,acid_nh3,cf_std,0.000984733
-West Bank,acid_nh3,cf_std,0.14853585
-Western Sahara,acid_nh3,cf_std,0.048578195
-Yemen,acid_nh3,cf_std,1.0365801
-Zambia,acid_nh3,cf_std,0.27642682
-Zimbabwe,acid_nh3,cf_std,0.534461
 Abyei,acid_so2,cf_mean,1.1147006
 Afghanistan,acid_so2,cf_mean,2.5858223
 Aksai Chin,acid_so2,cf_mean,3.324237
@@ -2483,3 +827,1659 @@ Western Sahara,acid_so2,cf_std,0.05905456
 Yemen,acid_so2,cf_std,0.3270255
 Zambia,acid_so2,cf_std,0.5796035
 Zimbabwe,acid_so2,cf_std,0.1845048
+Abyei,acid_nh3,cf_mean,0.9973236
+Afghanistan,acid_nh3,cf_mean,3.7508836
+Aksai Chin,acid_nh3,cf_mean,5.1654325
+Albania,acid_nh3,cf_mean,2.3080664
+Algeria,acid_nh3,cf_mean,1.0270166
+American Samoa,acid_nh3,cf_mean,0.004923022
+Andorra,acid_nh3,cf_mean,3.3729568
+Angola,acid_nh3,cf_mean,0.82458687
+Anguilla,acid_nh3,cf_mean,0.58223283
+Antarctica,acid_nh3,cf_mean,0.00033028814
+Antigua and Barbuda,acid_nh3,cf_mean,0.5987738
+Argentina,acid_nh3,cf_mean,0.68521017
+Armenia,acid_nh3,cf_mean,3.6395319
+Aruba,acid_nh3,cf_mean,0.50793797
+Arunachal Pradesh,acid_nh3,cf_mean,2.5539882
+Ashmore and Cartier Islands,acid_nh3,cf_mean,0.17027055
+Australia,acid_nh3,cf_mean,0.48410332
+Austria,acid_nh3,cf_mean,7.3270073
+Azerbaijan,acid_nh3,cf_mean,2.7543669
+Azores Islands,acid_nh3,cf_mean,0.34125787
+Bahamas,acid_nh3,cf_mean,1.0187274
+Bahrain,acid_nh3,cf_mean,2.157576
+Baker Island,acid_nh3,cf_mean,0.0115693435
+Bangladesh,acid_nh3,cf_mean,0.7267835
+Barbados,acid_nh3,cf_mean,0.58770454
+Bassas da India,acid_nh3,cf_mean,0.47493744
+Belarus,acid_nh3,cf_mean,2.6895976
+Belgium,acid_nh3,cf_mean,4.7252836
+Belize,acid_nh3,cf_mean,0.6194382
+Benin,acid_nh3,cf_mean,0.545606
+Bermuda,acid_nh3,cf_mean,0.6037995
+Bhutan,acid_nh3,cf_mean,3.605022
+Bird Island,acid_nh3,cf_mean,0.5721691
+Bolivia,acid_nh3,cf_mean,1.4586781
+Bosnia and Herzegovina,acid_nh3,cf_mean,4.8657293
+Botswana,acid_nh3,cf_mean,1.2971666
+Bouvet Island,acid_nh3,cf_mean,0.006870412
+Brazil,acid_nh3,cf_mean,1.3483347
+British Indian Ocean Territory,acid_nh3,cf_mean,0.13240457
+British Virgin Islands,acid_nh3,cf_mean,0.58223283
+Brunei Darussalam,acid_nh3,cf_mean,0.3190725
+Bulgaria,acid_nh3,cf_mean,2.3873842
+Burkina Faso,acid_nh3,cf_mean,0.7935584
+Burundi,acid_nh3,cf_mean,0.9252896
+Cambodia,acid_nh3,cf_mean,0.47873777
+Cameroon,acid_nh3,cf_mean,1.0106589
+Canada,acid_nh3,cf_mean,4.1515317
+Cape Verde,acid_nh3,cf_mean,0.48731485
+Cayman Islands,acid_nh3,cf_mean,0.74105346
+Central African Republic,acid_nh3,cf_mean,1.5035576
+Chad,acid_nh3,cf_mean,1.5842321
+Chile,acid_nh3,cf_mean,1.7222486
+China,acid_nh3,cf_mean,3.6665137
+China/India,acid_nh3,cf_mean,3.7968755
+Christmas Island,acid_nh3,cf_mean,0.15656723
+Clipperton Island,acid_nh3,cf_mean,0.33776304
+Cocos (Keeling) Islands,acid_nh3,cf_mean,0.1473592
+Colombia,acid_nh3,cf_mean,1.2162411
+Comoros,acid_nh3,cf_mean,0.38874707
+Congo,acid_nh3,cf_mean,1.6336768
+Cook Islands,acid_nh3,cf_mean,0.0017411466
+Costa Rica,acid_nh3,cf_mean,0.6446257
+Croatia,acid_nh3,cf_mean,4.5334535
+Cuba,acid_nh3,cf_mean,0.9109193
+Cyprus,acid_nh3,cf_mean,1.1108243
+Czech Republic,acid_nh3,cf_mean,7.756037
+Côte d'Ivoire,acid_nh3,cf_mean,0.71758807
+Dem People's Rep of Korea,acid_nh3,cf_mean,5.445804
+Democratic Republic of the Congo,acid_nh3,cf_mean,1.0720624
+Denmark,acid_nh3,cf_mean,4.0314875
+Djibouti,acid_nh3,cf_mean,0.7703629
+Dominica,acid_nh3,cf_mean,0.5920119
+Dominican Republic,acid_nh3,cf_mean,0.52892536
+Ecuador,acid_nh3,cf_mean,1.125927
+Egypt,acid_nh3,cf_mean,1.787448
+El Salvador,acid_nh3,cf_mean,0.5555252
+Equatorial Guinea,acid_nh3,cf_mean,1.1443523
+Eritrea,acid_nh3,cf_mean,0.95397395
+Estonia,acid_nh3,cf_mean,2.6567771
+Ethiopia,acid_nh3,cf_mean,0.77103806
+Europa Island,acid_nh3,cf_mean,0.5122951
+Falkland Islands (Malvinas),acid_nh3,cf_mean,0.09313526
+Faroe Islands,acid_nh3,cf_mean,0.776038
+Fiji,acid_nh3,cf_mean,0.0153626995
+Finland,acid_nh3,cf_mean,2.5162508
+France,acid_nh3,cf_mean,3.7682316
+French Guiana,acid_nh3,cf_mean,0.94814384
+French Polynesia,acid_nh3,cf_mean,0.0008215833
+French Southern and Antarctic Territories,acid_nh3,cf_mean,0.0025757153
+Gabon,acid_nh3,cf_mean,1.4766115
+Gambia,acid_nh3,cf_mean,0.791801
+Gaza Strip,acid_nh3,cf_mean,2.106156
+Georgia,acid_nh3,cf_mean,4.45606
+Germany,acid_nh3,cf_mean,4.7660666
+Ghana,acid_nh3,cf_mean,0.54055536
+Gibraltar,acid_nh3,cf_mean,0.7756854
+Glorioso Island,acid_nh3,cf_mean,0.3545144
+Greece,acid_nh3,cf_mean,1.475087
+Greenland,acid_nh3,cf_mean,0.1032012
+Grenada,acid_nh3,cf_mean,0.59480464
+Guadeloupe,acid_nh3,cf_mean,0.5911491
+Guam,acid_nh3,cf_mean,0.1880516
+Guatemala,acid_nh3,cf_mean,0.66543794
+Guernsey,acid_nh3,cf_mean,1.3924708
+Guinea,acid_nh3,cf_mean,0.98207295
+Guinea-Bissau,acid_nh3,cf_mean,0.79190063
+Guyana,acid_nh3,cf_mean,1.8028219
+Haiti,acid_nh3,cf_mean,0.5522071
+Hala'ib triangle,acid_nh3,cf_mean,1.3131672
+Heard Island and McDonald Islands,acid_nh3,cf_mean,0.0018512051
+Holy See,acid_nh3,cf_mean,2.7903666
+Honduras,acid_nh3,cf_mean,0.5466631
+Hong Kong,acid_nh3,cf_mean,0.90789807
+Howland Island,acid_nh3,cf_mean,0.0115693435
+Hungary,acid_nh3,cf_mean,4.5358825
+Iceland,acid_nh3,cf_mean,1.0438031
+Ilemi triangle,acid_nh3,cf_mean,0.7808627
+India,acid_nh3,cf_mean,0.9961945
+Indonesia,acid_nh3,cf_mean,0.29882175
+Iran  (Islamic Republic of),acid_nh3,cf_mean,1.8800629
+Iraq,acid_nh3,cf_mean,1.48874
+Ireland,acid_nh3,cf_mean,0.42169434
+Isle of Man,acid_nh3,cf_mean,0.898545
+Israel,acid_nh3,cf_mean,4.870281
+Italy,acid_nh3,cf_mean,3.9409077
+Jamaica,acid_nh3,cf_mean,0.59120524
+Jammu and Kashmir,acid_nh3,cf_mean,4.8908377
+Japan,acid_nh3,cf_mean,1.8884274
+Jarvis Island,acid_nh3,cf_mean,0.0029721071
+Jersey,acid_nh3,cf_mean,1.5159678
+Johnston Atoll,acid_nh3,cf_mean,0.030735262
+Jordan,acid_nh3,cf_mean,2.4156814
+Juan de Nova Island,acid_nh3,cf_mean,0.39101985
+Kazakhstan,acid_nh3,cf_mean,2.8458118
+Kenya,acid_nh3,cf_mean,0.9212128
+Kingman Reef,acid_nh3,cf_mean,0.0056320806
+Kiribati,acid_nh3,cf_mean,0.011784705
+Kuril islands,acid_nh3,cf_mean,1.1427978
+Kuwait,acid_nh3,cf_mean,2.9156637
+Kyrgyzstan,acid_nh3,cf_mean,12.580326
+Lao People's Democratic Republic,acid_nh3,cf_mean,0.8142419
+Latvia,acid_nh3,cf_mean,2.7751198
+Lebanon,acid_nh3,cf_mean,1.2511789
+Lesotho,acid_nh3,cf_mean,0.67825097
+Liberia,acid_nh3,cf_mean,1.5668492
+Libya,acid_nh3,cf_mean,1.0523579
+Liechtenstein,acid_nh3,cf_mean,5.436216
+Lithuania,acid_nh3,cf_mean,3.1342092
+Luxembourg,acid_nh3,cf_mean,6.4425597
+Ma'tan al-Sarra,acid_nh3,cf_mean,1.1724168
+Macau,acid_nh3,cf_mean,0.90789807
+Madagascar,acid_nh3,cf_mean,0.86713
+Madeira Islands,acid_nh3,cf_mean,0.6333567
+Malawi,acid_nh3,cf_mean,1.1927257
+Malaysia,acid_nh3,cf_mean,0.33697703
+Maldives,acid_nh3,cf_mean,0.1580697
+Mali,acid_nh3,cf_mean,1.9777906
+Malta,acid_nh3,cf_mean,1.1934354
+Marshall Islands,acid_nh3,cf_mean,0.032599237
+Martinique,acid_nh3,cf_mean,0.5862229
+Mauritania,acid_nh3,cf_mean,1.9827259
+Mauritius,acid_nh3,cf_mean,0.18895231
+Mayotte,acid_nh3,cf_mean,0.35385823
+Mexico,acid_nh3,cf_mean,1.1582173
+Micronesia (Federated States of),acid_nh3,cf_mean,0.071578115
+Midway Island,acid_nh3,cf_mean,0.04470198
+"Moldova, Republic of",acid_nh3,cf_mean,1.8606884
+Monaco,acid_nh3,cf_mean,5.7240205
+Mongolia,acid_nh3,cf_mean,1.7975751
+Montenegro,acid_nh3,cf_mean,3.1533608
+Montserrat,acid_nh3,cf_mean,0.5920119
+Morocco,acid_nh3,cf_mean,0.7796229
+Mozambique,acid_nh3,cf_mean,0.8557712
+Myanmar,acid_nh3,cf_mean,0.93382585
+Namibia,acid_nh3,cf_mean,1.3477619
+Nauru,acid_nh3,cf_mean,0.021415025
+Navassa Island,acid_nh3,cf_mean,0.56218237
+Nepal,acid_nh3,cf_mean,1.8112515
+Netherlands,acid_nh3,cf_mean,1.4007968
+Netherlands Antilles,acid_nh3,cf_mean,0.5277434
+New Caledonia,acid_nh3,cf_mean,0.04024842
+New Zealand,acid_nh3,cf_mean,0.5595664
+Nicaragua,acid_nh3,cf_mean,0.5344442
+Niger,acid_nh3,cf_mean,1.268214
+Nigeria,acid_nh3,cf_mean,0.7755755
+Niue,acid_nh3,cf_mean,0.005862903
+Norfolk Island,acid_nh3,cf_mean,0.04206869
+Northern Mariana Islands,acid_nh3,cf_mean,0.16529466
+Norway,acid_nh3,cf_mean,3.2690287
+Oman,acid_nh3,cf_mean,1.0946082
+Pakistan,acid_nh3,cf_mean,3.6235254
+Palau,acid_nh3,cf_mean,0.21163577
+Palmyra Atoll,acid_nh3,cf_mean,0.0051650773
+Panama,acid_nh3,cf_mean,0.5657523
+Papua New Guinea,acid_nh3,cf_mean,0.20041132
+Paracel Islands,acid_nh3,cf_mean,0.589862
+Paraguay,acid_nh3,cf_mean,0.6329248
+Peru,acid_nh3,cf_mean,2.224168
+Philippines,acid_nh3,cf_mean,0.40014243
+Pitcairn,acid_nh3,cf_mean,0.005033872
+Poland,acid_nh3,cf_mean,5.2215395
+Portugal,acid_nh3,cf_mean,1.203187
+Puerto Rico,acid_nh3,cf_mean,0.5683997
+Qatar,acid_nh3,cf_mean,2.256155
+Republic of Korea,acid_nh3,cf_mean,1.9625223
+Romania,acid_nh3,cf_mean,4.5511723
+Russian Federation,acid_nh3,cf_mean,2.1967833
+Rwanda,acid_nh3,cf_mean,1.0312349
+Réunion,acid_nh3,cf_mean,0.21335256
+Saint Helena,acid_nh3,cf_mean,0.09451332
+Saint Kitts and Nevis,acid_nh3,cf_mean,0.5825284
+Saint Lucia,acid_nh3,cf_mean,0.5862229
+Saint Pierre et Miquelon,acid_nh3,cf_mean,3.2436574
+Saint Vincent and the Grenadines,acid_nh3,cf_mean,0.58974296
+Samoa,acid_nh3,cf_mean,0.005782269
+San Marino,acid_nh3,cf_mean,3.880791
+Sao Tome and Principe,acid_nh3,cf_mean,0.4191368
+Saudi Arabia,acid_nh3,cf_mean,3.0067258
+Scarborough Reef,acid_nh3,cf_mean,0.54865444
+Senegal,acid_nh3,cf_mean,1.1708753
+Senkaku Islands,acid_nh3,cf_mean,0.79248434
+Serbia,acid_nh3,cf_mean,4.076318
+Seychelles,acid_nh3,cf_mean,0.2910919
+Sierra Leone,acid_nh3,cf_mean,1.4330966
+Singapore,acid_nh3,cf_mean,0.3172852
+Slovakia,acid_nh3,cf_mean,6.3447366
+Slovenia,acid_nh3,cf_mean,6.680703
+Solomon Islands,acid_nh3,cf_mean,0.03165131
+Somalia,acid_nh3,cf_mean,1.1584058
+South Africa,acid_nh3,cf_mean,1.1100483
+South Georgia and the South Sandwich Islands,acid_nh3,cf_mean,0.028543057
+South Sudan,acid_nh3,cf_mean,1.0120239
+Spain,acid_nh3,cf_mean,1.4233625
+Spratly Islands,acid_nh3,cf_mean,0.45611548
+Sri Lanka,acid_nh3,cf_mean,0.20735757
+Sudan,acid_nh3,cf_mean,1.5036536
+Suriname,acid_nh3,cf_mean,1.301585
+Svalbard and Jan Mayen Islands,acid_nh3,cf_mean,0.15781999
+Swaziland,acid_nh3,cf_mean,0.533554
+Sweden,acid_nh3,cf_mean,4.171677
+Switzerland,acid_nh3,cf_mean,6.325689
+Syrian Arab Republic,acid_nh3,cf_mean,1.2054349
+Taiwan,acid_nh3,cf_mean,0.9927998
+Tajikistan,acid_nh3,cf_mean,5.270679
+Thailand,acid_nh3,cf_mean,0.53779733
+The former Yugoslav Republic of Macedonia,acid_nh3,cf_mean,3.7319882
+Timor-Leste,acid_nh3,cf_mean,0.17179993
+Togo,acid_nh3,cf_mean,0.49552613
+Tokelau,acid_nh3,cf_mean,0.005124988
+Tonga,acid_nh3,cf_mean,0.011094551
+Trinidad and Tobago,acid_nh3,cf_mean,0.59356886
+Tromelin Island,acid_nh3,cf_mean,0.2488203
+Tunisia,acid_nh3,cf_mean,1.0207752
+Turkey,acid_nh3,cf_mean,1.7921188
+Turkmenistan,acid_nh3,cf_mean,3.2188194
+Turks and Caicos islands,acid_nh3,cf_mean,0.6771477
+Tuvalu,acid_nh3,cf_mean,0.01139545
+U.K. of Great Britain and Northern Ireland,acid_nh3,cf_mean,1.4394984
+Uganda,acid_nh3,cf_mean,0.88186413
+Ukraine,acid_nh3,cf_mean,2.0619652
+United Arab Emirates,acid_nh3,cf_mean,2.371743
+United Republic of Tanzania,acid_nh3,cf_mean,0.6293616
+United States Virgin Islands,acid_nh3,cf_mean,0.58122253
+United States of America,acid_nh3,cf_mean,3.8383985
+Uruguay,acid_nh3,cf_mean,0.30013537
+Uzbekistan,acid_nh3,cf_mean,2.9122705
+Vanuatu,acid_nh3,cf_mean,0.02701824
+Venezuela,acid_nh3,cf_mean,1.2616374
+Viet Nam,acid_nh3,cf_mean,0.7550314
+Wake Island,acid_nh3,cf_mean,0.078469954
+Wallis and Futuna,acid_nh3,cf_mean,0.009612423
+West Bank,acid_nh3,cf_mean,1.4911174
+Western Sahara,acid_nh3,cf_mean,0.8306397
+Yemen,acid_nh3,cf_mean,1.358435
+Zambia,acid_nh3,cf_mean,0.7876669
+Zimbabwe,acid_nh3,cf_mean,0.71399075
+Abyei,acid_nh3,cf_median,0.9973236
+Afghanistan,acid_nh3,cf_median,2.85508
+Aksai Chin,acid_nh3,cf_median,5.0025916
+Albania,acid_nh3,cf_median,2.2074742
+Algeria,acid_nh3,cf_median,1.0201205
+American Samoa,acid_nh3,cf_median,0.005434525
+Andorra,acid_nh3,cf_median,3.3729568
+Angola,acid_nh3,cf_median,0.75282454
+Anguilla,acid_nh3,cf_median,0.58223283
+Antarctica,acid_nh3,cf_median,0.0
+Antigua and Barbuda,acid_nh3,cf_median,0.59907794
+Argentina,acid_nh3,cf_median,0.4995703
+Armenia,acid_nh3,cf_median,3.7042985
+Aruba,acid_nh3,cf_median,0.5184352
+Arunachal Pradesh,acid_nh3,cf_median,2.2978225
+Ashmore and Cartier Islands,acid_nh3,cf_median,0.17027055
+Australia,acid_nh3,cf_median,0.2487756
+Austria,acid_nh3,cf_median,6.9055543
+Azerbaijan,acid_nh3,cf_median,2.1528902
+Azores Islands,acid_nh3,cf_median,0.3632452
+Bahamas,acid_nh3,cf_median,1.0668176
+Bahrain,acid_nh3,cf_median,2.157576
+Baker Island,acid_nh3,cf_median,0.0115693435
+Bangladesh,acid_nh3,cf_median,0.6954331
+Barbados,acid_nh3,cf_median,0.58770454
+Bassas da India,acid_nh3,cf_median,0.47493744
+Belarus,acid_nh3,cf_median,2.4669511
+Belgium,acid_nh3,cf_median,4.171258
+Belize,acid_nh3,cf_median,0.6314643
+Benin,acid_nh3,cf_median,0.54241633
+Bermuda,acid_nh3,cf_median,0.6037995
+Bhutan,acid_nh3,cf_median,4.1108127
+Bird Island,acid_nh3,cf_median,0.5721691
+Bolivia,acid_nh3,cf_median,0.9069718
+Bosnia and Herzegovina,acid_nh3,cf_median,5.3081613
+Botswana,acid_nh3,cf_median,0.8151404
+Bouvet Island,acid_nh3,cf_median,0.006870412
+Brazil,acid_nh3,cf_median,1.1720908
+British Indian Ocean Territory,acid_nh3,cf_median,0.13575208
+British Virgin Islands,acid_nh3,cf_median,0.58223283
+Brunei Darussalam,acid_nh3,cf_median,0.32480904
+Bulgaria,acid_nh3,cf_median,1.7758404
+Burkina Faso,acid_nh3,cf_median,0.6648128
+Burundi,acid_nh3,cf_median,0.9891152
+Cambodia,acid_nh3,cf_median,0.46983266
+Cameroon,acid_nh3,cf_median,0.92280173
+Canada,acid_nh3,cf_median,2.861579
+Cape Verde,acid_nh3,cf_median,0.5003339
+Cayman Islands,acid_nh3,cf_median,0.7544438
+Central African Republic,acid_nh3,cf_median,1.4215539
+Chad,acid_nh3,cf_median,1.0937102
+Chile,acid_nh3,cf_median,1.5507295
+China,acid_nh3,cf_median,2.7214558
+China/India,acid_nh3,cf_median,4.0039086
+Christmas Island,acid_nh3,cf_median,0.15656723
+Clipperton Island,acid_nh3,cf_median,0.33776304
+Cocos (Keeling) Islands,acid_nh3,cf_median,0.1473592
+Colombia,acid_nh3,cf_median,1.1666551
+Comoros,acid_nh3,cf_median,0.38874707
+Congo,acid_nh3,cf_median,1.693985
+Cook Islands,acid_nh3,cf_median,0.0016765861
+Costa Rica,acid_nh3,cf_median,0.7215843
+Croatia,acid_nh3,cf_median,4.583826
+Cuba,acid_nh3,cf_median,0.79198724
+Cyprus,acid_nh3,cf_median,1.0771359
+Czech Republic,acid_nh3,cf_median,7.8504243
+Côte d'Ivoire,acid_nh3,cf_median,0.6233205
+Dem People's Rep of Korea,acid_nh3,cf_median,5.6829915
+Democratic Republic of the Congo,acid_nh3,cf_median,0.8577076
+Denmark,acid_nh3,cf_median,6.172715
+Djibouti,acid_nh3,cf_median,0.77618355
+Dominica,acid_nh3,cf_median,0.5920119
+Dominican Republic,acid_nh3,cf_median,0.5201729
+Ecuador,acid_nh3,cf_median,0.9923715
+Egypt,acid_nh3,cf_median,1.134605
+El Salvador,acid_nh3,cf_median,0.55609584
+Equatorial Guinea,acid_nh3,cf_median,1.354989
+Eritrea,acid_nh3,cf_median,0.9636601
+Estonia,acid_nh3,cf_median,2.4793198
+Ethiopia,acid_nh3,cf_median,0.70774883
+Europa Island,acid_nh3,cf_median,0.5122951
+Falkland Islands (Malvinas),acid_nh3,cf_median,0.088725634
+Faroe Islands,acid_nh3,cf_median,0.7780159
+Fiji,acid_nh3,cf_median,0.015956538
+Finland,acid_nh3,cf_median,2.432556
+France,acid_nh3,cf_median,3.3773823
+French Guiana,acid_nh3,cf_median,0.898545
+French Polynesia,acid_nh3,cf_median,0.0005985679
+French Southern and Antarctic Territories,acid_nh3,cf_median,0.0020444873
+Gabon,acid_nh3,cf_median,1.6726106
+Gambia,acid_nh3,cf_median,0.8212149
+Gaza Strip,acid_nh3,cf_median,2.106156
+Georgia,acid_nh3,cf_median,4.7598205
+Germany,acid_nh3,cf_median,5.436216
+Ghana,acid_nh3,cf_median,0.54696226
+Gibraltar,acid_nh3,cf_median,0.7756854
+Glorioso Island,acid_nh3,cf_median,0.3545144
+Greece,acid_nh3,cf_median,1.277512
+Greenland,acid_nh3,cf_median,0.0
+Grenada,acid_nh3,cf_median,0.59480464
+Guadeloupe,acid_nh3,cf_median,0.5920119
+Guam,acid_nh3,cf_median,0.18832752
+Guatemala,acid_nh3,cf_median,0.60119545
+Guernsey,acid_nh3,cf_median,1.3710693
+Guinea,acid_nh3,cf_median,0.7923636
+Guinea-Bissau,acid_nh3,cf_median,0.930669
+Guyana,acid_nh3,cf_median,1.7523738
+Haiti,acid_nh3,cf_median,0.5502546
+Hala'ib triangle,acid_nh3,cf_median,1.3501655
+Heard Island and McDonald Islands,acid_nh3,cf_median,0.0018476715
+Holy See,acid_nh3,cf_median,2.7903666
+Honduras,acid_nh3,cf_median,0.55609584
+Hong Kong,acid_nh3,cf_median,0.90789807
+Howland Island,acid_nh3,cf_median,0.0115693435
+Hungary,acid_nh3,cf_median,4.901579
+Iceland,acid_nh3,cf_median,0.8370001
+Ilemi triangle,acid_nh3,cf_median,0.81383693
+India,acid_nh3,cf_median,0.66635585
+Indonesia,acid_nh3,cf_median,0.28370467
+Iran  (Islamic Republic of),acid_nh3,cf_median,1.6889689
+Iraq,acid_nh3,cf_median,1.4495258
+Ireland,acid_nh3,cf_median,0.20794174
+Isle of Man,acid_nh3,cf_median,0.898545
+Israel,acid_nh3,cf_median,2.106156
+Italy,acid_nh3,cf_median,2.833384
+Jamaica,acid_nh3,cf_median,0.57608014
+Jammu and Kashmir,acid_nh3,cf_median,4.7976665
+Japan,acid_nh3,cf_median,1.6574564
+Jarvis Island,acid_nh3,cf_median,0.0029721071
+Jersey,acid_nh3,cf_median,1.5159678
+Johnston Atoll,acid_nh3,cf_median,0.030735262
+Jordan,acid_nh3,cf_median,1.4511689
+Juan de Nova Island,acid_nh3,cf_median,0.39216936
+Kazakhstan,acid_nh3,cf_median,1.6174984
+Kenya,acid_nh3,cf_median,0.80398554
+Kingman Reef,acid_nh3,cf_median,0.0058647785
+Kiribati,acid_nh3,cf_median,0.015887843
+Kuril islands,acid_nh3,cf_median,1.675154
+Kuwait,acid_nh3,cf_median,1.8366818
+Kyrgyzstan,acid_nh3,cf_median,11.6652975
+Lao People's Democratic Republic,acid_nh3,cf_median,0.758037
+Latvia,acid_nh3,cf_median,2.8250322
+Lebanon,acid_nh3,cf_median,1.2511789
+Lesotho,acid_nh3,cf_median,0.4518868
+Liberia,acid_nh3,cf_median,1.7949256
+Libya,acid_nh3,cf_median,1.0581417
+Liechtenstein,acid_nh3,cf_median,5.436216
+Lithuania,acid_nh3,cf_median,2.8335538
+Luxembourg,acid_nh3,cf_median,6.4425597
+Ma'tan al-Sarra,acid_nh3,cf_median,1.1724168
+Macau,acid_nh3,cf_median,0.90789807
+Madagascar,acid_nh3,cf_median,0.66831374
+Madeira Islands,acid_nh3,cf_median,0.6352128
+Malawi,acid_nh3,cf_median,1.4793838
+Malaysia,acid_nh3,cf_median,0.3236841
+Maldives,acid_nh3,cf_median,0.1562012
+Mali,acid_nh3,cf_median,1.0457823
+Malta,acid_nh3,cf_median,1.1934354
+Marshall Islands,acid_nh3,cf_median,0.030597644
+Martinique,acid_nh3,cf_median,0.5862229
+Mauritania,acid_nh3,cf_median,1.0093623
+Mauritius,acid_nh3,cf_median,0.18323119
+Mayotte,acid_nh3,cf_median,0.3545144
+Mexico,acid_nh3,cf_median,1.1261461
+Micronesia (Federated States of),acid_nh3,cf_median,0.05290271
+Midway Island,acid_nh3,cf_median,0.043729056
+"Moldova, Republic of",acid_nh3,cf_median,1.5568266
+Monaco,acid_nh3,cf_median,5.7240205
+Mongolia,acid_nh3,cf_median,1.2966744
+Montenegro,acid_nh3,cf_median,2.2074742
+Montserrat,acid_nh3,cf_median,0.5920119
+Morocco,acid_nh3,cf_median,0.77658856
+Mozambique,acid_nh3,cf_median,0.4892065
+Myanmar,acid_nh3,cf_median,0.78424937
+Namibia,acid_nh3,cf_median,0.56057566
+Nauru,acid_nh3,cf_median,0.021415025
+Navassa Island,acid_nh3,cf_median,0.5587079
+Nepal,acid_nh3,cf_median,1.7783237
+Netherlands,acid_nh3,cf_median,0.2587855
+Netherlands Antilles,acid_nh3,cf_median,0.5184352
+New Caledonia,acid_nh3,cf_median,0.039096203
+New Zealand,acid_nh3,cf_median,0.37374803
+Nicaragua,acid_nh3,cf_median,0.53363705
+Niger,acid_nh3,cf_median,1.0281825
+Nigeria,acid_nh3,cf_median,0.6438924
+Niue,acid_nh3,cf_median,0.005994764
+Norfolk Island,acid_nh3,cf_median,0.042895928
+Northern Mariana Islands,acid_nh3,cf_median,0.16383892
+Norway,acid_nh3,cf_median,3.3556798
+Oman,acid_nh3,cf_median,0.94850504
+Pakistan,acid_nh3,cf_median,2.5000794
+Palau,acid_nh3,cf_median,0.21302368
+Palmyra Atoll,acid_nh3,cf_median,0.0051650773
+Panama,acid_nh3,cf_median,0.5453723
+Papua New Guinea,acid_nh3,cf_median,0.15131561
+Paracel Islands,acid_nh3,cf_median,0.58272564
+Paraguay,acid_nh3,cf_median,0.61678374
+Peru,acid_nh3,cf_median,1.6130847
+Philippines,acid_nh3,cf_median,0.36396316
+Pitcairn,acid_nh3,cf_median,0.004931776
+Poland,acid_nh3,cf_median,5.64774
+Portugal,acid_nh3,cf_median,1.2768984
+Puerto Rico,acid_nh3,cf_median,0.5686193
+Qatar,acid_nh3,cf_median,2.157576
+Republic of Korea,acid_nh3,cf_median,1.9333097
+Romania,acid_nh3,cf_median,4.9537616
+Russian Federation,acid_nh3,cf_median,1.2117983
+Rwanda,acid_nh3,cf_median,0.9891152
+Réunion,acid_nh3,cf_median,0.2122545
+Saint Helena,acid_nh3,cf_median,0.12950584
+Saint Kitts and Nevis,acid_nh3,cf_median,0.58223283
+Saint Lucia,acid_nh3,cf_median,0.5862229
+Saint Pierre et Miquelon,acid_nh3,cf_median,1.2168171
+Saint Vincent and the Grenadines,acid_nh3,cf_median,0.5862229
+Samoa,acid_nh3,cf_median,0.005434525
+San Marino,acid_nh3,cf_median,3.802718
+Sao Tome and Principe,acid_nh3,cf_median,0.41202554
+Saudi Arabia,acid_nh3,cf_median,1.7561864
+Scarborough Reef,acid_nh3,cf_median,0.54865444
+Senegal,acid_nh3,cf_median,0.8212149
+Senkaku Islands,acid_nh3,cf_median,0.79248434
+Serbia,acid_nh3,cf_median,4.310084
+Seychelles,acid_nh3,cf_median,0.27156615
+Sierra Leone,acid_nh3,cf_median,1.7949256
+Singapore,acid_nh3,cf_median,0.3172852
+Slovakia,acid_nh3,cf_median,5.360308
+Slovenia,acid_nh3,cf_median,8.259229
+Solomon Islands,acid_nh3,cf_median,0.031737283
+Somalia,acid_nh3,cf_median,0.6353295
+South Africa,acid_nh3,cf_median,0.56935424
+South Georgia and the South Sandwich Islands,acid_nh3,cf_median,0.03026544
+South Sudan,acid_nh3,cf_median,0.82442975
+Spain,acid_nh3,cf_median,1.2014331
+Spratly Islands,acid_nh3,cf_median,0.4438641
+Sri Lanka,acid_nh3,cf_median,0.20961179
+Sudan,acid_nh3,cf_median,1.0862364
+Suriname,acid_nh3,cf_median,1.4073441
+Svalbard and Jan Mayen Islands,acid_nh3,cf_median,0.17361419
+Swaziland,acid_nh3,cf_median,0.5200479
+Sweden,acid_nh3,cf_median,3.0818691
+Switzerland,acid_nh3,cf_median,5.84082
+Syrian Arab Republic,acid_nh3,cf_median,1.1844274
+Taiwan,acid_nh3,cf_median,1.0569756
+Tajikistan,acid_nh3,cf_median,5.4809427
+Thailand,acid_nh3,cf_median,0.5181027
+The former Yugoslav Republic of Macedonia,acid_nh3,cf_median,3.8996978
+Timor-Leste,acid_nh3,cf_median,0.18570657
+Togo,acid_nh3,cf_median,0.47771397
+Tokelau,acid_nh3,cf_median,0.004987188
+Tonga,acid_nh3,cf_median,0.010169887
+Trinidad and Tobago,acid_nh3,cf_median,0.5934683
+Tromelin Island,acid_nh3,cf_median,0.2488203
+Tunisia,acid_nh3,cf_median,0.9689372
+Turkey,acid_nh3,cf_median,1.4248563
+Turkmenistan,acid_nh3,cf_median,2.4209504
+Turks and Caicos islands,acid_nh3,cf_median,0.67709875
+Tuvalu,acid_nh3,cf_median,0.010931325
+U.K. of Great Britain and Northern Ireland,acid_nh3,cf_median,1.3925749
+Uganda,acid_nh3,cf_median,0.9030787
+Ukraine,acid_nh3,cf_median,1.3783859
+United Arab Emirates,acid_nh3,cf_median,2.332511
+United Republic of Tanzania,acid_nh3,cf_median,0.546195
+United States Virgin Islands,acid_nh3,cf_median,0.58223283
+United States of America,acid_nh3,cf_median,2.8224173
+Uruguay,acid_nh3,cf_median,0.31293595
+Uzbekistan,acid_nh3,cf_median,2.7545812
+Vanuatu,acid_nh3,cf_median,0.02841622
+Venezuela,acid_nh3,cf_median,1.3593731
+Viet Nam,acid_nh3,cf_median,0.6615858
+Wake Island,acid_nh3,cf_median,0.078469954
+Wallis and Futuna,acid_nh3,cf_median,0.008741278
+West Bank,acid_nh3,cf_median,1.4511689
+Western Sahara,acid_nh3,cf_median,0.8307387
+Yemen,acid_nh3,cf_median,1.0143304
+Zambia,acid_nh3,cf_median,0.6841161
+Zimbabwe,acid_nh3,cf_median,0.5359627
+Abyei,acid_nh3,cf_std,4.440892e-16
+Afghanistan,acid_nh3,cf_std,1.7518601
+Aksai Chin,acid_nh3,cf_std,1.0509763
+Albania,acid_nh3,cf_std,0.9395862
+Algeria,acid_nh3,cf_std,0.098915815
+American Samoa,acid_nh3,cf_std,0.0007271215
+Andorra,acid_nh3,cf_std,0.0
+Angola,acid_nh3,cf_std,0.2841111
+Anguilla,acid_nh3,cf_std,1.110223e-16
+Antarctica,acid_nh3,cf_std,0.002989777
+Antigua and Barbuda,acid_nh3,cf_std,0.0012095481
+Argentina,acid_nh3,cf_std,0.6417973
+Armenia,acid_nh3,cf_std,0.5488892
+Aruba,acid_nh3,cf_std,0.0109817665
+Arunachal Pradesh,acid_nh3,cf_std,0.6485112
+Ashmore and Cartier Islands,acid_nh3,cf_std,0.0
+Australia,acid_nh3,cf_std,0.6580227
+Austria,acid_nh3,cf_std,1.0522771
+Azerbaijan,acid_nh3,cf_std,1.0205976
+Azores Islands,acid_nh3,cf_std,0.02398481
+Bahamas,acid_nh3,cf_std,0.18098876
+Bahrain,acid_nh3,cf_std,0.0
+Baker Island,acid_nh3,cf_std,0.0
+Bangladesh,acid_nh3,cf_std,0.1138891
+Barbados,acid_nh3,cf_std,0.0
+Bassas da India,acid_nh3,cf_std,0.0
+Belarus,acid_nh3,cf_std,0.8146412
+Belgium,acid_nh3,cf_std,1.4771583
+Belize,acid_nh3,cf_std,0.01461767
+Benin,acid_nh3,cf_std,0.06730132
+Bermuda,acid_nh3,cf_std,0.0
+Bhutan,acid_nh3,cf_std,1.2200136
+Bird Island,acid_nh3,cf_std,0.0
+Bolivia,acid_nh3,cf_std,1.3087631
+Bosnia and Herzegovina,acid_nh3,cf_std,0.6812593
+Botswana,acid_nh3,cf_std,1.0616411
+Bouvet Island,acid_nh3,cf_std,0.0
+Brazil,acid_nh3,cf_std,0.69629604
+British Indian Ocean Territory,acid_nh3,cf_std,0.004069396
+British Virgin Islands,acid_nh3,cf_std,0.0
+Brunei Darussalam,acid_nh3,cf_std,0.010164175
+Bulgaria,acid_nh3,cf_std,0.8064797
+Burkina Faso,acid_nh3,cf_std,0.24459983
+Burundi,acid_nh3,cf_std,0.12052292
+Cambodia,acid_nh3,cf_std,0.035389893
+Cameroon,acid_nh3,cf_std,0.29882434
+Canada,acid_nh3,cf_std,3.7392304
+Cape Verde,acid_nh3,cf_std,0.016917536
+Cayman Islands,acid_nh3,cf_std,0.02597456
+Central African Republic,acid_nh3,cf_std,0.5744112
+Chad,acid_nh3,cf_std,1.2720901
+Chile,acid_nh3,cf_std,1.38316
+China,acid_nh3,cf_std,3.3560946
+China/India,acid_nh3,cf_std,0.6505835
+Christmas Island,acid_nh3,cf_std,0.0
+Clipperton Island,acid_nh3,cf_std,0.0
+Cocos (Keeling) Islands,acid_nh3,cf_std,0.0
+Colombia,acid_nh3,cf_std,0.49122494
+Comoros,acid_nh3,cf_std,0.0
+Congo,acid_nh3,cf_std,0.5880797
+Cook Islands,acid_nh3,cf_std,0.00041775944
+Costa Rica,acid_nh3,cf_std,0.10472751
+Croatia,acid_nh3,cf_std,1.3603786
+Cuba,acid_nh3,cf_std,0.29563022
+Cyprus,acid_nh3,cf_std,0.23935908
+Czech Republic,acid_nh3,cf_std,0.3689526
+Côte d'Ivoire,acid_nh3,cf_std,0.32651988
+Dem People's Rep of Korea,acid_nh3,cf_std,2.209626
+Democratic Republic of the Congo,acid_nh3,cf_std,0.50431854
+Denmark,acid_nh3,cf_std,3.2347069
+Djibouti,acid_nh3,cf_std,0.011726484
+Dominica,acid_nh3,cf_std,0.0
+Dominican Republic,acid_nh3,cf_std,0.023318041
+Ecuador,acid_nh3,cf_std,0.3864693
+Egypt,acid_nh3,cf_std,2.3536544
+El Salvador,acid_nh3,cf_std,0.004552073
+Equatorial Guinea,acid_nh3,cf_std,0.33481917
+Eritrea,acid_nh3,cf_std,0.08144804
+Estonia,acid_nh3,cf_std,0.38487816
+Ethiopia,acid_nh3,cf_std,0.37071323
+Europa Island,acid_nh3,cf_std,0.0
+Falkland Islands (Malvinas),acid_nh3,cf_std,0.0066561545
+Faroe Islands,acid_nh3,cf_std,0.014171113
+Fiji,acid_nh3,cf_std,0.001391817
+Finland,acid_nh3,cf_std,1.0673321
+France,acid_nh3,cf_std,1.5409895
+French Guiana,acid_nh3,cf_std,0.23141864
+French Polynesia,acid_nh3,cf_std,0.0005067928
+French Southern and Antarctic Territories,acid_nh3,cf_std,0.0020351075
+Gabon,acid_nh3,cf_std,0.54426616
+Gambia,acid_nh3,cf_std,0.041048005
+Gaza Strip,acid_nh3,cf_std,0.0
+Georgia,acid_nh3,cf_std,0.80071783
+Germany,acid_nh3,cf_std,2.467626
+Ghana,acid_nh3,cf_std,0.086314425
+Gibraltar,acid_nh3,cf_std,0.0
+Glorioso Island,acid_nh3,cf_std,0.0
+Greece,acid_nh3,cf_std,0.59254915
+Greenland,acid_nh3,cf_std,0.27936667
+Grenada,acid_nh3,cf_std,0.0
+Guadeloupe,acid_nh3,cf_std,0.0027737226
+Guam,acid_nh3,cf_std,0.0016353001
+Guatemala,acid_nh3,cf_std,0.13360015
+Guernsey,acid_nh3,cf_std,0.11259328
+Guinea,acid_nh3,cf_std,0.3713178
+Guinea-Bissau,acid_nh3,cf_std,0.16795374
+Guyana,acid_nh3,cf_std,0.93613344
+Haiti,acid_nh3,cf_std,0.032564938
+Hala'ib triangle,acid_nh3,cf_std,0.0741156
+Heard Island and McDonald Islands,acid_nh3,cf_std,6.577664e-06
+Holy See,acid_nh3,cf_std,0.0
+Honduras,acid_nh3,cf_std,0.054445613
+Hong Kong,acid_nh3,cf_std,0.0
+Howland Island,acid_nh3,cf_std,0.0
+Hungary,acid_nh3,cf_std,1.1111336
+Iceland,acid_nh3,cf_std,0.6222232
+Ilemi triangle,acid_nh3,cf_std,0.041512657
+India,acid_nh3,cf_std,0.985131
+Indonesia,acid_nh3,cf_std,0.12895878
+Iran  (Islamic Republic of),acid_nh3,cf_std,0.5323348
+Iraq,acid_nh3,cf_std,0.24674651
+Ireland,acid_nh3,cf_std,0.3500686
+Isle of Man,acid_nh3,cf_std,0.0
+Israel,acid_nh3,cf_std,4.5878205
+Italy,acid_nh3,cf_std,2.2795465
+Jamaica,acid_nh3,cf_std,0.018656576
+Jammu and Kashmir,acid_nh3,cf_std,1.50775
+Japan,acid_nh3,cf_std,0.93989736
+Jarvis Island,acid_nh3,cf_std,0.0
+Jersey,acid_nh3,cf_std,0.0
+Johnston Atoll,acid_nh3,cf_std,0.0
+Jordan,acid_nh3,cf_std,1.1364083
+Juan de Nova Island,acid_nh3,cf_std,0.003251306
+Kazakhstan,acid_nh3,cf_std,2.914091
+Kenya,acid_nh3,cf_std,0.5807819
+Kingman Reef,acid_nh3,cf_std,0.0003759678
+Kiribati,acid_nh3,cf_std,0.007773897
+Kuril islands,acid_nh3,cf_std,0.6037281
+Kuwait,acid_nh3,cf_std,2.1287665
+Kyrgyzstan,acid_nh3,cf_std,5.975781
+Lao People's Democratic Republic,acid_nh3,cf_std,0.23376358
+Latvia,acid_nh3,cf_std,0.38404515
+Lebanon,acid_nh3,cf_std,2.220446e-16
+Lesotho,acid_nh3,cf_std,0.6824859
+Liberia,acid_nh3,cf_std,0.5250931
+Libya,acid_nh3,cf_std,0.0382265
+Liechtenstein,acid_nh3,cf_std,0.0
+Lithuania,acid_nh3,cf_std,0.4279369
+Luxembourg,acid_nh3,cf_std,0.0
+Ma'tan al-Sarra,acid_nh3,cf_std,0.0
+Macau,acid_nh3,cf_std,0.0
+Madagascar,acid_nh3,cf_std,0.57696724
+Madeira Islands,acid_nh3,cf_std,0.006524744
+Malawi,acid_nh3,cf_std,0.5418399
+Malaysia,acid_nh3,cf_std,0.061366577
+Maldives,acid_nh3,cf_std,0.006626414
+Mali,acid_nh3,cf_std,2.6490815
+Malta,acid_nh3,cf_std,0.0
+Marshall Islands,acid_nh3,cf_std,0.00571487
+Martinique,acid_nh3,cf_std,1.110223e-16
+Mauritania,acid_nh3,cf_std,2.5896533
+Mauritius,acid_nh3,cf_std,0.021061573
+Mayotte,acid_nh3,cf_std,0.002098422
+Mexico,acid_nh3,cf_std,0.3083504
+Micronesia (Federated States of),acid_nh3,cf_std,0.047555223
+Midway Island,acid_nh3,cf_std,0.0016851557
+"Moldova, Republic of",acid_nh3,cf_std,0.9696885
+Monaco,acid_nh3,cf_std,0.0
+Mongolia,acid_nh3,cf_std,1.459491
+Montenegro,acid_nh3,cf_std,1.3204013
+Montserrat,acid_nh3,cf_std,1.110223e-16
+Morocco,acid_nh3,cf_std,0.056184046
+Mozambique,acid_nh3,cf_std,0.8561323
+Myanmar,acid_nh3,cf_std,0.5482029
+Namibia,acid_nh3,cf_std,1.751538
+Nauru,acid_nh3,cf_std,0.0
+Navassa Island,acid_nh3,cf_std,0.0069488953
+Nepal,acid_nh3,cf_std,0.5570155
+Netherlands,acid_nh3,cf_std,1.784213
+Netherlands Antilles,acid_nh3,cf_std,0.022158293
+New Caledonia,acid_nh3,cf_std,0.0029631136
+New Zealand,acid_nh3,cf_std,0.4466297
+Nicaragua,acid_nh3,cf_std,0.050780203
+Niger,acid_nh3,cf_std,0.89160424
+Nigeria,acid_nh3,cf_std,0.6270509
+Niue,acid_nh3,cf_std,0.00020243673
+Norfolk Island,acid_nh3,cf_std,0.0011987812
+Northern Mariana Islands,acid_nh3,cf_std,0.016921649
+Norway,acid_nh3,cf_std,2.6928844
+Oman,acid_nh3,cf_std,0.3456618
+Pakistan,acid_nh3,cf_std,2.2877247
+Palau,acid_nh3,cf_std,0.005277155
+Palmyra Atoll,acid_nh3,cf_std,8.6736174e-19
+Panama,acid_nh3,cf_std,0.1105512
+Papua New Guinea,acid_nh3,cf_std,0.122138046
+Paracel Islands,acid_nh3,cf_std,0.018069357
+Paraguay,acid_nh3,cf_std,0.071981736
+Peru,acid_nh3,cf_std,1.8659228
+Philippines,acid_nh3,cf_std,0.12590206
+Pitcairn,acid_nh3,cf_std,0.0009913852
+Poland,acid_nh3,cf_std,2.9235013
+Portugal,acid_nh3,cf_std,0.1261044
+Puerto Rico,acid_nh3,cf_std,0.0021076577
+Qatar,acid_nh3,cf_std,0.1527536
+Republic of Korea,acid_nh3,cf_std,0.50522727
+Romania,acid_nh3,cf_std,2.1994689
+Russian Federation,acid_nh3,cf_std,2.8954527
+Rwanda,acid_nh3,cf_std,0.046799894
+Réunion,acid_nh3,cf_std,0.0020702814
+Saint Helena,acid_nh3,cf_std,0.043716718
+Saint Kitts and Nevis,acid_nh3,cf_std,0.0009030584
+Saint Lucia,acid_nh3,cf_std,1.110223e-16
+Saint Pierre et Miquelon,acid_nh3,cf_std,2.4756556
+Saint Vincent and the Grenadines,acid_nh3,cf_std,0.0042015216
+Samoa,acid_nh3,cf_std,0.0006442095
+San Marino,acid_nh3,cf_std,0.12136927
+Sao Tome and Principe,acid_nh3,cf_std,0.014533927
+Saudi Arabia,acid_nh3,cf_std,2.9742224
+Scarborough Reef,acid_nh3,cf_std,1.110223e-16
+Senegal,acid_nh3,cf_std,0.7856333
+Senkaku Islands,acid_nh3,cf_std,0.0
+Serbia,acid_nh3,cf_std,0.6524607
+Seychelles,acid_nh3,cf_std,0.054914284
+Sierra Leone,acid_nh3,cf_std,0.44328582
+Singapore,acid_nh3,cf_std,5.551115e-17
+Slovakia,acid_nh3,cf_std,1.573794
+Slovenia,acid_nh3,cf_std,1.7840011
+Solomon Islands,acid_nh3,cf_std,0.0058964086
+Somalia,acid_nh3,cf_std,1.2359587
+South Africa,acid_nh3,cf_std,1.0722345
+South Georgia and the South Sandwich Islands,acid_nh3,cf_std,0.0061691334
+South Sudan,acid_nh3,cf_std,0.45204943
+Spain,acid_nh3,cf_std,0.6905773
+Spratly Islands,acid_nh3,cf_std,0.023121998
+Sri Lanka,acid_nh3,cf_std,0.01121243
+Sudan,acid_nh3,cf_std,1.4180669
+Suriname,acid_nh3,cf_std,0.43245727
+Svalbard and Jan Mayen Islands,acid_nh3,cf_std,0.047685515
+Swaziland,acid_nh3,cf_std,0.029693965
+Sweden,acid_nh3,cf_std,3.623822
+Switzerland,acid_nh3,cf_std,0.8568958
+Syrian Arab Republic,acid_nh3,cf_std,0.076415904
+Taiwan,acid_nh3,cf_std,0.11691481
+Tajikistan,acid_nh3,cf_std,1.7734703
+Thailand,acid_nh3,cf_std,0.12584017
+The former Yugoslav Republic of Macedonia,acid_nh3,cf_std,0.48969153
+Timor-Leste,acid_nh3,cf_std,0.02251894
+Togo,acid_nh3,cf_std,0.043207835
+Tokelau,acid_nh3,cf_std,0.00036699415
+Tonga,acid_nh3,cf_std,0.0020229844
+Trinidad and Tobago,acid_nh3,cf_std,0.00035251383
+Tromelin Island,acid_nh3,cf_std,2.7755576e-17
+Tunisia,acid_nh3,cf_std,0.08055892
+Turkey,acid_nh3,cf_std,0.96929914
+Turkmenistan,acid_nh3,cf_std,1.6098615
+Turks and Caicos islands,acid_nh3,cf_std,0.00023355859
+Tuvalu,acid_nh3,cf_std,0.00076079025
+U.K. of Great Britain and Northern Ireland,acid_nh3,cf_std,0.81397486
+Uganda,acid_nh3,cf_std,0.12326775
+Ukraine,acid_nh3,cf_std,1.5369024
+United Arab Emirates,acid_nh3,cf_std,0.69941854
+United Republic of Tanzania,acid_nh3,cf_std,0.1734515
+United States Virgin Islands,acid_nh3,cf_std,0.0032399572
+United States of America,acid_nh3,cf_std,3.0116725
+Uruguay,acid_nh3,cf_std,0.038201876
+Uzbekistan,acid_nh3,cf_std,1.2686714
+Vanuatu,acid_nh3,cf_std,0.00262675
+Venezuela,acid_nh3,cf_std,0.68683606
+Viet Nam,acid_nh3,cf_std,0.28669506
+Wake Island,acid_nh3,cf_std,0.0
+Wallis and Futuna,acid_nh3,cf_std,0.000984733
+West Bank,acid_nh3,cf_std,0.14853585
+Western Sahara,acid_nh3,cf_std,0.048578195
+Yemen,acid_nh3,cf_std,1.0365801
+Zambia,acid_nh3,cf_std,0.27642682
+Zimbabwe,acid_nh3,cf_std,0.534461
+Abyei,acid_nox,cf_mean,0.33954725
+Afghanistan,acid_nox,cf_mean,0.9546978
+Aksai Chin,acid_nox,cf_mean,1.1637104
+Albania,acid_nox,cf_mean,0.58598375
+Algeria,acid_nox,cf_mean,0.21126628
+American Samoa,acid_nox,cf_mean,0.006833296
+Andorra,acid_nox,cf_mean,0.5765525
+Angola,acid_nox,cf_mean,0.22461416
+Anguilla,acid_nox,cf_mean,0.05671405
+Antarctica,acid_nox,cf_mean,0.0
+Antigua and Barbuda,acid_nox,cf_mean,0.05096253
+Argentina,acid_nox,cf_mean,0.12826887
+Armenia,acid_nox,cf_mean,0.8250703
+Aruba,acid_nox,cf_mean,0.07228469
+Arunachal Pradesh,acid_nox,cf_mean,0.5763252
+Ashmore and Cartier Islands,acid_nox,cf_mean,0.04697354
+Australia,acid_nox,cf_mean,0.13660476
+Austria,acid_nox,cf_mean,1.063788
+Azerbaijan,acid_nox,cf_mean,0.7470137
+Azores Islands,acid_nox,cf_mean,0.3836211
+Bahamas,acid_nox,cf_mean,0.11035786
+Bahrain,acid_nox,cf_mean,0.76615584
+Baker Island,acid_nox,cf_mean,0.0034343994
+Bangladesh,acid_nox,cf_mean,0.3569047
+Barbados,acid_nox,cf_mean,0.060149383
+Bassas da India,acid_nox,cf_mean,0.19187334
+Belarus,acid_nox,cf_mean,0.68481493
+Belgium,acid_nox,cf_mean,0.7644028
+Belize,acid_nox,cf_mean,0.075440615
+Benin,acid_nox,cf_mean,0.11772607
+Bermuda,acid_nox,cf_mean,0.21919335
+Bhutan,acid_nox,cf_mean,0.59343743
+Bird Island,acid_nox,cf_mean,0.04937946
+Bolivia,acid_nox,cf_mean,0.24409841
+Bosnia and Herzegovina,acid_nox,cf_mean,0.8041138
+Botswana,acid_nox,cf_mean,0.35517374
+Bouvet Island,acid_nox,cf_mean,0.0
+Brazil,acid_nox,cf_mean,0.2217047
+British Indian Ocean Territory,acid_nox,cf_mean,0.04803023
+British Virgin Islands,acid_nox,cf_mean,0.05671405
+Brunei Darussalam,acid_nox,cf_mean,0.12891616
+Bulgaria,acid_nox,cf_mean,0.6316281
+Burkina Faso,acid_nox,cf_mean,0.13841663
+Burundi,acid_nox,cf_mean,0.19206168
+Cambodia,acid_nox,cf_mean,0.1955234
+Cameroon,acid_nox,cf_mean,0.19408523
+Canada,acid_nox,cf_mean,0.55579036
+Cape Verde,acid_nox,cf_mean,0.057709273
+Cayman Islands,acid_nox,cf_mean,0.074915595
+Central African Republic,acid_nox,cf_mean,0.3881457
+Chad,acid_nox,cf_mean,0.2972783
+Chile,acid_nox,cf_mean,0.21665038
+China,acid_nox,cf_mean,0.82936436
+China/India,acid_nox,cf_mean,0.8425918
+Christmas Island,acid_nox,cf_mean,0.06280233
+Clipperton Island,acid_nox,cf_mean,0.032804966
+Cocos (Keeling) Islands,acid_nox,cf_mean,0.04933148
+Colombia,acid_nox,cf_mean,0.15415949
+Comoros,acid_nox,cf_mean,0.1306665
+Congo,acid_nox,cf_mean,0.19199546
+Cook Islands,acid_nox,cf_mean,0.0076841004
+Costa Rica,acid_nox,cf_mean,0.08372085
+Croatia,acid_nox,cf_mean,0.821306
+Cuba,acid_nox,cf_mean,0.09157414
+Cyprus,acid_nox,cf_mean,0.49601614
+Czech Republic,acid_nox,cf_mean,1.1218826
+Côte d'Ivoire,acid_nox,cf_mean,0.094970375
+Dem People's Rep of Korea,acid_nox,cf_mean,0.8262261
+Democratic Republic of the Congo,acid_nox,cf_mean,0.20584716
+Denmark,acid_nox,cf_mean,0.5707744
+Djibouti,acid_nox,cf_mean,0.22221963
+Dominica,acid_nox,cf_mean,0.047539372
+Dominican Republic,acid_nox,cf_mean,0.059756674
+Ecuador,acid_nox,cf_mean,0.17807847
+Egypt,acid_nox,cf_mean,0.5517674
+El Salvador,acid_nox,cf_mean,0.07664226
+Equatorial Guinea,acid_nox,cf_mean,0.13798715
+Eritrea,acid_nox,cf_mean,0.27139702
+Estonia,acid_nox,cf_mean,0.7449785
+Ethiopia,acid_nox,cf_mean,0.22932938
+Europa Island,acid_nox,cf_mean,0.17030102
+Falkland Islands (Malvinas),acid_nox,cf_mean,0.06386463
+Faroe Islands,acid_nox,cf_mean,0.3711116
+Fiji,acid_nox,cf_mean,0.009041966
+Finland,acid_nox,cf_mean,0.67268693
+France,acid_nox,cf_mean,0.6698313
+French Guiana,acid_nox,cf_mean,0.14076404
+French Polynesia,acid_nox,cf_mean,0.0077340067
+French Southern and Antarctic Territories,acid_nox,cf_mean,0.036006093
+Gabon,acid_nox,cf_mean,0.16321164
+Gambia,acid_nox,cf_mean,0.11316323
+Gaza Strip,acid_nox,cf_mean,0.8043867
+Georgia,acid_nox,cf_mean,0.8390275
+Germany,acid_nox,cf_mean,0.8056926
+Ghana,acid_nox,cf_mean,0.097386934
+Gibraltar,acid_nox,cf_mean,0.19045551
+Glorioso Island,acid_nox,cf_mean,0.12990397
+Greece,acid_nox,cf_mean,0.45783648
+Greenland,acid_nox,cf_mean,0.06649697
+Grenada,acid_nox,cf_mean,0.08627891
+Guadeloupe,acid_nox,cf_mean,0.048348904
+Guam,acid_nox,cf_mean,0.04792444
+Guatemala,acid_nox,cf_mean,0.07984104
+Guernsey,acid_nox,cf_mean,0.44570762
+Guinea,acid_nox,cf_mean,0.11068029
+Guinea-Bissau,acid_nox,cf_mean,0.094248965
+Guyana,acid_nox,cf_mean,0.217536
+Haiti,acid_nox,cf_mean,0.059928272
+Hala'ib triangle,acid_nox,cf_mean,0.3418627
+Heard Island and McDonald Islands,acid_nox,cf_mean,0.054312993
+Holy See,acid_nox,cf_mean,0.6098908
+Honduras,acid_nox,cf_mean,0.074314244
+Hong Kong,acid_nox,cf_mean,0.35529226
+Howland Island,acid_nox,cf_mean,0.0034343994
+Hungary,acid_nox,cf_mean,0.89236677
+Iceland,acid_nox,cf_mean,0.1743245
+Ilemi triangle,acid_nox,cf_mean,0.24070708
+India,acid_nox,cf_mean,0.3956515
+Indonesia,acid_nox,cf_mean,0.0922692
+Iran  (Islamic Republic of),acid_nox,cf_mean,0.561045
+Iraq,acid_nox,cf_mean,0.59462416
+Ireland,acid_nox,cf_mean,0.11996381
+Isle of Man,acid_nox,cf_mean,0.13224956
+Israel,acid_nox,cf_mean,1.0945307
+Italy,acid_nox,cf_mean,0.7046284
+Jamaica,acid_nox,cf_mean,0.063034676
+Jammu and Kashmir,acid_nox,cf_mean,1.0372388
+Japan,acid_nox,cf_mean,0.33730304
+Jarvis Island,acid_nox,cf_mean,0.005485533
+Jersey,acid_nox,cf_mean,0.4790958
+Johnston Atoll,acid_nox,cf_mean,0.027874952
+Jordan,acid_nox,cf_mean,0.8032241
+Juan de Nova Island,acid_nox,cf_mean,0.1262435
+Kazakhstan,acid_nox,cf_mean,0.85019076
+Kenya,acid_nox,cf_mean,0.23093063
+Kingman Reef,acid_nox,cf_mean,0.007651262
+Kiribati,acid_nox,cf_mean,0.007982171
+Kuril islands,acid_nox,cf_mean,0.2728834
+Kuwait,acid_nox,cf_mean,0.9335976
+Kyrgyzstan,acid_nox,cf_mean,1.6430069
+Lao People's Democratic Republic,acid_nox,cf_mean,0.27710018
+Latvia,acid_nox,cf_mean,0.73995036
+Lebanon,acid_nox,cf_mean,0.53687435
+Lesotho,acid_nox,cf_mean,0.27787966
+Liberia,acid_nox,cf_mean,0.10531014
+Libya,acid_nox,cf_mean,0.27843526
+Liechtenstein,acid_nox,cf_mean,0.9397174
+Lithuania,acid_nox,cf_mean,0.76987034
+Luxembourg,acid_nox,cf_mean,0.9282308
+Ma'tan al-Sarra,acid_nox,cf_mean,0.33470446
+Macau,acid_nox,cf_mean,0.35529226
+Madagascar,acid_nox,cf_mean,0.19395833
+Madeira Islands,acid_nox,cf_mean,0.25204638
+Malawi,acid_nox,cf_mean,0.30481464
+Malaysia,acid_nox,cf_mean,0.13484746
+Maldives,acid_nox,cf_mean,0.089894734
+Mali,acid_nox,cf_mean,0.21272957
+Malta,acid_nox,cf_mean,0.3544608
+Marshall Islands,acid_nox,cf_mean,0.008966044
+Martinique,acid_nox,cf_mean,0.054113492
+Mauritania,acid_nox,cf_mean,0.22557634
+Mauritius,acid_nox,cf_mean,0.073795445
+Mayotte,acid_nox,cf_mean,0.1291485
+Mexico,acid_nox,cf_mean,0.13191888
+Micronesia (Federated States of),acid_nox,cf_mean,0.020032596
+Midway Island,acid_nox,cf_mean,0.08922854
+"Moldova, Republic of",acid_nox,cf_mean,0.59655464
+Monaco,acid_nox,cf_mean,0.7621184
+Mongolia,acid_nox,cf_mean,0.79136485
+Montenegro,acid_nox,cf_mean,0.68268955
+Montserrat,acid_nox,cf_mean,0.047539372
+Morocco,acid_nox,cf_mean,0.16706063
+Mozambique,acid_nox,cf_mean,0.25787875
+Myanmar,acid_nox,cf_mean,0.3333368
+Namibia,acid_nox,cf_mean,0.30130512
+Nauru,acid_nox,cf_mean,0.006562106
+Navassa Island,acid_nox,cf_mean,0.060213078
+Nepal,acid_nox,cf_mean,0.5530234
+Netherlands,acid_nox,cf_mean,0.25844434
+Netherlands Antilles,acid_nox,cf_mean,0.071847595
+New Caledonia,acid_nox,cf_mean,0.012780185
+New Zealand,acid_nox,cf_mean,0.12141624
+Nicaragua,acid_nox,cf_mean,0.07174162
+Niger,acid_nox,cf_mean,0.22863805
+Nigeria,acid_nox,cf_mean,0.1773378
+Niue,acid_nox,cf_mean,0.008247392
+Norfolk Island,acid_nox,cf_mean,0.015188219
+Northern Mariana Islands,acid_nox,cf_mean,0.043075178
+Norway,acid_nox,cf_mean,0.6007665
+Oman,acid_nox,cf_mean,0.26890785
+Pakistan,acid_nox,cf_mean,0.92337394
+Palau,acid_nox,cf_mean,0.084316894
+Palmyra Atoll,acid_nox,cf_mean,0.008969247
+Panama,acid_nox,cf_mean,0.08263252
+Papua New Guinea,acid_nox,cf_mean,0.0418985
+Paracel Islands,acid_nox,cf_mean,0.2229904
+Paraguay,acid_nox,cf_mean,0.126066
+Peru,acid_nox,cf_mean,0.31366962
+Philippines,acid_nox,cf_mean,0.15442072
+Pitcairn,acid_nox,cf_mean,0.010776962
+Poland,acid_nox,cf_mean,0.8125466
+Portugal,acid_nox,cf_mean,0.24372965
+Puerto Rico,acid_nox,cf_mean,0.057152282
+Qatar,acid_nox,cf_mean,0.7925949
+Republic of Korea,acid_nox,cf_mean,0.46384665
+Romania,acid_nox,cf_mean,0.7845318
+Russian Federation,acid_nox,cf_mean,0.61356515
+Rwanda,acid_nox,cf_mean,0.16742517
+Réunion,acid_nox,cf_mean,0.09389122
+Saint Helena,acid_nox,cf_mean,0.08696792
+Saint Kitts and Nevis,acid_nox,cf_mean,0.056615826
+Saint Lucia,acid_nox,cf_mean,0.054113492
+Saint Pierre et Miquelon,acid_nox,cf_mean,0.3272214
+Saint Vincent and the Grenadines,acid_nox,cf_mean,0.06730714
+Samoa,acid_nox,cf_mean,0.00694808
+San Marino,acid_nox,cf_mean,0.78469735
+Sao Tome and Principe,acid_nox,cf_mean,0.053789712
+Saudi Arabia,acid_nox,cf_mean,0.76852816
+Scarborough Reef,acid_nox,cf_mean,0.20734333
+Senegal,acid_nox,cf_mean,0.15341741
+Senkaku Islands,acid_nox,cf_mean,0.25499523
+Serbia,acid_nox,cf_mean,0.8243383
+Seychelles,acid_nox,cf_mean,0.09718199
+Sierra Leone,acid_nox,cf_mean,0.11044354
+Singapore,acid_nox,cf_mean,0.14304154
+Slovakia,acid_nox,cf_mean,1.0044607
+Slovenia,acid_nox,cf_mean,0.9743807
+Solomon Islands,acid_nox,cf_mean,0.009000395
+Somalia,acid_nox,cf_mean,0.25120935
+South Africa,acid_nox,cf_mean,0.32612008
+South Georgia and the South Sandwich Islands,acid_nox,cf_mean,0.075562134
+South Sudan,acid_nox,cf_mean,0.31229228
+Spain,acid_nox,cf_mean,0.32051387
+Spratly Islands,acid_nox,cf_mean,0.18542854
+Sri Lanka,acid_nox,cf_mean,0.11830731
+Sudan,acid_nox,cf_mean,0.31844398
+Suriname,acid_nox,cf_mean,0.1695761
+Svalbard and Jan Mayen Islands,acid_nox,cf_mean,0.30645105
+Swaziland,acid_nox,cf_mean,0.259028
+Sweden,acid_nox,cf_mean,0.6623912
+Switzerland,acid_nox,cf_mean,0.9334344
+Syrian Arab Republic,acid_nox,cf_mean,0.52544504
+Taiwan,acid_nox,cf_mean,0.30700532
+Tajikistan,acid_nox,cf_mean,1.366991
+Thailand,acid_nox,cf_mean,0.2242873
+The former Yugoslav Republic of Macedonia,acid_nox,cf_mean,0.7705532
+Timor-Leste,acid_nox,cf_mean,0.06465252
+Togo,acid_nox,cf_mean,0.10573881
+Tokelau,acid_nox,cf_mean,0.006535528
+Tonga,acid_nox,cf_mean,0.0083040865
+Trinidad and Tobago,acid_nox,cf_mean,0.11095642
+Tromelin Island,acid_nox,cf_mean,0.035723824
+Tunisia,acid_nox,cf_mean,0.3095464
+Turkey,acid_nox,cf_mean,0.54682845
+Turkmenistan,acid_nox,cf_mean,0.8846801
+Turks and Caicos islands,acid_nox,cf_mean,0.075461574
+Tuvalu,acid_nox,cf_mean,0.008405282
+U.K. of Great Britain and Northern Ireland,acid_nox,cf_mean,0.3280515
+Uganda,acid_nox,cf_mean,0.21103941
+Ukraine,acid_nox,cf_mean,0.58397686
+United Arab Emirates,acid_nox,cf_mean,0.57471716
+United Republic of Tanzania,acid_nox,cf_mean,0.19577129
+United States Virgin Islands,acid_nox,cf_mean,0.056746382
+United States of America,acid_nox,cf_mean,0.43556187
+Uruguay,acid_nox,cf_mean,0.08073311
+Uzbekistan,acid_nox,cf_mean,0.97593296
+Vanuatu,acid_nox,cf_mean,0.009540294
+Venezuela,acid_nox,cf_mean,0.15672994
+Viet Nam,acid_nox,cf_mean,0.26862442
+Wake Island,acid_nox,cf_mean,0.018266413
+Wallis and Futuna,acid_nox,cf_mean,0.0072384444
+West Bank,acid_nox,cf_mean,0.6774007
+Western Sahara,acid_nox,cf_mean,0.19223525
+Yemen,acid_nox,cf_mean,0.30856624
+Zambia,acid_nox,cf_mean,0.2627737
+Zimbabwe,acid_nox,cf_mean,0.28784057
+Abyei,acid_nox,cf_median,0.33954725
+Afghanistan,acid_nox,cf_median,0.89777875
+Aksai Chin,acid_nox,cf_median,1.2229763
+Albania,acid_nox,cf_median,0.6065309
+Algeria,acid_nox,cf_median,0.20118856
+American Samoa,acid_nox,cf_median,0.006946915
+Andorra,acid_nox,cf_median,0.5765525
+Angola,acid_nox,cf_median,0.22826721
+Anguilla,acid_nox,cf_median,0.05671405
+Antarctica,acid_nox,cf_median,0.0
+Antigua and Barbuda,acid_nox,cf_median,0.05111652
+Argentina,acid_nox,cf_median,0.11834297
+Armenia,acid_nox,cf_median,0.8281582
+Aruba,acid_nox,cf_median,0.074041605
+Arunachal Pradesh,acid_nox,cf_median,0.5620444
+Ashmore and Cartier Islands,acid_nox,cf_median,0.04697354
+Australia,acid_nox,cf_median,0.107513785
+Austria,acid_nox,cf_median,1.0509876
+Azerbaijan,acid_nox,cf_median,0.71849453
+Azores Islands,acid_nox,cf_median,0.41142553
+Bahamas,acid_nox,cf_median,0.10529604
+Bahrain,acid_nox,cf_median,0.76615584
+Baker Island,acid_nox,cf_median,0.0034343994
+Bangladesh,acid_nox,cf_median,0.3594311
+Barbados,acid_nox,cf_median,0.060149383
+Bassas da India,acid_nox,cf_median,0.19187334
+Belarus,acid_nox,cf_median,0.65488696
+Belgium,acid_nox,cf_median,0.7502472
+Belize,acid_nox,cf_median,0.07467697
+Benin,acid_nox,cf_median,0.11516943
+Bermuda,acid_nox,cf_median,0.21919335
+Bhutan,acid_nox,cf_median,0.62733436
+Bird Island,acid_nox,cf_median,0.04937946
+Bolivia,acid_nox,cf_median,0.2151123
+Bosnia and Herzegovina,acid_nox,cf_median,0.8457828
+Botswana,acid_nox,cf_median,0.31976345
+Bouvet Island,acid_nox,cf_median,0.0
+Brazil,acid_nox,cf_median,0.2021301
+British Indian Ocean Territory,acid_nox,cf_median,0.050427686
+British Virgin Islands,acid_nox,cf_median,0.05671405
+Brunei Darussalam,acid_nox,cf_median,0.13137218
+Bulgaria,acid_nox,cf_median,0.58768386
+Burkina Faso,acid_nox,cf_median,0.12947224
+Burundi,acid_nox,cf_median,0.18167299
+Cambodia,acid_nox,cf_median,0.19493335
+Cameroon,acid_nox,cf_median,0.19492033
+Canada,acid_nox,cf_median,0.48875
+Cape Verde,acid_nox,cf_median,0.037586823
+Cayman Islands,acid_nox,cf_median,0.07656494
+Central African Republic,acid_nox,cf_median,0.35511485
+Chad,acid_nox,cf_median,0.26043895
+Chile,acid_nox,cf_median,0.20228565
+China,acid_nox,cf_median,0.7617109
+China/India,acid_nox,cf_median,0.8505822
+Christmas Island,acid_nox,cf_median,0.06280233
+Clipperton Island,acid_nox,cf_median,0.032804966
+Cocos (Keeling) Islands,acid_nox,cf_median,0.04933148
+Colombia,acid_nox,cf_median,0.14999661
+Comoros,acid_nox,cf_median,0.1306665
+Congo,acid_nox,cf_median,0.18542452
+Cook Islands,acid_nox,cf_median,0.007957289
+Costa Rica,acid_nox,cf_median,0.09263695
+Croatia,acid_nox,cf_median,0.79645705
+Cuba,acid_nox,cf_median,0.0893517
+Cyprus,acid_nox,cf_median,0.46070668
+Czech Republic,acid_nox,cf_median,1.1339788
+Côte d'Ivoire,acid_nox,cf_median,0.09229436
+Dem People's Rep of Korea,acid_nox,cf_median,0.86468244
+Democratic Republic of the Congo,acid_nox,cf_median,0.21960737
+Denmark,acid_nox,cf_median,0.86179715
+Djibouti,acid_nox,cf_median,0.22431387
+Dominica,acid_nox,cf_median,0.047539372
+Dominican Republic,acid_nox,cf_median,0.059249714
+Ecuador,acid_nox,cf_median,0.18269116
+Egypt,acid_nox,cf_median,0.4034413
+El Salvador,acid_nox,cf_median,0.07676377
+Equatorial Guinea,acid_nox,cf_median,0.16011222
+Eritrea,acid_nox,cf_median,0.2785304
+Estonia,acid_nox,cf_median,0.7430101
+Ethiopia,acid_nox,cf_median,0.22615048
+Europa Island,acid_nox,cf_median,0.17030102
+Falkland Islands (Malvinas),acid_nox,cf_median,0.06351522
+Faroe Islands,acid_nox,cf_median,0.3708531
+Fiji,acid_nox,cf_median,0.0094038835
+Finland,acid_nox,cf_median,0.6700287
+France,acid_nox,cf_median,0.63552266
+French Guiana,acid_nox,cf_median,0.13224956
+French Polynesia,acid_nox,cf_median,0.007865021
+French Southern and Antarctic Territories,acid_nox,cf_median,0.05315554
+Gabon,acid_nox,cf_median,0.17343235
+Gambia,acid_nox,cf_median,0.10339699
+Gaza Strip,acid_nox,cf_median,0.8043867
+Georgia,acid_nox,cf_median,0.88100153
+Germany,acid_nox,cf_median,0.97170144
+Ghana,acid_nox,cf_median,0.09533358
+Gibraltar,acid_nox,cf_median,0.19045551
+Glorioso Island,acid_nox,cf_median,0.12990397
+Greece,acid_nox,cf_median,0.4498302
+Greenland,acid_nox,cf_median,0.0
+Grenada,acid_nox,cf_median,0.08627891
+Guadeloupe,acid_nox,cf_median,0.047539372
+Guam,acid_nox,cf_median,0.047935963
+Guatemala,acid_nox,cf_median,0.07659902
+Guernsey,acid_nox,cf_median,0.43992156
+Guinea,acid_nox,cf_median,0.11120017
+Guinea-Bissau,acid_nox,cf_median,0.107539415
+Guyana,acid_nox,cf_median,0.20683658
+Haiti,acid_nox,cf_median,0.059249714
+Hala'ib triangle,acid_nox,cf_median,0.34266123
+Heard Island and McDonald Islands,acid_nox,cf_median,0.054434083
+Holy See,acid_nox,cf_median,0.6098908
+Honduras,acid_nox,cf_median,0.07525993
+Hong Kong,acid_nox,cf_median,0.35529226
+Howland Island,acid_nox,cf_median,0.0034343994
+Hungary,acid_nox,cf_median,0.91833025
+Iceland,acid_nox,cf_median,0.18178643
+Ilemi triangle,acid_nox,cf_median,0.24151425
+India,acid_nox,cf_median,0.3413696
+Indonesia,acid_nox,cf_median,0.09103789
+Iran  (Islamic Republic of),acid_nox,cf_median,0.54124945
+Iraq,acid_nox,cf_median,0.5793135
+Ireland,acid_nox,cf_median,0.014147342
+Isle of Man,acid_nox,cf_median,0.13224956
+Israel,acid_nox,cf_median,0.8043867
+Italy,acid_nox,cf_median,0.6231912
+Jamaica,acid_nox,cf_median,0.06677667
+Jammu and Kashmir,acid_nox,cf_median,0.97899455
+Japan,acid_nox,cf_median,0.3125968
+Jarvis Island,acid_nox,cf_median,0.005485533
+Jersey,acid_nox,cf_median,0.4790958
+Johnston Atoll,acid_nox,cf_median,0.027874952
+Jordan,acid_nox,cf_median,0.6691526
+Juan de Nova Island,acid_nox,cf_median,0.12613551
+Kazakhstan,acid_nox,cf_median,0.7412848
+Kenya,acid_nox,cf_median,0.22794807
+Kingman Reef,acid_nox,cf_median,0.0069945375
+Kiribati,acid_nox,cf_median,0.008637506
+Kuril islands,acid_nox,cf_median,0.3062518
+Kuwait,acid_nox,cf_median,0.71301144
+Kyrgyzstan,acid_nox,cf_median,1.6762621
+Lao People's Democratic Republic,acid_nox,cf_median,0.26389202
+Latvia,acid_nox,cf_median,0.72334695
+Lebanon,acid_nox,cf_median,0.53687435
+Lesotho,acid_nox,cf_median,0.25172484
+Liberia,acid_nox,cf_median,0.11086109
+Libya,acid_nox,cf_median,0.27332222
+Liechtenstein,acid_nox,cf_median,0.9397174
+Lithuania,acid_nox,cf_median,0.7597577
+Luxembourg,acid_nox,cf_median,0.9282308
+Ma'tan al-Sarra,acid_nox,cf_median,0.33470446
+Macau,acid_nox,cf_median,0.35529226
+Madagascar,acid_nox,cf_median,0.17242618
+Madeira Islands,acid_nox,cf_median,0.23841165
+Malawi,acid_nox,cf_median,0.33679402
+Malaysia,acid_nox,cf_median,0.13398683
+Maldives,acid_nox,cf_median,0.08623932
+Mali,acid_nox,cf_median,0.20864037
+Malta,acid_nox,cf_median,0.3544608
+Marshall Islands,acid_nox,cf_median,0.008932828
+Martinique,acid_nox,cf_median,0.054113492
+Mauritania,acid_nox,cf_median,0.20739806
+Mauritius,acid_nox,cf_median,0.08037787
+Mayotte,acid_nox,cf_median,0.12990397
+Mexico,acid_nox,cf_median,0.12923639
+Micronesia (Federated States of),acid_nox,cf_median,0.017299514
+Midway Island,acid_nox,cf_median,0.091141455
+"Moldova, Republic of",acid_nox,cf_median,0.5848497
+Monaco,acid_nox,cf_median,0.7621184
+Mongolia,acid_nox,cf_median,0.73604506
+Montenegro,acid_nox,cf_median,0.6065309
+Montserrat,acid_nox,cf_median,0.047539372
+Morocco,acid_nox,cf_median,0.16037649
+Mozambique,acid_nox,cf_median,0.21656619
+Myanmar,acid_nox,cf_median,0.31384763
+Namibia,acid_nox,cf_median,0.25393686
+Nauru,acid_nox,cf_median,0.006562106
+Navassa Island,acid_nox,cf_median,0.058572177
+Nepal,acid_nox,cf_median,0.55487156
+Netherlands,acid_nox,cf_median,0.060954448
+Netherlands Antilles,acid_nox,cf_median,0.074041605
+New Caledonia,acid_nox,cf_median,0.013307664
+New Zealand,acid_nox,cf_median,0.09646766
+Nicaragua,acid_nox,cf_median,0.07367559
+Niger,acid_nox,cf_median,0.20687853
+Nigeria,acid_nox,cf_median,0.15906459
+Niue,acid_nox,cf_median,0.008381793
+Norfolk Island,acid_nox,cf_median,0.015509475
+Northern Mariana Islands,acid_nox,cf_median,0.0439049
+Norway,acid_nox,cf_median,0.6741243
+Oman,acid_nox,cf_median,0.21804161
+Pakistan,acid_nox,cf_median,0.85820925
+Palau,acid_nox,cf_median,0.08418065
+Palmyra Atoll,acid_nox,cf_median,0.008969247
+Panama,acid_nox,cf_median,0.08293785
+Papua New Guinea,acid_nox,cf_median,0.04402865
+Paracel Islands,acid_nox,cf_median,0.21932721
+Paraguay,acid_nox,cf_median,0.12432667
+Peru,acid_nox,cf_median,0.27873176
+Philippines,acid_nox,cf_median,0.14048654
+Pitcairn,acid_nox,cf_median,0.010885955
+Poland,acid_nox,cf_median,0.99342865
+Portugal,acid_nox,cf_median,0.23885866
+Puerto Rico,acid_nox,cf_median,0.057149753
+Qatar,acid_nox,cf_median,0.76615584
+Republic of Korea,acid_nox,cf_median,0.45055062
+Romania,acid_nox,cf_median,0.8161799
+Russian Federation,acid_nox,cf_median,0.6315467
+Rwanda,acid_nox,cf_median,0.12509899
+Réunion,acid_nox,cf_median,0.0954258
+Saint Helena,acid_nox,cf_median,0.0795522
+Saint Kitts and Nevis,acid_nox,cf_median,0.05671405
+Saint Lucia,acid_nox,cf_median,0.054113492
+Saint Pierre et Miquelon,acid_nox,cf_median,0.24257688
+Saint Vincent and the Grenadines,acid_nox,cf_median,0.054113492
+Samoa,acid_nox,cf_median,0.006946915
+San Marino,acid_nox,cf_median,0.7814757
+Sao Tome and Principe,acid_nox,cf_median,0.053346228
+Saudi Arabia,acid_nox,cf_median,0.6419685
+Scarborough Reef,acid_nox,cf_median,0.20734333
+Senegal,acid_nox,cf_median,0.1323681
+Senkaku Islands,acid_nox,cf_median,0.25499523
+Serbia,acid_nox,cf_median,0.8457828
+Seychelles,acid_nox,cf_median,0.085896276
+Sierra Leone,acid_nox,cf_median,0.11725702
+Singapore,acid_nox,cf_median,0.14304154
+Slovakia,acid_nox,cf_median,0.9679374
+Slovenia,acid_nox,cf_median,1.0576944
+Solomon Islands,acid_nox,cf_median,0.009175542
+Somalia,acid_nox,cf_median,0.22017093
+South Africa,acid_nox,cf_median,0.29483142
+South Georgia and the South Sandwich Islands,acid_nox,cf_median,0.074613266
+South Sudan,acid_nox,cf_median,0.28065228
+Spain,acid_nox,cf_median,0.28566572
+Spratly Islands,acid_nox,cf_median,0.17666028
+Sri Lanka,acid_nox,cf_median,0.119405985
+Sudan,acid_nox,cf_median,0.29206994
+Suriname,acid_nox,cf_median,0.16977017
+Svalbard and Jan Mayen Islands,acid_nox,cf_median,0.22631639
+Swaziland,acid_nox,cf_median,0.26155806
+Sweden,acid_nox,cf_median,0.73664004
+Switzerland,acid_nox,cf_median,0.9397174
+Syrian Arab Republic,acid_nox,cf_median,0.52426237
+Taiwan,acid_nox,cf_median,0.3177715
+Tajikistan,acid_nox,cf_median,1.3489625
+Thailand,acid_nox,cf_median,0.2222063
+The former Yugoslav Republic of Macedonia,acid_nox,cf_median,0.7926073
+Timor-Leste,acid_nox,cf_median,0.066520296
+Togo,acid_nox,cf_median,0.102701224
+Tokelau,acid_nox,cf_median,0.0064300215
+Tonga,acid_nox,cf_median,0.00812932
+Trinidad and Tobago,acid_nox,cf_median,0.1129644
+Tromelin Island,acid_nox,cf_median,0.035723824
+Tunisia,acid_nox,cf_median,0.29707563
+Turkey,acid_nox,cf_median,0.50896394
+Turkmenistan,acid_nox,cf_median,0.84360343
+Turks and Caicos islands,acid_nox,cf_median,0.075463936
+Tuvalu,acid_nox,cf_median,0.008224855
+U.K. of Great Britain and Northern Ireland,acid_nox,cf_median,0.35656926
+Uganda,acid_nox,cf_median,0.21222904
+Ukraine,acid_nox,cf_median,0.51295334
+United Arab Emirates,acid_nox,cf_median,0.57345706
+United Republic of Tanzania,acid_nox,cf_median,0.18813384
+United States Virgin Islands,acid_nox,cf_median,0.05671405
+United States of America,acid_nox,cf_median,0.39641267
+Uruguay,acid_nox,cf_median,0.081256114
+Uzbekistan,acid_nox,cf_median,0.9837827
+Vanuatu,acid_nox,cf_median,0.009691922
+Venezuela,acid_nox,cf_median,0.17269477
+Viet Nam,acid_nox,cf_median,0.22615847
+Wake Island,acid_nox,cf_median,0.018266413
+Wallis and Futuna,acid_nox,cf_median,0.0070938547
+West Bank,acid_nox,cf_median,0.6691526
+Western Sahara,acid_nox,cf_median,0.1982008
+Yemen,acid_nox,cf_median,0.30520466
+Zambia,acid_nox,cf_median,0.24619235
+Zimbabwe,acid_nox,cf_median,0.24619235
+Abyei,acid_nox,cf_std,0.0
+Afghanistan,acid_nox,cf_std,0.27100205
+Aksai Chin,acid_nox,cf_std,0.15782021
+Albania,acid_nox,cf_std,0.13051197
+Algeria,acid_nox,cf_std,0.049928106
+American Samoa,acid_nox,cf_std,0.00016267327
+Andorra,acid_nox,cf_std,0.0
+Angola,acid_nox,cf_std,0.04896754
+Anguilla,acid_nox,cf_std,6.938894e-18
+Antarctica,acid_nox,cf_std,0.0
+Antigua and Barbuda,acid_nox,cf_std,0.0006123304
+Argentina,acid_nox,cf_std,0.04531452
+Armenia,acid_nox,cf_std,0.02690401
+Aruba,acid_nox,cf_std,0.0018380096
+Arunachal Pradesh,acid_nox,cf_std,0.03086979
+Ashmore and Cartier Islands,acid_nox,cf_std,6.938894e-18
+Australia,acid_nox,cf_std,0.081511
+Austria,acid_nox,cf_std,0.062467106
+Azerbaijan,acid_nox,cf_std,0.08004503
+Azores Islands,acid_nox,cf_std,0.08591331
+Bahamas,acid_nox,cf_std,0.025713671
+Bahrain,acid_nox,cf_std,2.220446e-16
+Baker Island,acid_nox,cf_std,0.0
+Bangladesh,acid_nox,cf_std,0.040519193
+Barbados,acid_nox,cf_std,0.0
+Bassas da India,acid_nox,cf_std,0.0
+Belarus,acid_nox,cf_std,0.07779516
+Belgium,acid_nox,cf_std,0.18650733
+Belize,acid_nox,cf_std,0.00092821254
+Benin,acid_nox,cf_std,0.013280116
+Bermuda,acid_nox,cf_std,0.0
+Bhutan,acid_nox,cf_std,0.07319826
+Bird Island,acid_nox,cf_std,0.0
+Bolivia,acid_nox,cf_std,0.097472034
+Bosnia and Herzegovina,acid_nox,cf_std,0.060331903
+Botswana,acid_nox,cf_std,0.10558158
+Bouvet Island,acid_nox,cf_std,0.0
+Brazil,acid_nox,cf_std,0.09896181
+British Indian Ocean Territory,acid_nox,cf_std,0.0029182658
+British Virgin Islands,acid_nox,cf_std,6.938894e-18
+Brunei Darussalam,acid_nox,cf_std,0.0048332843
+Bulgaria,acid_nox,cf_std,0.09254352
+Burkina Faso,acid_nox,cf_std,0.023778183
+Burundi,acid_nox,cf_std,0.031173255
+Cambodia,acid_nox,cf_std,0.0075097415
+Cameroon,acid_nox,cf_std,0.04341154
+Canada,acid_nox,cf_std,0.23369233
+Cape Verde,acid_nox,cf_std,0.054240722
+Cayman Islands,acid_nox,cf_std,0.0031993832
+Central African Republic,acid_nox,cf_std,0.12384473
+Chad,acid_nox,cf_std,0.10309672
+Chile,acid_nox,cf_std,0.1095898
+China,acid_nox,cf_std,0.30614218
+China/India,acid_nox,cf_std,0.09591516
+Christmas Island,acid_nox,cf_std,0.0
+Clipperton Island,acid_nox,cf_std,0.0
+Cocos (Keeling) Islands,acid_nox,cf_std,6.938894e-18
+Colombia,acid_nox,cf_std,0.052596964
+Comoros,acid_nox,cf_std,0.0
+Congo,acid_nox,cf_std,0.051951807
+Cook Islands,acid_nox,cf_std,0.0009557078
+Costa Rica,acid_nox,cf_std,0.01221107
+Croatia,acid_nox,cf_std,0.09680159
+Cuba,acid_nox,cf_std,0.0139201535
+Cyprus,acid_nox,cf_std,0.04026269
+Czech Republic,acid_nox,cf_std,0.023128716
+Côte d'Ivoire,acid_nox,cf_std,0.011764825
+Dem People's Rep of Korea,acid_nox,cf_std,0.14608043
+Democratic Republic of the Congo,acid_nox,cf_std,0.0681324
+Denmark,acid_nox,cf_std,0.35859013
+Djibouti,acid_nox,cf_std,0.0030792414
+Dominica,acid_nox,cf_std,0.0
+Dominican Republic,acid_nox,cf_std,0.0017268802
+Ecuador,acid_nox,cf_std,0.033231713
+Egypt,acid_nox,cf_std,0.39793658
+El Salvador,acid_nox,cf_std,0.00096932694
+Equatorial Guinea,acid_nox,cf_std,0.038943116
+Eritrea,acid_nox,cf_std,0.025145683
+Estonia,acid_nox,cf_std,0.026490653
+Ethiopia,acid_nox,cf_std,0.026570018
+Europa Island,acid_nox,cf_std,0.0
+Falkland Islands (Malvinas),acid_nox,cf_std,0.00052741874
+Faroe Islands,acid_nox,cf_std,0.0018519303
+Fiji,acid_nox,cf_std,0.0004196022
+Finland,acid_nox,cf_std,0.107777
+France,acid_nox,cf_std,0.13774154
+French Guiana,acid_nox,cf_std,0.033014454
+French Polynesia,acid_nox,cf_std,0.0010418709
+French Southern and Antarctic Territories,acid_nox,cf_std,0.024830168
+Gabon,acid_nox,cf_std,0.044345416
+Gambia,acid_nox,cf_std,0.013629068
+Gaza Strip,acid_nox,cf_std,1.110223e-16
+Georgia,acid_nox,cf_std,0.07484731
+Germany,acid_nox,cf_std,0.35805357
+Ghana,acid_nox,cf_std,0.0094353845
+Gibraltar,acid_nox,cf_std,0.0
+Glorioso Island,acid_nox,cf_std,0.0
+Greece,acid_nox,cf_std,0.092358306
+Greenland,acid_nox,cf_std,0.084288605
+Grenada,acid_nox,cf_std,0.0
+Guadeloupe,acid_nox,cf_std,0.002602276
+Guam,acid_nox,cf_std,6.827626e-05
+Guatemala,acid_nox,cf_std,0.009019231
+Guernsey,acid_nox,cf_std,0.03044032
+Guinea,acid_nox,cf_std,0.009875096
+Guinea-Bissau,acid_nox,cf_std,0.016083583
+Guyana,acid_nox,cf_std,0.06982038
+Haiti,acid_nox,cf_std,0.0045209355
+Hala'ib triangle,acid_nox,cf_std,0.00823219
+Heard Island and McDonald Islands,acid_nox,cf_std,0.00022540176
+Holy See,acid_nox,cf_std,0.0
+Honduras,acid_nox,cf_std,0.0018961411
+Hong Kong,acid_nox,cf_std,5.551115e-17
+Howland Island,acid_nox,cf_std,0.0
+Hungary,acid_nox,cf_std,0.07571442
+Iceland,acid_nox,cf_std,0.020492282
+Ilemi triangle,acid_nox,cf_std,0.0010421352
+India,acid_nox,cf_std,0.24087106
+Indonesia,acid_nox,cf_std,0.03127038
+Iran  (Islamic Republic of),acid_nox,cf_std,0.12964413
+Iraq,acid_nox,cf_std,0.05927336
+Ireland,acid_nox,cf_std,0.15453866
+Isle of Man,acid_nox,cf_std,2.7755576e-17
+Israel,acid_nox,cf_std,0.52891135
+Italy,acid_nox,cf_std,0.22151573
+Jamaica,acid_nox,cf_std,0.0046156812
+Jammu and Kashmir,acid_nox,cf_std,0.12952232
+Japan,acid_nox,cf_std,0.072480746
+Jarvis Island,acid_nox,cf_std,0.0
+Jersey,acid_nox,cf_std,5.551115e-17
+Johnston Atoll,acid_nox,cf_std,0.0
+Jordan,acid_nox,cf_std,0.1919202
+Juan de Nova Island,acid_nox,cf_std,0.0003054699
+Kazakhstan,acid_nox,cf_std,0.28989315
+Kenya,acid_nox,cf_std,0.043111257
+Kingman Reef,acid_nox,cf_std,0.001061063
+Kiribati,acid_nox,cf_std,0.0016124805
+Kuril islands,acid_nox,cf_std,0.04287302
+Kuwait,acid_nox,cf_std,0.43011242
+Kyrgyzstan,acid_nox,cf_std,0.13714057
+Lao People's Democratic Republic,acid_nox,cf_std,0.048392028
+Latvia,acid_nox,cf_std,0.031852964
+Lebanon,acid_nox,cf_std,0.0
+Lesotho,acid_nox,cf_std,0.064496435
+Liberia,acid_nox,cf_std,0.019023098
+Libya,acid_nox,cf_std,0.050541256
+Liechtenstein,acid_nox,cf_std,0.0
+Lithuania,acid_nox,cf_std,0.036099833
+Luxembourg,acid_nox,cf_std,0.0
+Ma'tan al-Sarra,acid_nox,cf_std,5.551115e-17
+Macau,acid_nox,cf_std,0.0
+Madagascar,acid_nox,cf_std,0.057733074
+Madeira Islands,acid_nox,cf_std,0.055280548
+Malawi,acid_nox,cf_std,0.07984697
+Malaysia,acid_nox,cf_std,0.013767179
+Maldives,acid_nox,cf_std,0.013678944
+Mali,acid_nox,cf_std,0.07811697
+Malta,acid_nox,cf_std,0.0
+Marshall Islands,acid_nox,cf_std,0.0011042005
+Martinique,acid_nox,cf_std,1.3877788e-17
+Mauritania,acid_nox,cf_std,0.07517751
+Mauritius,acid_nox,cf_std,0.022213936
+Mayotte,acid_nox,cf_std,0.002415987
+Mexico,acid_nox,cf_std,0.030859927
+Micronesia (Federated States of),acid_nox,cf_std,0.014003383
+Midway Island,acid_nox,cf_std,0.0033132618
+"Moldova, Republic of",acid_nox,cf_std,0.06969074
+Monaco,acid_nox,cf_std,0.0
+Mongolia,acid_nox,cf_std,0.12113235
+Montenegro,acid_nox,cf_std,0.10431478
+Montserrat,acid_nox,cf_std,0.0
+Morocco,acid_nox,cf_std,0.029663777
+Mozambique,acid_nox,cf_std,0.12014445
+Myanmar,acid_nox,cf_std,0.092311226
+Namibia,acid_nox,cf_std,0.14536388
+Nauru,acid_nox,cf_std,8.6736174e-19
+Navassa Island,acid_nox,cf_std,0.0032817954
+Nepal,acid_nox,cf_std,0.046142913
+Netherlands,acid_nox,cf_std,0.29119456
+Netherlands Antilles,acid_nox,cf_std,0.00605638
+New Caledonia,acid_nox,cf_std,0.0007136152
+New Zealand,acid_nox,cf_std,0.078565896
+Nicaragua,acid_nox,cf_std,0.004183435
+Niger,acid_nox,cf_std,0.08099989
+Nigeria,acid_nox,cf_std,0.06679439
+Niue,acid_nox,cf_std,0.00020633668
+Norfolk Island,acid_nox,cf_std,0.00046554368
+Northern Mariana Islands,acid_nox,cf_std,0.0031986856
+Norway,acid_nox,cf_std,0.24930236
+Oman,acid_nox,cf_std,0.08000526
+Pakistan,acid_nox,cf_std,0.42199472
+Palau,acid_nox,cf_std,0.0012425284
+Palmyra Atoll,acid_nox,cf_std,0.0
+Panama,acid_nox,cf_std,0.005102567
+Papua New Guinea,acid_nox,cf_std,0.017353654
+Paracel Islands,acid_nox,cf_std,0.008151596
+Paraguay,acid_nox,cf_std,0.013278762
+Peru,acid_nox,cf_std,0.20101313
+Philippines,acid_nox,cf_std,0.03144403
+Pitcairn,acid_nox,cf_std,0.00071362685
+Poland,acid_nox,cf_std,0.40814647
+Portugal,acid_nox,cf_std,0.026416412
+Puerto Rico,acid_nox,cf_std,2.4269468e-05
+Qatar,acid_nox,cf_std,0.040968873
+Republic of Korea,acid_nox,cf_std,0.09678902
+Romania,acid_nox,cf_std,0.14171882
+Russian Federation,acid_nox,cf_std,0.286307
+Rwanda,acid_nox,cf_std,0.04702926
+Réunion,acid_nox,cf_std,0.0028932716
+Saint Helena,acid_nox,cf_std,0.024375191
+Saint Kitts and Nevis,acid_nox,cf_std,0.0003000803
+Saint Lucia,acid_nox,cf_std,0.0
+Saint Pierre et Miquelon,acid_nox,cf_std,0.103387855
+Saint Vincent and the Grenadines,acid_nox,cf_std,0.015747778
+Samoa,acid_nox,cf_std,2.1587757e-06
+San Marino,acid_nox,cf_std,0.005008165
+Sao Tome and Principe,acid_nox,cf_std,0.0009063881
+Saudi Arabia,acid_nox,cf_std,0.5234921
+Scarborough Reef,acid_nox,cf_std,0.0
+Senegal,acid_nox,cf_std,0.06850364
+Senkaku Islands,acid_nox,cf_std,0.0
+Serbia,acid_nox,cf_std,0.031136055
+Seychelles,acid_nox,cf_std,0.031091804
+Sierra Leone,acid_nox,cf_std,0.014958288
+Singapore,acid_nox,cf_std,2.7755576e-17
+Slovakia,acid_nox,cf_std,0.07456049
+Slovenia,acid_nox,cf_std,0.09415867
+Solomon Islands,acid_nox,cf_std,0.0015685847
+Somalia,acid_nox,cf_std,0.0928864
+South Africa,acid_nox,cf_std,0.122345015
+South Georgia and the South Sandwich Islands,acid_nox,cf_std,0.002432415
+South Sudan,acid_nox,cf_std,0.084548496
+Spain,acid_nox,cf_std,0.09721208
+Spratly Islands,acid_nox,cf_std,0.009210455
+Sri Lanka,acid_nox,cf_std,0.0048941183
+Sudan,acid_nox,cf_std,0.1034553
+Suriname,acid_nox,cf_std,0.041685633
+Svalbard and Jan Mayen Islands,acid_nox,cf_std,0.1641425
+Swaziland,acid_nox,cf_std,0.005562549
+Sweden,acid_nox,cf_std,0.317378
+Switzerland,acid_nox,cf_std,0.048770484
+Syrian Arab Republic,acid_nox,cf_std,0.040719703
+Taiwan,acid_nox,cf_std,0.027645567
+Tajikistan,acid_nox,cf_std,0.11586531
+Thailand,acid_nox,cf_std,0.03484752
+The former Yugoslav Republic of Macedonia,acid_nox,cf_std,0.06542485
+Timor-Leste,acid_nox,cf_std,0.0046300814
+Togo,acid_nox,cf_std,0.008672533
+Tokelau,acid_nox,cf_std,0.00021445034
+Tonga,acid_nox,cf_std,0.0006238332
+Trinidad and Tobago,acid_nox,cf_std,0.0070393025
+Tromelin Island,acid_nox,cf_std,0.0
+Tunisia,acid_nox,cf_std,0.030854616
+Turkey,acid_nox,cf_std,0.12163976
+Turkmenistan,acid_nox,cf_std,0.24774711
+Turks and Caicos islands,acid_nox,cf_std,1.1246228e-05
+Tuvalu,acid_nox,cf_std,0.0002840875
+U.K. of Great Britain and Northern Ireland,acid_nox,cf_std,0.1691446
+Uganda,acid_nox,cf_std,0.030238839
+Ukraine,acid_nox,cf_std,0.1424572
+United Arab Emirates,acid_nox,cf_std,0.13734207
+United Republic of Tanzania,acid_nox,cf_std,0.019361272
+United States Virgin Islands,acid_nox,cf_std,0.000103696206
+United States of America,acid_nox,cf_std,0.2265447
+Uruguay,acid_nox,cf_std,0.0025536886
+Uzbekistan,acid_nox,cf_std,0.2832176
+Vanuatu,acid_nox,cf_std,0.000298187
+Venezuela,acid_nox,cf_std,0.047810785
+Viet Nam,acid_nox,cf_std,0.078552246
+Wake Island,acid_nox,cf_std,0.0
+Wallis and Futuna,acid_nox,cf_std,0.00016344259
+West Bank,acid_nox,cf_std,0.030667946
+Western Sahara,acid_nox,cf_std,0.056201078
+Yemen,acid_nox,cf_std,0.08841534
+Zambia,acid_nox,cf_std,0.04653384
+Zimbabwe,acid_nox,cf_std,0.08385429
