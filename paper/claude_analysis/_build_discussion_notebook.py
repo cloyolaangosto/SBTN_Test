@@ -1,4 +1,4 @@
-"""Generate the proposed Discussion-section notebook (markdown-only)."""
+"""Generate the proposed Discussion-section notebook."""
 
 import json
 from pathlib import Path
@@ -6,11 +6,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
-def md(*lines):
+def _src(lines):
     text = "\n".join(lines)
     parts = text.split("\n")
-    src = [p + "\n" for p in parts[:-1]] + [parts[-1]]
-    return {"cell_type": "markdown", "metadata": {}, "source": src}
+    return [p + "\n" for p in parts[:-1]] + [parts[-1]]
+
+
+def md(*lines):
+    return {"cell_type": "markdown", "metadata": {}, "source": _src(lines)}
+
+
+def code(*lines):
+    return {"cell_type": "code", "metadata": {}, "execution_count": None, "outputs": [], "source": _src(lines)}
 
 
 cells = []
@@ -55,17 +62,45 @@ cells.append(md(
     "consequence of *changing* practice. The practice decomposition shows that **residue retention is",
     "the single largest lever**, followed by irrigation and then tillage, and that stacking the most",
     "beneficial combination (rainfed, residues retained, reduced tillage) against the least beneficial",
-    "(irrigated, residues removed, conventional tillage) yields on average **37.5 % higher SOC after 15",
-    "years**. This ordering is mechanistically coherent — residues are the dominant fresh-carbon input",
-    "to RothC, whereas tillage acts more weakly through the decomposition-rate modifier — giving",
-    "companies a defensible priority order for regenerative interventions. Two nuances matter for use.",
-    "First, the LEAF is an *attainable* long-run state under sustained practice; the trajectory to it is",
-    "gradual (crops show slow SOC depletion under residue removal but reach equilibrium faster when",
-    "residues are retained), so SOC claims should be framed over multi-year horizons rather than",
-    "annually. Second, because the factors are land-use-specific, a company can credit the SOC gain of a",
-    "sourcing or management shift *and* check the resulting stock against the ecoregional threshold in",
-    "the same step.",
+    "(irrigated, residues removed, conventional tillage) yields on average **~37–39 % higher SOC after",
+    "15 years**. That headline average, however, conceals a wide range *between commodities*: across the",
+    "five cereals that carry the full stack it spans a median **+14 % for rapeseed** to **+38 % for",
+    "maize** (means +21 % to +54 %), with wheat (+31 %), sorghum (+26 %) and barley (+22 %) in between",
+    "(box below). The benefit scales with how residue-responsive a crop's carbon balance is — high-",
+    "residue cereals such as maize gain most — so the single ~37.5 % figure is best reported alongside",
+    "this commodity range rather than on its own. The ordering is mechanistically coherent — residues",
+    "are the dominant fresh-carbon input to RothC, whereas tillage acts more weakly through the",
+    "decomposition-rate modifier — giving companies a defensible priority order for regenerative",
+    "interventions. Two further nuances matter for use. First, the LEAF is an *attainable* long-run",
+    "state under sustained practice; the trajectory to it is gradual (crops show slow SOC depletion",
+    "under residue removal but reach equilibrium faster when residues are retained), so SOC claims",
+    "should be framed over multi-year horizons rather than annually. Second, because the factors are",
+    "land-use-specific, a company can credit the SOC gain of a sourcing or management shift *and* check",
+    "the resulting stock against the ecoregional threshold in the same step.",
+))
+
+cells.append(md(
+    "> **Supporting analysis** (the by-commodity range behind the SOC sentence — not for the manuscript",
+    "> body). Per region, the % difference is `100·(SOC_best − SOC_worst)/SOC_worst`, where *best* =",
+    "> rainfed + residues retained + reduced tillage and *worst* = irrigated + residues removed +",
+    "> conventional tillage, summarised across ecoregions for each full-stack cereal.",
+))
+
+cells.append(code(
+    "import warnings; warnings.filterwarnings('ignore')",
+    "%matplotlib inline",
+    "import matplotlib.pyplot as plt",
+    "from sbtn_leaf.claude_analysis import practice_change as pc",
     "",
+    "tbl = pc.practice_stack_table()  # full-stack cereals, ecoregion level",
+    "display(tbl.round(1))",
+    "print(f\"range of medians: {tbl['median_pct'].min():.0f}% ({tbl.iloc[-1]['commodity']}) \"",
+    "      f\"to {tbl['median_pct'].max():.0f}% ({tbl.iloc[0]['commodity']}); \"",
+    "      f\"mean of means {tbl['mean_pct'].mean():.0f}% (manuscript: 37.5%)\")",
+    "fig, ax = pc.plot_practice_stack_range(); display(fig); plt.close(fig)",
+))
+
+cells.append(md(
     "### Soil erosion: hotspot targeting and conservative, transparent multipliers",
     "",
     "The RUSLE basis makes the erosion LEAFs especially actionable because management enters",
@@ -163,6 +198,9 @@ cells.append(md(
     "- **Placeholders covered:** the SOC, erosion and acidification subsections fill the three bracketed",
     "  gaps; a multi-indicator/aggregation subsection and an explicit limitations subsection were added",
     "  because the Results support them and reviewers raised related points.",
+    "- **SOC stacking range:** the ~37.5 % figure is reproduced as the cross-commodity mean (~38 %) but",
+    "  ranges from +14 % (rapeseed) to +38 % (maize) by median; the supporting box gives the table and",
+    "  figure (also saved to `outputs/practice_change/`).",
     "- **Confirm before submission:** (a) the acidification threshold-basis reconciliation (SO₂-eq vs",
     "  N-deposition); (b) the flagged outliers (irrigated potato/oil-palm) and the reduced-tillage",
     "  re-runs; (c) the exact co-benefit correlation sign/magnitude, which comes from the companion",

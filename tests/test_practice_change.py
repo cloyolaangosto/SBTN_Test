@@ -74,6 +74,20 @@ def test_priority_regions_sorted_and_bounded():
     assert ((p["priority"] >= 0) & (p["priority"] <= 1)).all()
 
 
+def test_practice_stack_table_range_and_order():
+    t = pc.practice_stack_table()  # the five full-stack cereals
+    assert set(t["commodity"]) == set(pc.STACK_CEREALS)
+    # ranked by median benefit, descending
+    assert t["median_pct"].is_monotonic_decreasing
+    # the best vs worst stack raises SOC for every cereal (median > 0)
+    assert (t["median_pct"] > 0).all()
+    assert (t["n_regions"] > 100).all()
+    # the mean across commodities reproduces the manuscript's ~37.5%
+    assert 30 < t["mean_pct"].mean() < 45
+    # and the by-commodity range is wide (the point of the expansion)
+    assert t["median_pct"].max() - t["median_pct"].min() > 10
+
+
 # --------------------------------------------------------------------------- #
 # Plot smoke tests (Agg backend, no display)
 # --------------------------------------------------------------------------- #
@@ -90,6 +104,7 @@ def test_nonmap_plots_return_fig():
         (pc.plot_benefit_distributions, (["Wheat", "Maize"], "ecoregion")),
         (pc.plot_attribution, ("Wheat", "ecoregion")),
         (pc.plot_cobenefit_by_realm, ("Wheat", "ecoregion")),
+        (pc.plot_practice_stack_range, ()),
     ):
         fig, _ = fn(*args)
         assert fig is not None

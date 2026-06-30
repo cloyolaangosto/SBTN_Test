@@ -29,6 +29,20 @@ Switching the **same commodity** from the baseline (conventional tillage + resid
 | Cotton | tillage_only | 0.633 | 27.202 |  |  | tillage | tillage |
 
 
+## Full practice-stack SOC range (best vs worst combination, by commodity)
+
+Median / mean % SOC difference between the best (rainfed + residues retained + reduced tillage) and worst (irrigated + residues removed + conventional tillage) stack. The cross-commodity mean reproduces the manuscript's ~37.5%, but the by-commodity range is wide (rapeseed lowest, maize highest).
+
+
+| commodity | stack | n_regions | soc_worst_med | soc_best_med | median_pct | mean_pct | p10_pct | p90_pct |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Maize | irrigation+residue+tillage | 663 | 31.37 | 43.56 | 38.47 | 54.06 | 9.17 | 112.94 |
+| Wheat | irrigation+residue+tillage | 546 | 33.69 | 42.38 | 30.73 | 45.6 | 8.14 | 102.77 |
+| Sorghum | irrigation+residue+tillage | 601 | 28.35 | 36.26 | 25.84 | 39.81 | 4.4 | 84.16 |
+| Barley | irrigation+residue+tillage | 511 | 34.46 | 40.8 | 21.88 | 33.14 | 4.94 | 78.87 |
+| Rapeseed | irrigation+residue+tillage | 433 | 34.86 | 38.92 | 13.8 | 20.83 | 1.69 | 50.35 |
+
+
 ## Where to focus — top wheat ecoregions by co-benefit priority
 
 | region_name | country_name | biome | realm | d_soc | d_se_red | priority |
